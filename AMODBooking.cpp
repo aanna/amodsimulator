@@ -5,7 +5,7 @@
  *      Author: haroldsoh
  */
 
-#include <entities/amodController/AMODBooking.hpp>
+#include "AMODBooking.hpp"
 
 namespace AMODBase {
 

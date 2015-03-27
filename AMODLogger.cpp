@@ -5,7 +5,7 @@
  *      Author: haroldsoh
  */
 
-#include <entities/amodController/AMODLogger.hpp>
+#include "AMODLogger.hpp"
 
 namespace AMODBase {
 

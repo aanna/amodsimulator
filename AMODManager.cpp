@@ -5,5 +5,5 @@
  *      Author: haroldsoh
  */
 
-#include <entities/amodController/AMODManager.hpp>
+#include "AMODManager.hpp"
 

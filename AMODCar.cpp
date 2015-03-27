@@ -5,7 +5,7 @@
  *      Author: haroldsoh
  */
 
-#include <entities/amodController/AMODCar.hpp>
+#include "AMODCar.hpp"
 
 namespace AMODBase {
 

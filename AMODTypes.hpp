@@ -13,8 +13,8 @@
 
 namespace  AMODBase {
 
-enum CarStatus { FREE, HIRED, ONCALL, PARKED, UNKNOWN };
-enum ReturnCode{ FAILED, SUCCESS, CAR_NOT_PARKED, SOURCE_EQUALS_DESTINATION };
+enum CarStatus { FREE, HIRED, PICKUP, ONCALL, PARKED, UNKNOWN };
+enum ReturnCode{ FAILED, SUCCESS, CAR_CANNOT_BE_DISPATCHED, SOURCE_EQUALS_DESTINATION };
 
 // Stores Positions of objects
 struct Position {

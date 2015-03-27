@@ -1,20 +1,20 @@
 /*
- * AMODLogger.cpp
+ * Logger.cpp
  *
  *  Created on: Mar 23, 2015
  *      Author: haroldsoh
  */
 
-#include "AMODLogger.hpp"
+#include "Logger.hpp"
 
-namespace AMODBase {
+namespace amod {
 
-AMODLogger::AMODLogger() {
+Logger::Logger() {
 	// TODO Auto-generated constructor stub
 
 }
 
-AMODLogger::~AMODLogger() {
+Logger::~Logger() {
 	// TODO Auto-generated destructor stub
 }
 

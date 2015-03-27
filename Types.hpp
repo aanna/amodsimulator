@@ -11,10 +11,11 @@
 #include <functional>
 
 
-namespace  AMODBase {
+namespace  amod {
 
-enum CarStatus { FREE, HIRED, PICKUP, ONCALL, PARKED, UNKNOWN };
+enum VehicleStatus { FREE, HIRED, PICKUP, ONCALL, PARKED, UNKNOWN };
 enum ReturnCode{ FAILED, SUCCESS, CAR_CANNOT_BE_DISPATCHED, SOURCE_EQUALS_DESTINATION };
+
 
 // Stores Positions of objects
 struct Position {
@@ -36,9 +37,9 @@ struct Position {
 namespace std {
 
   template <>
-  struct hash<AMODBase::Position>
+  struct hash<amod::Position>
   {
-    std::size_t operator()(const AMODBase::Position& p) const
+    std::size_t operator()(const amod::Position& p) const
     {
     	std::hash<int> hash_fn;
     	std::size_t hash_val = hash_fn(p.x);

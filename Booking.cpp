@@ -1,20 +1,20 @@
 /*
- * AMODCar.cpp
+ * Booking.cpp
  *
  *  Created on: Mar 23, 2015
  *      Author: haroldsoh
  */
 
-#include "AMODCar.hpp"
+#include "Booking.hpp"
 
-namespace AMODBase {
+namespace amod {
 
-AMODCar::AMODCar(int id) : status_(UNKNOWN), speed_(0) {
+Booking::Booking() {
 	// TODO Auto-generated constructor stub
-	AMODObject::setID(id);
+
 }
 
-AMODCar::~AMODCar() {
+Booking::~Booking() {
 	// TODO Auto-generated destructor stub
 }
 

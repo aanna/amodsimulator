@@ -1,7 +1,7 @@
 CC:=g++
 CC_FLAGS:=-g -O2 -std=c++11
 LD_FLAGS:=
-CPP_FILES := $(wildcard *.cpp)
+CPP_FILES := $(wildcard src/*.cpp)
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
 
 all: AMODBasicTest
@@ -11,3 +11,4 @@ AMODBasicTest: $(OBJ_FILES)
 
 obj/%.o: %.cpp
 	$(CC) $(CC_FLAGS) -c -o $@ $<
+

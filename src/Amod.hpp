@@ -9,12 +9,14 @@
 #define AMOD_HPP_
 
 #include "Types.hpp"
+#include "Utility.hpp"
 #include "Entity.hpp"
 #include "Location.hpp"
 #include "Vehicle.hpp"
 #include "Manager.hpp"
 #include "Simulator.hpp"
 #include "World.hpp"
+
 
 
 #endif /* AMOD_HPP_ */

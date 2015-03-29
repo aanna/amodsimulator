@@ -24,7 +24,9 @@ public:
 	World();
 	virtual ~World();
 
-	virtual void populate(std::vector<Location> &locations, std::vector<Vehicle> &vehicles);
+    virtual void populate(std::vector<Location> &locations,
+                          std::vector<Vehicle> &vehicles,
+                          std::vector<Customer> &customers);
 
 	virtual void addVehicle(const Vehicle &veh);
 	virtual void setVehicle(const Vehicle &veh);

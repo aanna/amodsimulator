@@ -33,7 +33,7 @@ public:
     virtual amod::ReturnCode dropoffCustomer(int veh_id, int cust_id) = 0;
 
     // med level commands
-    virtual amod::ReturnCode serviceBooking(int veh_id, const amod::Booking &booking) = 0;
+    virtual amod::ReturnCode serviceBooking(const amod::Booking &booking) = 0;
 
     // distance functions
     virtual double getDrivingDistance(const amod::Position &from, const amod::Position &to) = 0;

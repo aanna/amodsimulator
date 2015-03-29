@@ -14,8 +14,7 @@ namespace amod {
 
 class Customer: public amod::Entity {
 public:
-	Customer();
-	Customer(int id, std::string name, amod::Position pos, int assigned_vehicle, bool in_vehicle_);
+	Customer(int id = 0, std::string name = "", amod::Position pos = Position(), int assigned_vehicle = 0, bool in_vehicle_ = false);
 	virtual ~Customer();
 
 	virtual void setAssignedVehicleId(int veh_id);

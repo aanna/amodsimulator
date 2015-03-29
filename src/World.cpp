@@ -18,10 +18,19 @@ World::~World() {
 	// TODO Auto-generated destructor stub
 }
 
-void World::populate(std::vector<Location> &locations, std::vector<Vehicle> &vehicles) {
+void World::populate(std::vector<Location> &locations, std::vector<Vehicle> &vehicles, std::vector<Customer> &customers) {
 	for (auto l : locations) {
 		locations_[l.getId()] = l;
 	}
+    
+    for (auto v : vehicles) {
+        vehicles_[v.getId()] = v;
+    }
+    
+    for (auto c : customers) {
+        customers_[c.getId()] = c;
+    }
+    
 }
 
 void World::addVehicle(const Vehicle &veh) {
@@ -69,7 +78,7 @@ void World::getVehicles(std::vector<Vehicle> *vehs) {
 
 
 int World::getNumVehicles() {
-	return vehicles_.size();
+	return (int) vehicles_.size();
 }
 
 
@@ -118,7 +127,7 @@ void World::getCustomers(std::vector<Customer> *custs) {
 
 
 int World::getNumCustomers() {
-    return customers_.size();
+    return (int) customers_.size();
 }
 
 
@@ -164,7 +173,7 @@ void World::getLocations(std::vector<Location> *locs) {
 }
 
 int World::getNumLocations() {
-	return locations_.size();
+	return (int) locations_.size();
 }
 
 void World::addEvent(Event &event) {
@@ -205,7 +214,7 @@ void World::clearEvents() {
 
 
 int World::getNumEvents() {
-	return events_.size();
+	return (int) events_.size();
 }
 
 double World::getCurrentTime() {

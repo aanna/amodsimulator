@@ -39,7 +39,7 @@ void Location::clearVehicleIds() {
 }
 
 int Location::getNumVehicles() {
-	return vehicle_ids_.size();
+	return (int) vehicle_ids_.size();
 }
 
 void Location::setCapacity(int capacity) {

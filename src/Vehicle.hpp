@@ -30,6 +30,7 @@ public:
 	virtual void setSpeed(double speed);
 
 	virtual void setCustomerId(int cust_id);
+    virtual int getCustomerId() const;
 	virtual void clearCustomerId();
 
 	virtual void setCapacity(int capacity);

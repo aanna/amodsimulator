@@ -9,12 +9,29 @@
 #define AMODTYPES_HPP_
 
 #include <functional>
-
+#include <vector>
+#include <string> 
 
 namespace  amod {
 
 enum VehicleStatus { FREE, HIRED, PICKUP, ONCALL, PARKED, UNKNOWN };
-enum ReturnCode{ FAILED, SUCCESS, CAR_CANNOT_BE_DISPATCHED, SOURCE_EQUALS_DESTINATION };
+enum ReturnCode{ FAILED,
+    SUCCESS,
+    CANNOT_GET_VEHICLE,
+    CANNOT_GET_CUSTOMER,
+    VEHICLE_NOT_AT_CUSTOMER_LOCATION,
+    VEHICLE_DOES_NOT_HAVE_CUSTOMER,
+    VEHICLE_CANNOT_BE_DISPATCHED,
+    SOURCE_EQUALS_DESTINATION };
+    
+    const std::vector<std::string> kErrorStrings = {"Failed",
+        "Success",
+        "Failed to get vehicle with given Id",
+        "Failed to get customer with given Id",
+        "Vehicle not at customer location",
+        "Vehicle not associated with given customer",
+        "Vehicle cannot be dispatched",
+        "Source and Destination are the same"};
 
 
 // Stores Positions of objects
@@ -27,6 +44,10 @@ struct Position {
 	bool operator==(const Position &other) const {
 		return (x == other.x) && (y == other.y) && valid && other.valid;
 	}
+    
+    bool operator!=(const Position &other) const {
+        return !(*this == other);
+    }
 
 };
 

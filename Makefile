@@ -9,6 +9,6 @@ all: AMODBasicTest
 AMODBasicTest: $(OBJ_FILES)
 	$(CC) $(LD_FLAGS) -o $@ $^
 
-obj/%.o: %.cpp
+obj/%.o: src/%.cpp
 	$(CC) $(CC_FLAGS) -c -o $@ $<
 

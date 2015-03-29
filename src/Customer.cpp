@@ -9,15 +9,12 @@
 
 namespace amod {
 
-Customer::Customer() {
-	return;
-}
 
 Customer::~Customer() {
 	return;
 }
 
-Customer::Customer(int id, std::string name, amod::Position pos, int assigned_vehicle = 0, bool in_vehicle = false) :
+Customer::Customer(int id, std::string name, amod::Position pos, int assigned_vehicle, bool in_vehicle) :
 		Entity(id, name, pos), veh_id_(assigned_vehicle), in_vehicle_(in_vehicle) {
 	return;
 }

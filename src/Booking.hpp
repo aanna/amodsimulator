@@ -22,6 +22,11 @@ namespace amod {
         int veh_id;
         int cust_id;
         
+        double booking_time;
+        double dispatch_time;
+        double pickup_time;
+        double dropoff_time;
+        
         Position destination;
         
     };

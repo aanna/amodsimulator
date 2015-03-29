@@ -104,7 +104,7 @@ namespace amod {
         double pickup_time = state_.getCurrentTime() + genRandTruncNormal(pickup_params_);
         std::cout << "Future Pickup time : " << pickup_time << std::endl;
         Pickup p{booking_id, veh_id, cust_id, pickup_time};
-        pickups_[pickup_time] = p;
+        pickups_.emplace(pickup_time, p);
         
         return amod::SUCCESS;
     }
@@ -133,7 +133,7 @@ namespace amod {
         double dropoff_time = state_.getCurrentTime() + genRandTruncNormal(dropoff_params_);
         std::cout << "Future Dropoff time : " << dropoff_time << std::endl;
         Dropoff doff{booking_id, veh_id, cust_id, dropoff_time};
-        dropoffs_[dropoff_time] = doff;
+        dropoffs_.emplace(dropoff_time, doff);
         
         return amod::SUCCESS;
     }
@@ -143,7 +143,15 @@ namespace amod {
         bookings_[booking.id] = booking;
         
         // dispatch the vehicle to the customer's position
-        return dispatchVehicle(booking.veh_id, state_.getCustomer(booking.cust_id).getPosition(), booking.id);
+        Position from = state_.getVehicle(booking.veh_id).getPosition();
+        Position to = state_.getCustomer(booking.cust_id).getPosition();
+        
+        
+        if (from == to) {
+            return pickupCustomer(booking.veh_id, booking.cust_id, booking.id);
+        } else {
+            return dispatchVehicle(booking.veh_id, to, booking.id);
+        }
     }
     
     double SimulatorBasic::getDrivingDistance(const amod::Position &from, const amod::Position &to) {

@@ -89,8 +89,8 @@ private:
 
     std::unordered_map<int, Booking> bookings_;
     std::unordered_map<int, Dispatch> dispatches_;
-    std::map<double, Pickup> pickups_;
-    std::map<double, Dropoff> dropoffs_;
+    std::multimap<double, Pickup> pickups_;
+    std::multimap<double, Dropoff> dropoffs_;
     
     // parameters for pickup distribution simulation
     TruncatedNormalParams pickup_params_;

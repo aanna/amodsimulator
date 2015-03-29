@@ -14,6 +14,7 @@
 		017E8AA81AC6AA5C009ED221 /* SimulatorBasic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A9A1AC6AA5C009ED221 /* SimulatorBasic.cpp */; };
 		017E8AA91AC6AA5C009ED221 /* Vehicle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A9D1AC6AA5C009ED221 /* Vehicle.cpp */; };
 		017E8AAA1AC6AA5C009ED221 /* World.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A9F1AC6AA5C009ED221 /* World.cpp */; };
+		017E8AAE1AC7F2FB009ED221 /* ManagerBasic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8AAC1AC7F2FB009ED221 /* ManagerBasic.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,6 +53,8 @@
 		017E8A9F1AC6AA5C009ED221 /* World.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = World.cpp; sourceTree = "<group>"; };
 		017E8AA01AC6AA5C009ED221 /* World.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = World.hpp; sourceTree = "<group>"; };
 		017E8AAB1AC6B7E3009ED221 /* Utility.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Utility.hpp; sourceTree = "<group>"; };
+		017E8AAC1AC7F2FB009ED221 /* ManagerBasic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ManagerBasic.cpp; sourceTree = "<group>"; };
+		017E8AAD1AC7F2FB009ED221 /* ManagerBasic.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ManagerBasic.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +99,8 @@
 				017E8A941AC6AA5C009ED221 /* Logger.cpp */,
 				017E8A951AC6AA5C009ED221 /* Logger.hpp */,
 				017E8A981AC6AA5C009ED221 /* Manager.hpp */,
+				017E8AAC1AC7F2FB009ED221 /* ManagerBasic.cpp */,
+				017E8AAD1AC7F2FB009ED221 /* ManagerBasic.hpp */,
 				017E8A991AC6AA5C009ED221 /* Simulator.hpp */,
 				017E8A9A1AC6AA5C009ED221 /* SimulatorBasic.cpp */,
 				017E8A9B1AC6AA5C009ED221 /* SimulatorBasic.hpp */,
@@ -172,6 +177,7 @@
 				017E8AA91AC6AA5C009ED221 /* Vehicle.cpp in Sources */,
 				017E8AAA1AC6AA5C009ED221 /* World.cpp in Sources */,
 				017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */,
+				017E8AAE1AC7F2FB009ED221 /* ManagerBasic.cpp in Sources */,
 				017E8AA41AC6AA5C009ED221 /* Location.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -18,11 +18,11 @@ namespace amod {
 
 class Manager {
 public:
-	Manager();
+    Manager() : sim_(nullptr), logger_(nullptr) {};
     virtual ~Manager() {};
 
-    virtual void init() = 0;
-    virtual amod::ReturnCode update() = 0;
+    virtual amod::ReturnCode init(World *world_state) = 0;
+    virtual amod::ReturnCode update(World *world_state) = 0;
     
     virtual void setSimulator(amod::Simulator *sim) {
         if (!sim) {

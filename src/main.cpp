@@ -1,7 +1,10 @@
 #include <iostream>
 #include <cstdlib>
+#include <vector>
+
 #include "Amod.hpp"
 #include "SimulatorBasic.hpp"
+#include "ManagerBasic.hpp"
 
 int main(int argc, char **argv) {
     std::cout << "AMOD Basic Test Program" << std::endl;
@@ -37,48 +40,28 @@ int main(int argc, char **argv) {
     sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 30.0);
     
     sim.update(&world_state);
-    amod::Position to(120, 120);
-    //sim.dispatchVehicle(1, to);
-    amod::Booking booking;
-    booking.id = 1;
-    booking.cust_id = 1;
-    booking.veh_id = 1;
-    booking.destination = amod::Position(0, 0);
-    sim.serviceBooking(booking);
     
+    
+    std::vector<amod::Booking> bookings;
+    amod::Booking booking;
+    
+    booking.id = 1;
+    booking.booking_time = 5.0;
+    booking.cust_id = 1;
+    booking.veh_id = 0;
+    booking.destination = amod::Position(0, 0);
+    bookings.push_back(booking);
+    
+    // setup our manager
+    amod::ManagerBasic simple_manager;
+    simple_manager.init(&world_state);
+    simple_manager.setSimulator(&sim);
+    simple_manager.loadBookings(bookings);
+    
+    // loop until done
     for (int i=0; i<2000; i++) {
-
         sim.update(&world_state);
-        
-        // check for events
-        std::vector<amod::Event> events;
-        world_state.getEvents(&events);
-        world_state.clearEvents();
-        
-        //std::cout << "Current Time: " << world_state.getCurrentTime() << std::endl;
-        for (auto e:events) {
-            std::cout << e.t << ": Event #" << e.id << " " << e.name << " Entities: ( ";
-            for (auto ent: e.entity_ids) {
-                std::cout << ent << " ";
-            }
-            std::cout << ")" << std::endl;
-            /*
-            if (e.type == amod::EVENT_ARRIVAL) {
-                amod::ReturnCode rc = sim.pickupCustomer(e.entity_ids[0], 1);
-                if (rc != amod::SUCCESS) {
-                    std::cout << "ERROR: Cannot pickup. " << amod::kErrorStrings[rc] << std::endl;
-                }
-            }
-            
-            if (e.type == amod::EVENT_PICKUP) {
-                
-                amod::ReturnCode rc = sim.dropoffCustomer(e.entity_ids[0], e.entity_ids[1]);
-                if (rc != amod::SUCCESS) {
-                    std::cout << "ERROR: Cannot dropoff. " << amod::kErrorStrings[rc] << std::endl;
-                }
-            }*/
-        }
-        
+        simple_manager.update(&world_state);
     }
     
 
@@ -91,9 +74,11 @@ int main(int argc, char **argv) {
     
     // while true
 
-    // ask the manager to perform an update
-    
-    // get the manager to print some relevant info
+        // ask the simulator to perform an update
+        
+        // ask the manager to perform an update
+        
+        // get the manager to print some relevant info
     
     // ask the manager to close things and end the logger
     

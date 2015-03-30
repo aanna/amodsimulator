@@ -227,6 +227,13 @@ namespace amod {
                 ++it;
                 std::cout << "Vehicle pos:" << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
                 
+                // trigger move event
+				std::vector<int> entities = {veh.getId()};
+				if (cust_id) entities.push_back(cust_id);
+				Event ev(amod::EVENT_MOVE, ++event_id_, "Vehicle Moved", state_.getCurrentTime(), entities);
+				world_state->addEvent(ev);
+
+
                 world_state->setVehicle(veh); //update the vehicle in the world state
                 state_.setVehicle(veh);
                 

@@ -70,7 +70,7 @@ private:
 	std::map<int, Vehicle> vehicles_;
 	std::map<int, Location> locations_;
 	std::map<int, Customer> customers_;
-	std::map<int, Event> events_;
+	std::map<long long, Event> events_;
 	double current_time_;
 };
 

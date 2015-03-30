@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		017E8A831AC6A999009ED221 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A821AC6A999009ED221 /* main.cpp */; };
 		017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A8D1AC6AA5C009ED221 /* Customer.cpp */; };
 		017E8AA41AC6AA5C009ED221 /* Location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A921AC6AA5C009ED221 /* Location.cpp */; };
 		017E8AA51AC6AA5C009ED221 /* Logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A941AC6AA5C009ED221 /* Logger.cpp */; };
@@ -15,6 +14,7 @@
 		017E8AA91AC6AA5C009ED221 /* Vehicle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A9D1AC6AA5C009ED221 /* Vehicle.cpp */; };
 		017E8AAA1AC6AA5C009ED221 /* World.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A9F1AC6AA5C009ED221 /* World.cpp */; };
 		017E8AAE1AC7F2FB009ED221 /* ManagerBasic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8AAC1AC7F2FB009ED221 /* ManagerBasic.cpp */; };
+		017E8AB11AC99529009ED221 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8AB01AC99529009ED221 /* main.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,7 +31,6 @@
 
 /* Begin PBXFileReference section */
 		017E8A7F1AC6A999009ED221 /* AMODBase */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AMODBase; sourceTree = BUILT_PRODUCTS_DIR; };
-		017E8A821AC6A999009ED221 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		017E8A891AC6AA5C009ED221 /* Amod.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Amod.hpp; sourceTree = "<group>"; };
 		017E8A8C1AC6AA5C009ED221 /* Booking.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Booking.hpp; sourceTree = "<group>"; };
 		017E8A8D1AC6AA5C009ED221 /* Customer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Customer.cpp; sourceTree = "<group>"; };
@@ -55,6 +54,7 @@
 		017E8AAB1AC6B7E3009ED221 /* Utility.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Utility.hpp; sourceTree = "<group>"; };
 		017E8AAC1AC7F2FB009ED221 /* ManagerBasic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ManagerBasic.cpp; sourceTree = "<group>"; };
 		017E8AAD1AC7F2FB009ED221 /* ManagerBasic.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ManagerBasic.hpp; sourceTree = "<group>"; };
+		017E8AB01AC99529009ED221 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +71,7 @@
 		017E8A761AC6A999009ED221 = {
 			isa = PBXGroup;
 			children = (
+				017E8AAF1AC9950E009ED221 /* examples */,
 				017E8A811AC6A999009ED221 /* src */,
 				017E8A801AC6A999009ED221 /* Products */,
 			);
@@ -109,10 +110,17 @@
 				017E8A9E1AC6AA5C009ED221 /* Vehicle.hpp */,
 				017E8A9F1AC6AA5C009ED221 /* World.cpp */,
 				017E8AA01AC6AA5C009ED221 /* World.hpp */,
-				017E8A821AC6A999009ED221 /* main.cpp */,
 				017E8AAB1AC6B7E3009ED221 /* Utility.hpp */,
 			);
 			path = src;
+			sourceTree = "<group>";
+		};
+		017E8AAF1AC9950E009ED221 /* examples */ = {
+			isa = PBXGroup;
+			children = (
+				017E8AB01AC99529009ED221 /* main.cpp */,
+			);
+			path = examples;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -171,13 +179,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				017E8A831AC6A999009ED221 /* main.cpp in Sources */,
 				017E8AA51AC6AA5C009ED221 /* Logger.cpp in Sources */,
 				017E8AA81AC6AA5C009ED221 /* SimulatorBasic.cpp in Sources */,
 				017E8AA91AC6AA5C009ED221 /* Vehicle.cpp in Sources */,
 				017E8AAA1AC6AA5C009ED221 /* World.cpp in Sources */,
 				017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */,
 				017E8AAE1AC7F2FB009ED221 /* ManagerBasic.cpp in Sources */,
+				017E8AB11AC99529009ED221 /* main.cpp in Sources */,
 				017E8AA41AC6AA5C009ED221 /* Location.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

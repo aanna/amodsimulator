@@ -19,7 +19,7 @@ struct Event {
 	~Event() {};
 
 	EventType type;
-	int id; //specific event identifier
+	long long id; //specific event identifier
 	std::string name;
 	double t;
 	std::vector<int> entity_ids;

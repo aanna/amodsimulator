@@ -53,7 +53,7 @@ private:
     std::default_random_engine eng;
     std::normal_distribution<> normal_dist;
     
-    int event_id_; // so that events have different ids
+    long long event_id_; // so that events have different ids
     
     struct Dispatch {
         int booking_id;  //0 if manual dispatch

@@ -114,7 +114,7 @@ namespace amod {
         while (in.good()) {
             Booking b;
             in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y;
-            bookings_.emplace(b.booking_time, b);
+            if (b.id) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
         }
         
         return amod::SUCCESS;

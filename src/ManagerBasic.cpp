@@ -41,6 +41,14 @@ namespace amod {
                 std::cout << ent << " ";
             }
             std::cout << ")" << std::endl;
+            
+            // handle dropoff avents
+            if (e.type == amod::EVENT_DROPOFF) {
+                amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
+                veh.setStatus(amod::FREE);
+                world_state->setVehicle(veh);
+            }
+            
         }
         world_state->clearEvents();
         
@@ -65,7 +73,7 @@ namespace amod {
                     double dist = sim->getDistance(vitr->getPosition(), cust.getPosition());
                     if (min_dist < 0 || dist < min_dist) {
                         amod::VehicleStatus status;
-                        if (!best_veh_id || status == amod::PARKED) {
+                        if (!best_veh_id || status == amod::PARKED || status == amod::FREE ) {
                             min_dist = dist;
                             best_veh_id = vitr->getId();
                         }
@@ -78,6 +86,11 @@ namespace amod {
                     
                     // tell the simulator to service this booking
                     sim->serviceBooking(bk);
+                    
+                    // update the state of the vehicle in the world
+                    amod::Vehicle veh = vehs[best_veh_id];
+                    veh.setStatus(amod::BUSY);
+                    world_state->setVehicle(veh);
                     
                     // erase the booking
                     bookings_.erase(itr);

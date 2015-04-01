@@ -14,7 +14,7 @@
 
 namespace  amod {
     
-    enum VehicleStatus { FREE, HIRED, PICKUP, ONCALL, PARKED, UNKNOWN };
+    enum VehicleStatus { FREE, BUSY, HIRED, PICKUP, ONCALL, PARKED, UNKNOWN };
     enum ReturnCode{ FAILED,
         SUCCESS,
         CANNOT_GET_VEHICLE,

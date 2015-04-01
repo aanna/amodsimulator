@@ -106,6 +106,7 @@ namespace amod {
         Pickup p{booking_id, veh_id, cust_id, pickup_time};
         pickups_.emplace(pickup_time, p);
         
+        
         return amod::SUCCESS;
     }
     
@@ -176,7 +177,7 @@ namespace amod {
             it->second.curr.y += y_dist;
             
             veh.setPosition(it->second.curr);
-            
+
             // set associated customer id
             int cust_id = veh.getCustomerId();
             Customer cust = world_state->getCustomer(cust_id);
@@ -196,6 +197,7 @@ namespace amod {
                 
                 // trigger arrival event
                 std::vector<int> entities = {veh.getId()};
+                
                 Event ev(amod::EVENT_ARRIVAL, ++event_id_, "Vehicle Arrival", state_.getCurrentTime(), entities);
                 world_state->addEvent(ev);
                 
@@ -233,7 +235,6 @@ namespace amod {
 				Event ev(amod::EVENT_MOVE, ++event_id_, "Vehicle Moved", state_.getCurrentTime(), entities);
 				world_state->addEvent(ev);
 
-
                 world_state->setVehicle(veh); //update the vehicle in the world state
                 state_.setVehicle(veh);
                 
@@ -266,7 +267,6 @@ namespace amod {
                 
                 Vehicle veh = world_state->getVehicle(it->second.veh_id);
                 veh.setCustomerId(it->second.cust_id);
-                veh.setStatus(amod::PICKUP);
                 Customer cust = world_state->getCustomer(it->second.cust_id);
                 cust.setAssignedVehicleId(it->second.veh_id);
                 cust.setInVehicle(true);
@@ -304,21 +304,21 @@ namespace amod {
                 
                 Vehicle veh = world_state->getVehicle(it->second.veh_id);
                 veh.clearCustomerId();
-                veh.setStatus(amod::FREE);
+                
                 Customer cust = world_state->getCustomer(it->second.cust_id);
                 cust.clearAssignedVehicleId();
                 cust.setInVehicle(false);
-                
-                world_state->setCustomer(cust);
-                world_state->setVehicle(veh);
-                state_.setCustomer(cust);
-                state_.setVehicle(veh);
                 
                 // if is part of a booking, clear it since the vehicle has fropped off the custmer
                 int bid = it->second.booking_id;
                 if (bid) {
                     bookings_.erase(bid);
                 }
+                
+                world_state->setCustomer(cust);
+                world_state->setVehicle(veh);
+                state_.setCustomer(cust);
+                state_.setVehicle(veh);
                 
                 // erase item
                 dropoffs_.erase(it);

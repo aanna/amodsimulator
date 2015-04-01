@@ -62,7 +62,7 @@ private:
     	Position to;
         Position grad; //normalized gradient
         Position curr;
-        
+
     };
     
     struct Pickup {

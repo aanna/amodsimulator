@@ -12,6 +12,7 @@
 #include "Types.hpp"
 #include "Simulator.hpp"
 #include "Logger.hpp"
+#include "Booking.hpp"
 #include <stdexcept>
 
 namespace amod {
@@ -23,6 +24,7 @@ public:
 
     virtual amod::ReturnCode init(World *world_state) = 0;
     virtual amod::ReturnCode update(World *world_state) = 0;
+    virtual amod::ReturnCode loadBookings(const std::vector<Booking> &bookings) = 0;
     
     virtual void setSimulator(amod::Simulator *sim) {
         if (!sim) {
@@ -46,7 +48,7 @@ public:
         return logger_;
     }
     
-    
+
 private:
     amod::Simulator* sim_;
     amod::Logger *logger_;

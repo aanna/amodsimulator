@@ -65,17 +65,15 @@ namespace amod {
                 
                 // find closest free vehicle
                 // simple iterative method first
-                std::vector<Vehicle> vehs;
-                world_state->getVehicles(&vehs);
                 double min_dist = -1;
                 int best_veh_id = 0;
-                for (auto vitr=vehs.begin(); vitr != vehs.end(); ++vitr) {
-                    double dist = sim->getDistance(vitr->getPosition(), cust.getPosition());
+                for (auto vitr=world_state->getVehiclesBeginItr(); vitr != world_state->getVehiclesEndItr(); ++vitr) {
+                    double dist = sim->getDistance(vitr->second.getPosition(), cust.getPosition());
                     if (min_dist < 0 || dist < min_dist) {
                         amod::VehicleStatus status;
                         if (!best_veh_id || status == amod::PARKED || status == amod::FREE ) {
                             min_dist = dist;
-                            best_veh_id = vitr->getId();
+                            best_veh_id = vitr->second.getId();
                         }
                     }
                 }
@@ -88,7 +86,7 @@ namespace amod {
                     sim->serviceBooking(bk);
                     
                     // update the state of the vehicle in the world
-                    amod::Vehicle veh = vehs[best_veh_id];
+                    amod::Vehicle veh = world_state->getVehicle(best_veh_id);
                     veh.setStatus(amod::BUSY);
                     world_state->setVehicle(veh);
                     

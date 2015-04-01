@@ -75,6 +75,14 @@ void World::getVehicles(std::vector<Vehicle> *vehs) {
 		vehs->push_back(it->second);
 	}
 }
+    
+    std::map<int, Vehicle>::const_iterator World::getVehiclesBeginItr() {
+        return vehicles_.begin();
+    }
+    
+    std::map<int, Vehicle>::const_iterator World::getVehiclesEndItr() {
+        return vehicles_.end();
+    }
 
 
 int World::getNumVehicles() {

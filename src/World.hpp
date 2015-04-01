@@ -35,6 +35,8 @@ public:
 	virtual void removeVehicles(std::vector<int> &veh_ids);
 	virtual Vehicle getVehicle(int veh_id);
 	virtual void getVehicles(std::vector<Vehicle> *vehs);
+    virtual std::map<int, Vehicle>::const_iterator getVehiclesBeginItr();
+    virtual std::map<int, Vehicle>::const_iterator getVehiclesEndItr();
 	virtual int getNumVehicles();
 
     virtual void addLocation(const Location &loc);

@@ -24,7 +24,7 @@ namespace amod {
         // TODO Auto-generated destructor stub
     }
     
-    VehicleStatus Vehicle::getStatus() {
+    VehicleStatus Vehicle::getStatus() const{
         return status_;
     }
     

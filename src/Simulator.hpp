@@ -24,19 +24,80 @@ public:
 
 	virtual ~Simulator() {};
 
-	virtual amod::ReturnCode init(amod::World *world_state) = 0;
-    virtual amod::ReturnCode update(amod::World *world_state) = 0;
-
+    // init
+    // initializes the Simulator with the world_state.
+    // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    // one of the amod::ReturnCode error codes.
+    virtual amod::ReturnCode  init(amod::World *world_state) = 0;
+    
+    // update
+    // updates the world_state
+    // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    // one of the amod::ReturnCode error codes.
+    virtual amod::ReturnCode  update(amod::World *world_state) = 0;
+    
     // low level commands
-    virtual amod::ReturnCode dispatchVehicle(int veh_id, const amod::Position &to) = 0;
-    virtual amod::ReturnCode pickupCustomer(int veh_id, int cust_id) = 0;
-    virtual amod::ReturnCode dropoffCustomer(int veh_id, int cust_id) = 0;
-
-    // med level commands
-    virtual amod::ReturnCode serviceBooking(const amod::Booking &booking) = 0;
-
+    
+    // dispatchVehicle
+    // dispatches vehicle with id veh_id to Position to. If the call is successful,
+    // the vehicle status is status is set to start_status. When the vehicle arrives,
+    // an event is triggered and the vehicle's status is set to end_status.
+    // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    // one of the amod::ReturnCode error codes.
+    virtual amod::ReturnCode dispatchVehicle(amod::World *world_state,
+                                             int veh_id,
+                                             const amod::Position &to,
+                                             amod::VehicleStatus start_status = amod::BUSY,
+                                             amod::VehicleStatus end_status = amod::FREE) = 0;
+    
+    // pickupCustomer
+    // picks up customer with id cust_id using vehicle with id veh_id. If the call is successful,
+    // the vehicle status is status is set to start_status. After the customer is picked up,
+    // an event is triggered and the vehicle's status is set to end_status.
+    // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    // one of the amod::ReturnCode error codes.
+    virtual amod::ReturnCode pickupCustomer(amod::World *world_state,
+                                            int veh_id, int cust_id,
+                                            amod::VehicleStatus start_status = amod::PICKING_UP,
+                                            amod::VehicleStatus end_status = amod::HIRED) = 0;
+    
+    // dropoffCustomer
+    // drops off customer with id cust_id using vehicle with id veh_id. If the call is successful,
+    // the vehicle status is status is set to start_status. After the customer is dropped off,
+    // an event is triggered and the vehicle's status is set to end_status.
+    // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    // one of the amod::ReturnCode error codes.
+    virtual amod::ReturnCode dropoffCustomer(amod::World *world_state,
+                                             int veh_id, int cust_id,
+                                             amod::VehicleStatus status = amod::DROPPING_OFF,
+                                             amod::VehicleStatus end_status = amod::FREE) = 0;
+    
+    
+    // Medium level commands, i.e., makes basic tasks easier to do with default events
+    // automatically triggered.
+    
+    
+    // serviceBooking
+    // services the amod::Booking booking. This automatically simulates servicing a booking call
+    // from dispatch to dropoff. Specifically:
+    // The vehicle specified by booking.veh_id is dispatched from it's position to the position of
+    // booking.cust_id (with status MOVING_TO_PICKUP). Upon arrival, an event is triggered.
+    // The vehicle then waits to picks up the customer with status PICKING_UP. Upon pickup, an
+    // event is triggered and the vehicle is then dispatched to the position booking.destination
+    // with status MOVING_TO_DROPOFF. Upon arrival at the destination, an arrival event is triggered
+    // and the vehicle begins to drop off the customer, with status DROPPING_OFF. When the passenger
+    // is dropped off, a dropped off event is triggered and the vehicle is set to FREE.
+    // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    // one of the amod::ReturnCode error codes.
+    virtual amod::ReturnCode serviceBooking(amod::World *world_state, const amod::Booking &booking) = 0;
+    
     // distance functions
+    // returns the driving distance from Position from to Position to. This may not be the Euclidean
+    // distance on a road network.
     virtual double getDrivingDistance(const amod::Position &from, const amod::Position &to) = 0;
+    
+    // getDistance
+    // returns the Euclidean distance from Position from to Position to.
     virtual double getDistance(const amod::Position &from, const amod::Position &to) = 0;
 
 };

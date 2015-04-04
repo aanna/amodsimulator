@@ -14,10 +14,15 @@ namespace amod {
     }
     
     ManagerBasic::~ManagerBasic() {
+        if (out.is_open()) out.close();
         return;
     }
     
     amod::ReturnCode ManagerBasic::init(World *world_state) {
+        out.open("logfile.txt");
+        if (!out.is_open()) {
+            return amod::FAILED;
+        }
         return amod::SUCCESS;
     }
     
@@ -36,24 +41,23 @@ namespace amod {
         
         // respond to events
         for (auto e:events) {
-            std::cout << e.t << ": Event #" << e.id << " " << e.name << " Entities: ( ";
+            out << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
             for (auto ent: e.entity_ids) {
-                std::cout << ent << " ";
+                out << ent << ",";
             }
-            std::cout << ")" << std::endl;
+            out << " ";
             
-            // handle dropoff avents
-            if (e.type == amod::EVENT_DROPOFF) {
+            if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL || e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
-                veh.setStatus(amod::FREE);
-                world_state->setVehicle(veh);
+                out << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
             }
-            
         }
+        // clear events
         world_state->clearEvents();
         
         // dispatch bookings
         auto itr = bookings_.begin();
+        bool no_free_vehicles = false;
         while (itr != bookings_.end()) {
             // check if the time is less
             if (itr->first <= current_time) {
@@ -64,14 +68,14 @@ namespace amod {
                 // assign a vehicle to this customer booking
                 
                 // find closest free vehicle
-                // simple iterative method first
+                // simple iterative method
                 double min_dist = -1;
                 int best_veh_id = 0;
                 for (auto vitr=world_state->getVehiclesBeginItr(); vitr != world_state->getVehiclesEndItr(); ++vitr) {
                     double dist = sim->getDistance(vitr->second.getPosition(), cust.getPosition());
                     if (min_dist < 0 || dist < min_dist) {
-                        amod::VehicleStatus status;
-                        if (!best_veh_id || status == amod::PARKED || status == amod::FREE ) {
+                        amod::VehicleStatus status = vitr->second.getStatus();
+                        if (status == amod::PARKED || status == amod::FREE ) {
                             min_dist = dist;
                             best_veh_id = vitr->second.getId();
                         }
@@ -83,8 +87,10 @@ namespace amod {
                     bk.veh_id = best_veh_id;
                     
                     // tell the simulator to service this booking
-                    sim->serviceBooking(bk);
-                    
+                    amod::ReturnCode rc = sim->serviceBooking(world_state, bk);
+                    if (rc!= amod::SUCCESS) {
+                        return rc;
+                    }
                     // update the state of the vehicle in the world
                     amod::Vehicle veh = world_state->getVehicle(best_veh_id);
                     veh.setStatus(amod::BUSY);
@@ -93,13 +99,18 @@ namespace amod {
                     // erase the booking
                     bookings_.erase(itr);
                     
-                    // back to the beginning
+                    // set to the earliest booking
                     itr = bookings_.begin();
                 } else {
-                    ++itr;
+                    no_free_vehicles = true;
                 }
                 
             } else {
+                break;
+            }
+            
+            // check if all vehicles are currently occupied
+            if (no_free_vehicles) {
                 break;
             }
             

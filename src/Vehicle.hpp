@@ -23,7 +23,7 @@ public:
 	Vehicle(int id, std::string name, Position pos, int capacity, VehicleStatus status);
 	virtual ~Vehicle();
 
-	virtual VehicleStatus getStatus();
+	virtual VehicleStatus getStatus() const;
 	virtual void setStatus(VehicleStatus s);
 
 	virtual double getSpeed() const;

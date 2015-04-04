@@ -15,12 +15,13 @@ int main(int argc, char **argv) {
     world_state.setCurrentTime(0);
     
     // create vehicles
-    
-    int num_vehs = 100;
+    int max_x = 10000;
+    int max_y = 10000;
+    int num_vehs = 50;
     std::vector<amod::Vehicle> vehicles;
     for (int id=1; id<=num_vehs; id++) {
         amod::Vehicle veh(id); // all vehicles must have a UNIQUE id
-        amod::Position pos(rand()%100, rand()%100);
+        amod::Position pos(rand()%max_x, rand()%max_y);
         veh.setStatus(amod::FREE);
         veh.setPosition(pos);
         vehicles.push_back(veh);
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
         int cust_id = id; // all customers must have a unique id
         std::stringstream ss;
         ss << id;
-        amod::Customer cust(cust_id, ss.str(), amod::Position(rand()%100, rand()%100));
+        amod::Customer cust(cust_id, ss.str(), amod::Position(rand()%max_x, rand()%max_y));
         customers.push_back(cust);
     }
     
@@ -52,8 +53,8 @@ int main(int argc, char **argv) {
 
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
-    sim.setVehicleSpeedParams(20.0, 1.0, 15.0, 25.0); // in m/s
-    sim.setPickupDistributionParams(120.0, 10.0, 30.0, 200.0); // in seconds
+    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
+    sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
     sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 30.0); // in seconds
     
     // initialize the simulator with the world state
@@ -69,7 +70,7 @@ int main(int argc, char **argv) {
         booking.booking_time = id; // in seconds
         booking.cust_id = id; // which customer to pick up
         booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
-        booking.destination = amod::Position( rand()%100, rand()%100 ); //where the customer wants to go
+        booking.destination = amod::Position( rand()%max_x, rand()%max_y ); //where the customer wants to go
         bookings.push_back(booking);
     }
     // setup our manager

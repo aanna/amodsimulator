@@ -223,8 +223,11 @@ namespace amod {
             Vehicle veh = world_state->getVehicle(it->second.veh_id);
 
             double dist = genRandTruncNormal(speed_params_);
+            
             double x_dist = dist*(it->second.grad.x)*resolution_;
             double y_dist = dist*(it->second.grad.y)*resolution_;
+            
+            //std::cout << x_dist << " " << y_dist << std::endl;
             
             it->second.curr.x += x_dist;
             it->second.curr.y += y_dist;

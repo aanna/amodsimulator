@@ -47,10 +47,19 @@ namespace amod {
             }
             out << " ";
             
-            if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL || e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
+            if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL ||
+            		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
                 out << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
             }
+
+            if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
+            		e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
+                amod::Location * ploc = world_state->getLocationPtr(e.entity_ids[0]);
+                int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
+                out << curr_size << " " << ploc->getPosition().x << " " << ploc->getPosition().y << std::endl;
+            }
+
         }
         // clear events
         world_state->clearEvents();

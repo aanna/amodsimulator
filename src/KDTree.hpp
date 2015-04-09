@@ -34,10 +34,10 @@ public:
 	KDTreeNode(T& data) : data_(data) {};
 	friend std::ostream &operator<<( std::ostream &out, KDTreeNode<T> node) {
 		out << "(";
-		for (int i=0; i<node.data_.size()-1; i++) {
+		for (int i=0; i<node.data_.dims()-1; i++) {
 			out << node.data_[i] << ", ";
 		}
-		out << node.data_[node.data_.size()-1] << ")";
+		out << node.data_[node.data_.dims()-1] << ")";
 		return out;
 	};
 
@@ -85,14 +85,14 @@ void KDTree<T>::build(std::vector<T> &points) {
 	if (points.size() == 0) return;
 	int dim = 0;
 	try {
-		dim = points[0].size();
+		dim = points[0].dims();
 	} catch (std::exception &e) {
 		std::cout << e.what() << std::endl;
 		throw e;
 	}
 
 	if (dim == 0) {
-		throw std::runtime_error("KDTree: T's size() function not defined or returned 0");
+		throw std::runtime_error("KDTree: T's dims() function not defined or returned 0");
 	}
 
 	// standard case
@@ -132,7 +132,7 @@ T KDTree<T>::findNN(const T &p, double eps) {
 	// initialize to root
 	double best_dist = sqDist(root_->data_, p);
 	T best_elem = root_->data_;
-	findNNHelper(root_, p, &best_elem, &best_dist, 0, p.size(), eps);
+	findNNHelper(root_, p, &best_elem, &best_dist, 0, p.dims(), eps);
 	return best_elem;
 }
 
@@ -260,9 +260,9 @@ int KDTree<T>::quickSelect(std::vector<T> &points, int low, int high, int k, int
 template<typename T>
 double KDTree<T>::sqDist(const T &a, const T&b, int axis) const {
 
-	if (a.size() != b.size()) throw std::runtime_error("KDTree: sqDist: elements don't have the same size");
+	if (a.dims() != b.dims()) throw std::runtime_error("KDTree: sqDist: elements don't have the same number of dims");
 
-	int n = a.size();
+	int n = a.dims();
 	double sum = 0;
 	if (axis == -1) {
 		for (int i=0; i<n; i++) {

@@ -1,3 +1,4 @@
+import java.util.Map;
 
 // Event structure to load the data we load from the file
 class Event {
@@ -6,13 +7,24 @@ class Event {
   public float t;
   public float x;
   public float y;
+  public float s;
 
-  public Event(int id, int type, float t, float x, float y) {
+  public Event(int id, int type, float t, float x, float y, float s) {
     this.id = id;
     this.type = type;
     this.t = t;
     this.x = x;
     this.y = y;
+    this.s = s;
+  }
+  
+  public Event() {
+        this.id = 0;
+    this.type = 0;
+    this.t = 0;
+    this.x = 0;
+    this.y = 0;
+    this.s = 0;
   }
 }
 
@@ -32,12 +44,16 @@ boolean ismac = false;
 
 BufferedReader reader;
 
+class Location {
+  public float x, y, s;
+}
+HashMap<Integer,Location> locs = new HashMap<Integer,Location>();
 void setup() {
-  frameRate(20);
+  frameRate(50);
   // load the data file
 
   String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
-  
+
   if (ismac) {
     filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
   }
@@ -68,9 +84,38 @@ void readLogFile(float end_time, ArrayList events) {
     if (line == null) return;
 
     String[] cols = split(line, ' ');
-    Event e = new Event( parseInt(cols[2]), parseInt(cols[3]), parseFloat(cols[0]), parseFloat(cols[7]), parseFloat(cols[8]));
+    Event e = new Event();
+    if (parseInt(cols[3]) < 4) { //based on event id in AMODBase
+     // moves, dropoffs or pickups
+      e.id = parseInt(cols[2]);
+      e.type = parseInt(cols[3]);
+      e.t = parseFloat(cols[0]);
+      e.x = parseFloat(cols[7]);
+      e.y = parseFloat(cols[8]);
+      e.s = 1;
+    } else {
+      // location
+      e.id = parseInt(cols[2]);
+      e.type = parseInt(cols[3]);
+      e.t = parseFloat(cols[0]);
+      e.x = parseFloat(cols[8]);
+      e.y = parseFloat(cols[9]);
+      e.s = parseFloat(cols[7]);
+      int locid;
+      
+      if (e.type == 5) {
+        String[] entities = split(cols[6], ',');
+        locid = parseInt(entities[0]);
+        println(locid);
+        Location loc = new Location();
+        loc.x = e.x;
+        loc.y = e.y;
+        loc.s = e.s;
+        locs.put(locid, loc);
+      }
+    }
     events.add(e);
-    println(e.id, " ", e.t);
+
     if (e.t > end_time) break;
   };
 }
@@ -80,6 +125,7 @@ void draw() {
   noStroke();
   rect(0, 0, width, height);
   float sc_factor = 30;
+  float loc_s_factor = 5;
   pushMatrix();
   scale(scale_x, scale_y);
 
@@ -88,8 +134,18 @@ void draw() {
   float end_time = start_time + time_window;
   ArrayList<Event> events = new ArrayList<Event>();
   readLogFile(end_time, events);
-  println(events.size());
-  for (int i=0; i<events.size(); i++) {
+  
+  
+  // draw locations
+  stroke(100,100,100);
+  fill(100,100,100,100);
+    for (Map.Entry me : locs.entrySet()) {
+      //println(me.getKey());
+    Location l = (Location) me.getValue();
+    ellipse(l.x, l.y, l.s*loc_s_factor, l.s*loc_s_factor);
+  }
+      noStroke();
+  for (int i=0; i<events.size (); i++) {
     Event e = events.get(i);
     // if the event is after the end_time, break
 
@@ -107,8 +163,10 @@ void draw() {
     } else if (e.type == 3) {
       fill(#FF00E6); 
       ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
-    } 
+    }
   }
+  
+
 
   current_time = end_time;
 

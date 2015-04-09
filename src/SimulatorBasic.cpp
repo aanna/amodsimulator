@@ -28,6 +28,35 @@ namespace amod {
         	world_state->getLocations(&locs);
         	loc_tree_.build(locs);
         	using_locations_ = true;
+
+            // set the customer positions to be in valid locations
+        	std::unordered_map<int, Customer>::const_iterator bitr, eitr;
+        	world_state->getCustomers(&bitr, &eitr);
+        	for (auto itr = bitr; itr!=eitr; ++itr) {
+
+        		Customer * pcust = world_state->getCustomerPtr(itr->first);
+        		Location loc = loc_tree_.findNN({pcust->getPosition().x, pcust->getPosition().y});
+        		pcust->setPosition(loc.getPosition());
+
+        		// add this customer to the location
+        		Location *ploc = world_state->getLocationPtr(loc.getId());
+        		ploc->addCustomerId(pcust->getId());
+        	}
+
+        	// set the vehicle positions to be in valid locations
+        	std::unordered_map<int, Vehicle>::const_iterator vbitr, veitr;
+        	world_state->getVehicles(&vbitr, &veitr);
+        	for (auto itr = vbitr; itr!=veitr; ++itr) {
+
+        		Vehicle * pveh = world_state->getVehiclePtr(itr->first);
+        		Location loc = loc_tree_.findNN({pveh->getPosition().x, pveh->getPosition().y});
+        		pveh->setPosition(loc.getPosition());
+
+        		// add this vehicle to the location
+        		Location *ploc = world_state->getLocationPtr(loc.getId());
+        		ploc->addVehicleId(pveh->getId());
+        	}
+
         }
 
         // copy over the state
@@ -117,8 +146,8 @@ namespace amod {
         	dp.to = to;
         }
         dp.curr = dp.from;
-        double dx = to.x - dp.from.x;
-        double dy = to.y - dp.from.y;
+        double dx = dp.to.x - dp.from.x;
+        double dy = dp.to.y - dp.from.y;
         double rd = sqrt( dx*dx + dy*dy);
         dp.grad = Position( dx/rd , dy/rd);
         dp.veh_end_status = end_status;
@@ -143,6 +172,28 @@ namespace amod {
         	}
         }
         
+        // location specific changes
+        if (using_locations_) {
+        	Location * ploc = world_state->getLocationPtr(dp.loc_id);
+        	ploc->removeVehicleId(veh.getId());
+        	// trigger event
+            Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
+            		"LocationVehSizeChange", state_.getCurrentTime(),
+            		{dp.loc_id});
+            world_state->addEvent(ev);
+
+        	if (int cust_id = veh.getCustomerId()) {
+        		ploc->removeCustomerId(cust_id);
+        		// trigger event
+                Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                		"LocationCustSizeChange", state_.getCurrentTime(),
+                		{dp.loc_id});
+                world_state->addEvent(ev);
+        	}
+
+
+        }
+
         return amod::SUCCESS;
     }
     
@@ -247,9 +298,22 @@ namespace amod {
         // add booking to internal structure
         bookings_[booking.id] = booking;
         
+        // get vehicle and customer
+        // make sure both vehicle and customer are valid
+        Vehicle veh = state_.getVehicle(booking.veh_id);
+
+        if (veh.getStatus() != VehicleStatus::FREE) {
+        	return amod::ReturnCode::VEHICLE_IS_NOT_FREE;
+        }
+
+		Customer cust = state_.getCustomer(booking.cust_id);
+        if (cust.getStatus() != CustomerStatus::FREE) {
+        	return amod::ReturnCode::CUSTOMER_IS_NOT_FREE;
+        }
+
         // dispatch the vehicle to the customer's position
-        Position from = state_.getVehicle(booking.veh_id).getPosition();
-        Position to = state_.getCustomer(booking.cust_id).getPosition();
+        Position from = veh.getPosition();
+        Position to = cust.getPosition();
         
         if (from == to) {
             // from == to, so we just pickup the customer
@@ -318,9 +382,28 @@ namespace amod {
                 world_state->setVehicle(veh); //update the vehicle in the world state
                 state_.setVehicle(veh); // update the internal state
                 
+                if (using_locations_) {
+                	int loc_id = it->second.loc_id;
+                	world_state->getLocation(it->second.loc_id).addVehicleId(veh.getId());
+                    Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
+                    		"LocationVehSizeChange", state_.getCurrentTime(),
+                    		{loc_id});
+                    world_state->addEvent(ev);
+
+                }
                 if (cust_id) {
                     world_state->setCustomer(cust);
                     state_.setCustomer(cust);
+
+                    if (using_locations_) {
+                    	int loc_id = it->second.loc_id;
+                    	world_state->getLocation(loc_id).addCustomerId(cust.getId());
+                        Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                        		"LocationCustSizeChange", state_.getCurrentTime(),
+                        		{loc_id});
+                        world_state->addEvent(ev);
+                    }
+
                 }
                 
                 // if dispatch has non-zero booking id
@@ -370,7 +453,7 @@ namespace amod {
         //return !((sign(diff.x) == sign(d.grad.x)) && (sign(diff.x) == sign(d.grad.x)));
         double dist_to_dest = getDistance(d.from, d.to);
         double dist_to_curr = getDistance(d.from, d.curr);
-        return (dist_to_curr >= dist_to_dest);
+        return (dist_to_curr >= dist_to_dest || (abs(dist_to_curr - dist_to_dest) < 1e-2));
     }
     
     void SimulatorBasic::simulatePickups(amod::World *world_state) {
@@ -444,12 +527,16 @@ namespace amod {
                 cust.clearAssignedVehicleId();
                 cust.setStatus(CustomerStatus::FREE);
                 
+                // if we are using locations, we increment the location
+
+
                 // if is part of a booking, clear it since the vehicle has fropped off the custmer
                 int bid = it->second.booking_id;
                 if (bid) {
                     bookings_.erase(bid);
                 }
                 
+
                 // update the external world and internal state
                 world_state->setCustomer(cust);
                 world_state->setVehicle(veh);

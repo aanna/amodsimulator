@@ -10,7 +10,14 @@
 
 namespace amod {
 
-enum EventType {EVENT_MOVE, EVENT_ARRIVAL, EVENT_PICKUP, EVENT_DROPOFF};
+enum EventType {
+	EVENT_MOVE,
+	EVENT_ARRIVAL,
+	EVENT_PICKUP,
+	EVENT_DROPOFF,
+	EVENT_LOCATION_VEHS_SIZE_CHANGE,
+	EVENT_LOCATION_CUSTS_SIZE_CHANGE
+};
 
 struct Event {
 	Event(EventType event_type, long long event_id, std::string event_name, double event_time, std::vector<int> ent_ids) :

@@ -49,7 +49,7 @@ public:
 
 	// operators for KDTree operation
 	// inlined for convenience
-	int size() const {return 2; };
+	int dims() const { return 2; };
 	double & operator[](int i) { return getPosition()[i]; };
 	double operator[](int i) const { return getPosition()[i]; };
 

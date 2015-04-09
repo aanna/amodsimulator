@@ -41,7 +41,7 @@ void World::setVehicle(const Vehicle &veh) {
 	vehicles_[veh.getId()] = veh;
 }
 
-void World::addVehicles(std::vector<Vehicle> &vehs) {
+void World::addVehicles(const std::vector<Vehicle> &vehs) {
 	for (auto v : vehs) {
 		addVehicle(v);
 	}
@@ -66,6 +66,14 @@ Vehicle World::getVehicle(int veh_id) {
 	return Vehicle();
 }
 
+Vehicle * World::getVehiclePtr(int veh_id) {
+	auto it = vehicles_.find(veh_id);
+	if (it != vehicles_.end()) {
+		return &(it->second);
+	}
+	return nullptr;
+}
+
 
 void World::getVehicles(std::vector<Vehicle> *vehs) {
 	if (!vehs) {
@@ -76,13 +84,11 @@ void World::getVehicles(std::vector<Vehicle> *vehs) {
 	}
 }
     
-    std::map<int, Vehicle>::const_iterator World::getVehiclesBeginItr() {
-        return vehicles_.begin();
-    }
-    
-    std::map<int, Vehicle>::const_iterator World::getVehiclesEndItr() {
-        return vehicles_.end();
-    }
+void World::getVehicles(std::unordered_map<int, Vehicle>::const_iterator* bitr,
+		std::unordered_map<int, Vehicle>::const_iterator* eitr) {
+	*bitr = vehicles_.begin();
+	*eitr = vehicles_.end();
+}
 
 
 int World::getNumVehicles() {
@@ -98,7 +104,7 @@ void World::setCustomer(const Customer &cust) {
 	customers_[cust.getId()] = cust;
 }
 
-void World::addCustomers(std::vector<Customer> &custs) {
+void World::addCustomers(const std::vector<Customer> &custs) {
     for (auto v : custs) {
         addCustomer(v);
     }
@@ -121,6 +127,21 @@ Customer World::getCustomer(int cust_id) {
         return it->second;
     }
     return Customer();
+}
+
+Customer * World::getCustomerPtr(int cust_id) {
+    auto it = customers_.find(cust_id);
+    if (it != customers_.end()) {
+        return &(it->second);
+    }
+    return nullptr;
+}
+
+
+void World::getCustomers(std::unordered_map<int, Customer>::const_iterator* bitr,
+		std::unordered_map<int, Customer>::const_iterator* eitr) {
+	*bitr = customers_.begin();
+	*eitr = customers_.end();
 }
 
 
@@ -147,7 +168,7 @@ void World::setLocation(const Location &loc) {
 	locations_[loc.getId()] = loc;
 }
 
-void World::addLocations(std::vector<Location> &locs) {
+void World::addLocations(const std::vector<Location> &locs) {
 	for (auto loc : locs) {
 		addLocation(loc);
 	}
@@ -171,6 +192,15 @@ Location World::getLocation(int loc_id) {
 	return Location();
 }
 
+Location * World::getLocationPtr(int loc_id) {
+	auto it = locations_.find(loc_id);
+	if (it != locations_.end()) {
+		return &(it->second);
+	}
+	return nullptr;
+}
+
+
 void World::getLocations(std::vector<Location> *locs) {
 	if (!locs) {
 		throw std::runtime_error("World::getLocations: locs pointer is null");
@@ -178,6 +208,12 @@ void World::getLocations(std::vector<Location> *locs) {
 	for (auto it=locations_.begin(); it != locations_.end(); ++it) {
 		locs->push_back(it->second);
 	}
+}
+
+void World::getLocations(std::unordered_map<int, Location>::const_iterator* bitr,
+		std::unordered_map<int, Location>::const_iterator* eitr) {
+	*bitr = locations_.begin();
+	*eitr = locations_.end();
 }
 
 int World::getNumLocations() {

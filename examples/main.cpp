@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <vector>
 #include <sstream>
+#include <limits.h>
 
 #include "Amod.hpp"
 #include "SimulatorBasic.hpp"
@@ -22,7 +23,7 @@ int main(int argc, char **argv) {
     for (int id=1; id<=num_vehs; id++) {
         amod::Vehicle veh(id); // all vehicles must have a UNIQUE id
         amod::Position pos(rand()%max_x, rand()%max_y);
-        veh.setStatus(amod::FREE);
+        veh.setStatus(amod::VehicleStatus::FREE);
         veh.setPosition(pos);
         vehicles.push_back(veh);
     }
@@ -38,10 +39,14 @@ int main(int argc, char **argv) {
         customers.push_back(cust);
     }
     
-    // Locations are landmark positions
-    // basic simulator does not use locations at the moment
-    // so we create an empty vector
+    // Locations are places that are simulated (travel only occurs between locations
     std::vector<amod::Location> locations;
+    int num_loc = 10;
+    for (int id=1; id<= num_loc; ++id) {
+    	std::stringstream ss;
+    	ss << id;
+    	locations.emplace_back(id, ss.str(), amod::Position(rand()%max_x, rand()%max_y), INT_MAX );
+    }
 
     // populate the world
     world_state.populate(locations, vehicles, customers);

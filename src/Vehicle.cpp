@@ -9,6 +9,8 @@
 
 namespace amod {
     
+typedef Vehicle::Status VehicleStatus;
+
     Vehicle::Vehicle(int id) : status_(UNKNOWN), capacity_(1), speed_(0), customer_id_(0) {
         // TODO Auto-generated constructor stub
         Entity::setId(id);
@@ -28,7 +30,7 @@ namespace amod {
         return status_;
     }
     
-    void Vehicle::setStatus(VehicleStatus s) {
+    void Vehicle::setStatus(Vehicle::Status s) {
         status_ = s;
     }
     

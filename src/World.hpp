@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 
 #include "Vehicle.hpp"
 #include "Location.hpp"
@@ -32,17 +33,24 @@ public:
     virtual double getCurrentTime();
     
     virtual Vehicle getVehicle(int veh_id);
+    virtual Vehicle * getVehiclePtr(int veh_id);
     virtual void getVehicles(std::vector<Vehicle> *vehs);
-    virtual std::map<int, Vehicle>::const_iterator getVehiclesBeginItr();
-    virtual std::map<int, Vehicle>::const_iterator getVehiclesEndItr();
+    virtual void getVehicles(std::unordered_map<int, Vehicle>::const_iterator* bitr,
+    		std::unordered_map<int, Vehicle>::const_iterator* eitr);
     virtual int getNumVehicles();
     
     virtual Location getLocation(int loc_id);
+    virtual Location * getLocationPtr(int loc_id);
     virtual void getLocations(std::vector<Location> *locs);
+    virtual void getLocations(std::unordered_map<int, Location>::const_iterator* bitr,
+    		std::unordered_map<int, Location>::const_iterator* eitr);
     virtual int getNumLocations();
     
     virtual Customer getCustomer(int cust_id);
+    virtual Customer* getCustomerPtr(int cust_id);
     virtual void getCustomers(std::vector<Customer> *custs);
+    virtual void getCustomers(std::unordered_map<int, Customer>::const_iterator* bitr,
+    		std::unordered_map<int, Customer>::const_iterator* eitr);
     virtual int getNumCustomers();
     
     virtual void getEvents(std::vector<Event> *events);
@@ -51,19 +59,19 @@ public:
     // adders, setters and removers
 	virtual void addVehicle(const Vehicle &veh);
 	virtual void setVehicle(const Vehicle &veh);
-	virtual void addVehicles(std::vector<Vehicle> &vehs);
+	virtual void addVehicles(const std::vector<Vehicle> &vehs);
 	virtual void removeVehicle(int veh_id);
 	virtual void removeVehicles(std::vector<int> &veh_ids);
 
     virtual void addLocation(const Location &loc);
     virtual void setLocation(const Location &loc);
-    virtual void addLocations(std::vector<Location> &locs);
+    virtual void addLocations(const std::vector<Location> &locs);
     virtual void removeLocation(int loc_id);
     virtual void removeLocations(std::vector<int> &loc_ids);
     
     virtual void addCustomer(const Customer &cust);
     virtual void setCustomer(const Customer &cust);
-    virtual void addCustomers(std::vector<Customer> &custs);
+    virtual void addCustomers(const std::vector<Customer> &custs);
     virtual void removeCustomer(int cust_id);
     virtual void removeCustomers(std::vector<int> &cust_ids);
 
@@ -76,9 +84,9 @@ public:
 	virtual void setCurrentTime(double current_time);
 
 private:
-	std::map<int, Vehicle> vehicles_;
-	std::map<int, Location> locations_;
-	std::map<int, Customer> customers_;
+	std::unordered_map<int, Vehicle> vehicles_;
+	std::unordered_map<int, Location> locations_;
+	std::unordered_map<int, Customer> customers_;
 	std::map<long long, Event> events_;
 	double current_time_;
     

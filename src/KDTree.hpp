@@ -11,6 +11,7 @@
 #ifndef KDTREE_HPP_
 #define KDTREE_HPP_
 
+#include <iostream>
 #include <vector>
 #include <memory>
 #include <stdexcept>
@@ -51,6 +52,7 @@ public:
 	void build(std::vector<T> &points);
 	void print(std::ostream &out);
 	T findNN(const T &p, double eps=-1.0);
+	T findNN(const std::vector<double> &p, double eps=-1.0);
 	int size() const { return size_; };
 
 private:
@@ -132,6 +134,22 @@ T KDTree<T>::findNN(const T &p, double eps) {
 	T best_elem = root_->data_;
 	findNNHelper(root_, p, &best_elem, &best_dist, 0, p.size(), eps);
 	return best_elem;
+}
+
+template<typename T>
+T KDTree<T>::findNN(const std::vector<double> &x, double eps) {
+	//set eps to negative or 0 for exact search
+	if (!root_) {
+		throw std::runtime_error("KDTree: Build a tree before you can perform a NN search");
+	}
+	// create a data element
+	T p;
+	for (unsigned int i=0; i<x.size(); i++) {
+		p[i] = x[i];
+	}
+
+	// return
+	return findNN(p, eps);
 }
 
 template<typename T>

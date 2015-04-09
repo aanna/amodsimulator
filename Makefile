@@ -1,5 +1,5 @@
 CC:=g++
-CC_FLAGS:=-g -O2 -std=c++11 -Isrc/
+CC_FLAGS:=-g -std=c++11 -Isrc/
 LD_FLAGS:=
 CPP_FILES := $(wildcard src/*.cpp)
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))

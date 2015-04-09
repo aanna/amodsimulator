@@ -16,15 +16,28 @@
 
 namespace amod {
 
-
 class Vehicle : public Entity {
+
+public:
+	enum Status { FREE,
+	    BUSY,
+	    HIRED,
+	    MOVING_TO_PICKUP,
+	    MOVING_TO_DROPOFF,
+	    PICKING_UP,
+	    DROPPING_OFF,
+	    PARKED,
+	    MOVING_TO_REBALANCE,
+	    UNKNOWN
+	};
+
 public:
 	Vehicle(int id = 0);
-	Vehicle(int id, std::string name, Position pos, int capacity, VehicleStatus status);
+	Vehicle(int id, std::string name, Position pos, int capacity, Vehicle::Status status);
 	virtual ~Vehicle();
 
-	virtual VehicleStatus getStatus() const;
-	virtual void setStatus(VehicleStatus s);
+	virtual Vehicle::Status getStatus() const;
+	virtual void setStatus(Vehicle::Status s);
 
 	virtual double getSpeed() const;
 	virtual void setSpeed(double speed);
@@ -41,7 +54,7 @@ public:
 
 
 private:
-	VehicleStatus status_;
+	Vehicle::Status status_;
 	int capacity_;
 	double speed_;
 
@@ -49,6 +62,9 @@ private:
 	std::list<Position> waypoints_;
 
 };
+
+typedef Vehicle::Status VehicleStatus;
+
 
 } /* namespace AMOD */
 

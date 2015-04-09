@@ -77,7 +77,7 @@ public:
     }
     
 
-private:
+protected:
     amod::Simulator* sim_;
     amod::Logger *logger_;
 

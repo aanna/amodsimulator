@@ -21,7 +21,8 @@ public:
 	Entity(int id, std::string name, Position pos) : id_(id), name_(name), position_(pos) {};
 	virtual ~Entity() {};
 
-	virtual Position getPosition() const { return position_; };
+	virtual Position & getPosition() { return position_; };
+	virtual Position getPosition() const { return position_;};
 	virtual void setPosition(const Position &p) { position_ = p; };
 
 	virtual int getId() const { return id_; };

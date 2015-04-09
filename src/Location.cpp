@@ -34,12 +34,44 @@ void Location::getVehicleIds(std::unordered_set<int> *veh_ids) {
 	*veh_ids = vehicle_ids_;
 }
 
+void Location::getVehicleIds(std::unordered_set<int>::const_iterator *bitr, std::unordered_set<int>::const_iterator *eitr) {
+	*bitr = vehicle_ids_.begin();
+	*eitr = vehicle_ids_.end();
+}
+
 void Location::clearVehicleIds() {
 	vehicle_ids_.clear();
 }
 
-int Location::getNumVehicles() {
+int Location::getNumVehicles() const {
 	return (int) vehicle_ids_.size();
+}
+
+
+int Location::getNumCustomers() const {
+	return customer_ids_.size();
+}
+
+void Location::getCustomerIds(std::unordered_set<int> *cust_ids) {
+	*cust_ids = customer_ids_;
+}
+
+void Location::getCustomerIds(std::unordered_set<int>::const_iterator *bitr, std::unordered_set<int>::const_iterator *eitr) {
+	*bitr = customer_ids_.begin();
+	*eitr = customer_ids_.end();
+}
+
+
+void Location::addCustomerId(int cust_id) {
+	customer_ids_.insert(cust_id);
+}
+
+void Location::removeCustomerId(int cust_id) {
+	customer_ids_.erase(cust_id);
+}
+
+void Location::clearCustomerIds() {
+	customer_ids_.clear();
 }
 
 void Location::setCapacity(int capacity) {

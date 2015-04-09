@@ -13,19 +13,7 @@
 #include <string>
 
 namespace  amod {
-    
-    enum VehicleStatus { FREE,
-        BUSY,
-        HIRED,
-        MOVING_TO_PICKUP,
-        MOVING_TO_DROPOFF,
-        PICKING_UP,
-        DROPPING_OFF,
-        PARKED,
-        MOVING_TO_REBALANCE,
-        UNKNOWN
-    };
-    
+
     enum ReturnCode{ FAILED,
         SUCCESS,
         CANNOT_GET_VEHICLE,
@@ -68,6 +56,30 @@ namespace  amod {
             return !(*this == other);
         }
         
+        int size() const {
+        	return 2;
+        }
+
+        Position &operator=(const Position &rhs) {
+        	x = rhs.x;
+        	y = rhs.y;
+        	return *this;
+        }
+
+        double& operator[](unsigned int i) {
+        	if (i>=2) {
+        		throw std::runtime_error("index error");
+        	}
+        	return (i == 0) ? x : y;
+        }
+
+        double operator[](unsigned int i) const {
+        	if (i>=2) {
+        		throw std::runtime_error("index error");
+        	}
+        	return (i == 0) ? x : y;
+        }
+
     };
     
 } /* namespace AMOD */

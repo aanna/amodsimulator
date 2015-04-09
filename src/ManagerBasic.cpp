@@ -59,6 +59,7 @@ namespace amod {
         auto itr = bookings_.begin();
         bool no_free_vehicles = false;
         while (itr != bookings_.end()) {
+
             // check if the time is less
             if (itr->first <= current_time) {
                 
@@ -71,11 +72,13 @@ namespace amod {
                 // simple iterative method
                 double min_dist = -1;
                 int best_veh_id = 0;
-                for (auto vitr=world_state->getVehiclesBeginItr(); vitr != world_state->getVehiclesEndItr(); ++vitr) {
+                std::unordered_map<int, Vehicle>::const_iterator begin_itr, end_itr;
+                world_state->getVehicles(&begin_itr, &end_itr);
+                for (auto vitr=begin_itr; vitr != end_itr; ++vitr) {
                     double dist = sim->getDistance(vitr->second.getPosition(), cust.getPosition());
                     if (min_dist < 0 || dist < min_dist) {
                         amod::VehicleStatus status = vitr->second.getStatus();
-                        if (status == amod::PARKED || status == amod::FREE ) {
+                        if (status == VehicleStatus::PARKED || status == VehicleStatus::FREE ) {
                             min_dist = dist;
                             best_veh_id = vitr->second.getId();
                         }
@@ -91,10 +94,6 @@ namespace amod {
                     if (rc!= amod::SUCCESS) {
                         return rc;
                     }
-                    // update the state of the vehicle in the world
-                    amod::Vehicle veh = world_state->getVehicle(best_veh_id);
-                    veh.setStatus(amod::BUSY);
-                    world_state->setVehicle(veh);
                     
                     // erase the booking
                     bookings_.erase(itr);
@@ -102,18 +101,17 @@ namespace amod {
                     // set to the earliest booking
                     itr = bookings_.begin();
                 } else {
-                    no_free_vehicles = true;
+                	// cannot find a proper vehicle, move to next booking
+                    itr++;
+                    sim_->setCustomerStatus(world_state, itr->second.cust_id,
+                    		amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
                 }
                 
             } else {
+            	// exceeded the current time
                 break;
             }
-            
-            // check if all vehicles are currently occupied
-            if (no_free_vehicles) {
-                break;
-            }
-            
+
         }
         
         return amod::SUCCESS;

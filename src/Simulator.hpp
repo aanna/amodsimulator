@@ -47,8 +47,8 @@ public:
     virtual amod::ReturnCode dispatchVehicle(amod::World *world_state,
                                              int veh_id,
                                              const amod::Position &to,
-                                             amod::VehicleStatus start_status = amod::BUSY,
-                                             amod::VehicleStatus end_status = amod::FREE) = 0;
+                                             amod::VehicleStatus start_status = VehicleStatus::BUSY,
+                                             amod::VehicleStatus end_status = VehicleStatus::FREE) = 0;
     
     // pickupCustomer
     // picks up customer with id cust_id using vehicle with id veh_id. If the call is successful,
@@ -58,8 +58,8 @@ public:
     // one of the amod::ReturnCode error codes.
     virtual amod::ReturnCode pickupCustomer(amod::World *world_state,
                                             int veh_id, int cust_id,
-                                            amod::VehicleStatus start_status = amod::PICKING_UP,
-                                            amod::VehicleStatus end_status = amod::HIRED) = 0;
+                                            amod::VehicleStatus start_status = VehicleStatus::PICKING_UP,
+                                            amod::VehicleStatus end_status = VehicleStatus::HIRED) = 0;
     
     // dropoffCustomer
     // drops off customer with id cust_id using vehicle with id veh_id. If the call is successful,
@@ -69,10 +69,15 @@ public:
     // one of the amod::ReturnCode error codes.
     virtual amod::ReturnCode dropoffCustomer(amod::World *world_state,
                                              int veh_id, int cust_id,
-                                             amod::VehicleStatus status = amod::DROPPING_OFF,
-                                             amod::VehicleStatus end_status = amod::FREE) = 0;
+                                             amod::VehicleStatus status = VehicleStatus::DROPPING_OFF,
+                                             amod::VehicleStatus end_status = VehicleStatus::FREE) = 0;
     
     
+    // setCustomerStatus
+    // sets a customer status
+    virtual void setCustomerStatus(amod::World *world_state, int cust_id, CustomerStatus status) = 0;
+
+
     // Medium level commands, i.e., makes basic tasks easier to do with default events
     // automatically triggered.
     

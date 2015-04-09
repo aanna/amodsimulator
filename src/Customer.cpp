@@ -15,16 +15,24 @@ Customer::~Customer() {
 }
 
 Customer::Customer(int id, std::string name, amod::Position pos, int assigned_vehicle, bool in_vehicle) :
-		Entity(id, name, pos), veh_id_(assigned_vehicle), in_vehicle_(in_vehicle) {
+		Entity(id, name, pos), veh_id_(assigned_vehicle), status_(FREE) {
 	return;
 }
 
-void Customer::setInVehicle(bool in_vehicle) {
-	in_vehicle_ = in_vehicle;
+void Customer::setStatus(Status s) {
+	status_ = s;
+}
+
+CustomerStatus Customer::getStatus() const {
+	return status_;
+}
+
+void Customer::setInVehicle() {
+	status_ = IN_VEHICLE;
 }
 
 bool Customer::isInVehicle() {
-	return in_vehicle_;
+	return (status_ == IN_VEHICLE || status_ == WAITING_FOR_DROPOFF);
 }
 
 void Customer::setAssignedVehicleId(int veh_id) {

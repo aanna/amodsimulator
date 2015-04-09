@@ -12,6 +12,7 @@
 #include "Simulator.hpp"
 #include "Booking.hpp"
 #include "Utility.hpp"
+#include "KDTree.hpp"
 
 #include <cmath>
 #include <unordered_map>
@@ -51,8 +52,8 @@ public:
     virtual amod::ReturnCode dispatchVehicle(amod::World *world_state,
                                              int veh_id,
                                              const amod::Position &to,
-                                             amod::VehicleStatus start_status = amod::BUSY,
-                                             amod::VehicleStatus end_status = amod::FREE
+                                             amod::VehicleStatus veh_start_status = VehicleStatus::BUSY,
+                                             amod::VehicleStatus veh_end_status = VehicleStatus::FREE
                                              );
     
     // pickupCustomer
@@ -63,8 +64,8 @@ public:
     // one of the amod::ReturnCode error codes.
     virtual amod::ReturnCode pickupCustomer(amod::World *world_state,
                                             int veh_id, int cust_id,
-                                            amod::VehicleStatus start_status = amod::PICKING_UP,
-                                            amod::VehicleStatus end_status = amod::HIRED);
+                                            amod::VehicleStatus start_status = VehicleStatus::PICKING_UP,
+                                            amod::VehicleStatus end_status = VehicleStatus::HIRED);
     
     // dropoffCustomer
     // drops off customer with id cust_id using vehicle with id veh_id. If the call is successful,
@@ -74,8 +75,14 @@ public:
     // one of the amod::ReturnCode error codes.
     virtual amod::ReturnCode dropoffCustomer(amod::World *world_state,
                                              int veh_id, int cust_id,
-                                             amod::VehicleStatus status = amod::DROPPING_OFF,
-                                             amod::VehicleStatus end_status = amod::FREE);
+                                             amod::VehicleStatus status = VehicleStatus::DROPPING_OFF,
+                                             amod::VehicleStatus end_status = VehicleStatus::FREE);
+
+
+
+    // setCustomerStatus
+    // sets a customer status
+    virtual void setCustomerStatus(amod::World *world_state, int cust_id, CustomerStatus status);
 
 
     // Medium level commands, i.e., makes basic tasks easier to do with default events
@@ -105,7 +112,7 @@ public:
     // returns the Euclidean distance from Position from to Position to.
     virtual double getDistance(const amod::Position &from, const amod::Position &to);
     
-    // SimulatorBasic specific funtions
+    // SimulatorBasic specific functions
     
     // Sets the parameters of the distributions used in the basic simulator. All the
     // distributions used are truncated normals with parameters mean, standard dev,
@@ -126,6 +133,10 @@ private:
     double resolution_; // resolution of simulation in seconds
     amod::World state_; // ideally, the true simulator will maintain it's own internal state
 
+    // KDTree to store locations
+    kdt::KDTree<amod::Location> loc_tree_;
+    bool using_locations_;
+
     // objects for random number generation
     std::default_random_engine eng;
     std::normal_distribution<> normal_dist;
@@ -136,6 +147,7 @@ private:
     struct Dispatch {
         int booking_id;  //0 if manual dispatch
     	int veh_id;
+    	int loc_id;
     	Position from;
     	Position to;
         Position grad; //normalized gradient
@@ -147,6 +159,7 @@ private:
         int booking_id;  //0 if manual dispatch
         int veh_id;
         int cust_id;
+        int loc_id;
         double pickup_time;
         amod::VehicleStatus veh_end_status;
     };
@@ -155,6 +168,7 @@ private:
         int booking_id;  //0 if manual dispatch
         int veh_id;
         int cust_id;
+        int loc_id;
         double dropoff_time;
         amod::VehicleStatus veh_end_status;
     };
@@ -191,8 +205,8 @@ private:
     virtual amod::ReturnCode dispatchVehicle(amod::World *world_state,
                                              int veh_id,
                                              const amod::Position &to,
-                                             amod::VehicleStatus start_status,
-                                             amod::VehicleStatus end_status,
+                                             amod::VehicleStatus veh_start_status,
+                                             amod::VehicleStatus veh_end_status,
                                              int booking_id);
     
     virtual amod::ReturnCode pickupCustomer(amod::World *world_state,

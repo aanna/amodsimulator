@@ -10,7 +10,8 @@
 namespace amod {
     
     SimulatorBasic::SimulatorBasic(double resolution, bool verbose):
-        resolution_(resolution), verbose_(verbose), event_id_(0)
+        resolution_(resolution), verbose_(verbose), event_id_(0),
+        using_locations_(false)
     {
         // just return
     }
@@ -20,6 +21,16 @@ namespace amod {
     }
     
     amod::ReturnCode  SimulatorBasic::init(amod::World *world_state) {
+
+        // initialize the locations
+        if (world_state->getNumLocations() > 0) {
+        	std::vector<Location> locs;
+        	world_state->getLocations(&locs);
+        	loc_tree_.build(locs);
+        	using_locations_ = true;
+        }
+
+        // copy over the state
         state_ = *world_state;
         return amod::SUCCESS;
     }
@@ -93,11 +104,18 @@ namespace amod {
             return amod::CANNOT_GET_VEHICLE;
         }
         
+
         Dispatch dp;
         dp.booking_id = booking_id;
         dp.veh_id = veh_id;
         dp.from = veh.getPosition();
-        dp.to = to;
+        if (using_locations_) {
+        	Location des = loc_tree_.findNN({to.x, to.y});
+        	dp.to = des.getPosition(); // find the closest location to be the destination position
+        	dp.loc_id = des.getId();
+        } else {
+        	dp.to = to;
+        }
         dp.curr = dp.from;
         double dx = to.x - dp.from.x;
         double dy = to.y - dp.from.y;
@@ -105,10 +123,10 @@ namespace amod {
         dp.grad = Position( dx/rd , dy/rd);
         dp.veh_end_status = end_status;
         
-        if (dp.from == dp.to) {
-            return amod::SOURCE_EQUALS_DESTINATION;
-        }
-        
+//        if (dp.from == dp.to) {
+//            return amod::SOURCE_EQUALS_DESTINATION;
+//        }
+//
         
         // add it to the dispatch qmap
         dispatches_[veh_id] = dp;
@@ -116,6 +134,14 @@ namespace amod {
         // update the vehicle status
         veh.setStatus(start_status);
         world_state->setVehicle(veh);
+        if (booking_id) {
+        	//get the booking customer
+        	Customer cust = world_state->getCustomer(bookings_[booking_id].cust_id);
+        	if (!cust.isInVehicle()) {
+        		cust.setStatus(CustomerStatus::WAITING_FOR_PICKUP);
+        		world_state->setCustomer(cust);
+        	}
+        }
         
         return amod::SUCCESS;
     }
@@ -136,19 +162,28 @@ namespace amod {
             return amod::CANNOT_GET_CUSTOMER;
         }
         
-        if (getDistance(veh.getPosition(), cust.getPosition()) > 1e-3 ) {
-            return amod::VEHICLE_NOT_AT_CUSTOMER_LOCATION;
-        }
+//        if (getDistance(veh.getPosition(), cust.getPosition()) > 1e-3 ) {
+//            return amod::VEHICLE_NOT_AT_CUSTOMER_LOCATION;
+//        }
         
         // add a pickup to simulate
         double pickup_time = state_.getCurrentTime() + genRandTruncNormal(pickup_params_);
         if (verbose_) std::cout << "Future Pickup time : " << pickup_time << std::endl;
-        Pickup p{booking_id, veh_id, cust_id, pickup_time, end_status};
+
+        int loc_id = 0;
+        if (using_locations_) {
+        	// get the pickup location
+        	Location pickup_loc = loc_tree_.findNN({cust.getPosition().x, cust.getPosition().y});
+        	loc_id = pickup_loc.getId();
+        }
+        Pickup p{booking_id, veh_id, cust_id, loc_id, pickup_time, end_status};
         pickups_.emplace(pickup_time, p);
         
         // set the vehicle's start status
         veh.setStatus(start_status);
+        cust.setStatus(CustomerStatus::WAITING_FOR_PICKUP);
         world_state->setVehicle(veh);
+        world_state->setCustomer(cust);
         
         return amod::SUCCESS;
     }
@@ -173,24 +208,41 @@ namespace amod {
             return amod::CANNOT_GET_CUSTOMER;
         }
         
-        if (getDistance(veh.getPosition(), cust.getPosition()) > 1e-3 ) {
-            return amod::VEHICLE_NOT_AT_CUSTOMER_LOCATION;
-        }
+//        if (getDistance(veh.getPosition(), cust.getPosition()) > 1e-3 ) {
+//            return amod::VEHICLE_NOT_AT_CUSTOMER_LOCATION;
+//        }
         
-        // add a pickup to simulate
+        // add a dropoff to simulate
         double dropoff_time = state_.getCurrentTime() + genRandTruncNormal(dropoff_params_);
+
+        int loc_id = 0;
+		if (using_locations_) {
+			// get the dropoff location
+			Location pickup_loc = loc_tree_.findNN({cust.getPosition().x, cust.getPosition().y});
+			loc_id = pickup_loc.getId();
+		}
+
         //if (verbose_) std::cout << "Future Dropoff time : " << dropoff_time << std::endl;
-        Dropoff doff{booking_id, veh_id, cust_id, dropoff_time, end_status};
+        Dropoff doff{booking_id, veh_id, cust_id, loc_id, dropoff_time, end_status};
         dropoffs_.emplace(dropoff_time, doff);
         
         // sets the status of the vehicle
         veh.setStatus(start_status);
         world_state->setVehicle(veh);
+        cust.setStatus(CustomerStatus::WAITING_FOR_DROPOFF);
+        world_state->setCustomer(cust);
         
         // return success
         return amod::SUCCESS;
     }
     
+    void SimulatorBasic::setCustomerStatus(amod::World *world_state, int cust_id, CustomerStatus status) {
+    	Customer cust = world_state->getCustomer(cust_id);
+    	cust.setStatus(status);
+    	world_state->setCustomer(cust);
+    }
+
+
     amod::ReturnCode SimulatorBasic::serviceBooking(amod::World *world_state, const amod::Booking &booking) {
         // add booking to internal structure
         bookings_[booking.id] = booking;
@@ -201,10 +253,10 @@ namespace amod {
         
         if (from == to) {
             // from == to, so we just pickup the customer
-            return pickupCustomer(world_state, booking.veh_id, booking.cust_id, amod::PICKING_UP, amod::HIRED, booking.id);
+            return pickupCustomer(world_state, booking.veh_id, booking.cust_id, VehicleStatus::PICKING_UP, VehicleStatus::HIRED, booking.id);
         } else {
             // from != to, so we need to move the vehicle
-            return dispatchVehicle(world_state, booking.veh_id, to, amod::MOVING_TO_PICKUP, amod::HIRED, booking.id);
+            return dispatchVehicle(world_state, booking.veh_id, to, VehicleStatus::MOVING_TO_PICKUP, VehicleStatus::HIRED, booking.id);
         }
     }
     
@@ -277,9 +329,9 @@ namespace amod {
                     int bid = it->second.booking_id;
                     
                     if (cust.isInVehicle()) {
-                        dropoffCustomer(world_state, veh.getId(), cust.getId(), amod::DROPPING_OFF, amod::FREE, bid);
+                        dropoffCustomer(world_state, veh.getId(), cust.getId(), VehicleStatus::DROPPING_OFF, VehicleStatus::FREE, bid);
                     } else {
-                        pickupCustomer(world_state, bookings_[bid].veh_id, bookings_[bid].cust_id, amod::PICKING_UP, amod::FREE, bid);
+                        pickupCustomer(world_state, bookings_[bid].veh_id, bookings_[bid].cust_id, VehicleStatus::PICKING_UP, VehicleStatus::FREE, bid);
                     }
                 }
                 
@@ -337,7 +389,7 @@ namespace amod {
                 veh.setCustomerId(it->second.cust_id);
                 Customer cust = world_state->getCustomer(it->second.cust_id);
                 cust.setAssignedVehicleId(it->second.veh_id);
-                cust.setInVehicle(true);
+                cust.setInVehicle();
                 
                 // sets vehicle state
                 veh.setStatus(it->second.veh_end_status);
@@ -351,10 +403,16 @@ namespace amod {
                 int bid = it->second.booking_id;
                 if (bid) {
                     ReturnCode rc = dispatchVehicle(world_state, veh.getId(), bookings_[bid].destination,
-                                                    amod::MOVING_TO_DROPOFF, amod::HIRED,
+                    		VehicleStatus::MOVING_TO_DROPOFF, VehicleStatus::HIRED,
                                                     bid);
                     if (rc != amod::SUCCESS) {
+                    	std::cout << bookings_[bid].destination.x << " " <<
+                    			bookings_[bid].destination.y << std::endl;
                         if (verbose_) std::cout << kErrorStrings[rc] << std::endl;
+
+                        ReturnCode rc = dropoffCustomer(world_state, veh.getId(), cust.getId(),
+                    		VehicleStatus::DROPPING_OFF, VehicleStatus::FREE, bid);
+
                     }
                 }
                 
@@ -384,7 +442,7 @@ namespace amod {
                 
                 Customer cust = world_state->getCustomer(it->second.cust_id);
                 cust.clearAssignedVehicleId();
-                cust.setInVehicle(false);
+                cust.setStatus(CustomerStatus::FREE);
                 
                 // if is part of a booking, clear it since the vehicle has fropped off the custmer
                 int bid = it->second.booking_id;

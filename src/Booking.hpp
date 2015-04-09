@@ -21,10 +21,10 @@ namespace amod {
         int id;         // id of booking (valid bookings have > 0)
         int veh_id;     // veh_id (valid veh_ids > 0)
         int cust_id;    // cust_id (valid cust_ids > 0)
-        
+
         Position destination;   // destination position
         double booking_time;    // booking time (in seconds)
-        
+
         // the following are mainly for logging purposes (optional)
         double dispatch_time;   // dispatch time (in seconds)
         double pickup_time;     // pickup time (in seconds)

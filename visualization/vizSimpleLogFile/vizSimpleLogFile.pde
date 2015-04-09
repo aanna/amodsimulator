@@ -28,12 +28,19 @@ float max_y = 10000;
 float scale_x = 1;
 float scale_y = 1;
 
+boolean ismac = false;
+
 BufferedReader reader;
 
 void setup() {
   frameRate(20);
   // load the data file
-  String filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
+
+  String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
+  
+  if (ismac) {
+    filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
+  }
   reader = createReader(filename);
 
   float w_width = 500;

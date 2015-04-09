@@ -384,7 +384,8 @@ namespace amod {
                 
                 if (using_locations_) {
                 	int loc_id = it->second.loc_id;
-                	world_state->getLocation(it->second.loc_id).addVehicleId(veh.getId());
+                	Location *ploc = world_state->getLocationPtr(it->second.loc_id);
+                	ploc->addVehicleId(veh.getId());
                     Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
                     		"LocationVehSizeChange", state_.getCurrentTime(),
                     		{loc_id});
@@ -397,7 +398,8 @@ namespace amod {
 
                     if (using_locations_) {
                     	int loc_id = it->second.loc_id;
-                    	world_state->getLocation(loc_id).addCustomerId(cust.getId());
+                    	Location *ploc = world_state->getLocationPtr(it->second.loc_id);
+                    	ploc->addCustomerId(cust_id);
                         Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
                         		"LocationCustSizeChange", state_.getCurrentTime(),
                         		{loc_id});

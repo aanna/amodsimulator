@@ -147,7 +147,8 @@ private:
     struct Dispatch {
         int booking_id;  //0 if manual dispatch
     	int veh_id;
-    	int loc_id;
+    	int to_loc_id;
+        int from_loc_id;
     	Position from;
     	Position to;
         Position grad; //normalized gradient

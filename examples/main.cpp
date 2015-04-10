@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <limits.h>
+#include <unordered_map>
 
 #include "Amod.hpp"
 #include "SimulatorBasic.hpp"
@@ -29,7 +30,7 @@ int main(int argc, char **argv) {
     }
     
     // create customer (just one for now)
-    int num_cust = 1000;
+    int num_cust = 100;
     std::vector<amod::Customer> customers;
     for (int id=1; id<=num_cust; id++) {
         int cust_id = id; // all customers must have a unique id
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
     // all parameters are truncated normal parameters: mean, sd, min, max
     sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
     sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
-    sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 30.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 0.0, 0.0); // in seconds
     
     // initialize the simulator with the world state
     sim.init(&world_state);
@@ -73,7 +74,7 @@ int main(int argc, char **argv) {
         amod::Booking booking;
         booking.id = id; // unique booking id
         booking.booking_time = id; // in seconds
-        booking.cust_id = id; // which customer to pick up
+        booking.cust_id = (id%100) + 1; // which customer to pick up
         booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
         booking.destination = amod::Position( rand()%max_x, rand()%max_y ); //where the customer wants to go
         bookings.push_back(booking);
@@ -95,6 +96,31 @@ int main(int argc, char **argv) {
     
     std::cout << "Simulation Ended" << std::endl;
 
+    // checks
+    // make sure the location sizes are correct
+    std::unordered_map<int, amod::Location>::const_iterator bitr, eitr;
+    world_state.getLocations(&bitr, &eitr);
+    int total_cust = 0;
+    int total_veh = 0;
+    for (auto itr = bitr; itr != eitr; itr++) {
+        total_cust += itr->second.getNumCustomers();
+        total_veh += itr->second.getNumVehicles();
+    }
+    
+    if (num_vehs != total_veh) {
+        std::cout << "Error! Total number of vehicles before and after simulation is not the same";
+        std::cout << "Before: " << num_vehs << " After: " << total_veh << std::endl;
+    } else {
+        std::cout << "Number of vehicles match up." << std::endl;
+    }
+    
+    if (num_cust != total_cust) {
+        std::cout << "Error! Total number of customers before and after simulation is not the same";
+        std::cout << "Before: " << num_cust << " After: " << total_cust << std::endl;
+    } else {
+        std::cout << "Number of customers match up." << std::endl;
+    }
+    
     // return
     return 0;
 }

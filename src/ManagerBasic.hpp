@@ -56,7 +56,7 @@ namespace amod {
         std::multimap<double, Booking> bookings_;
         
         std::ofstream out;
-        
+        int num_avail_veh_; // tracks number of available vehicles
     };
 }
 

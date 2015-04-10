@@ -23,6 +23,19 @@ namespace amod {
         if (!out.is_open()) {
             return amod::FAILED;
         }
+        
+        // get number of available vehicles
+        num_avail_veh_ = 0;
+        std::unordered_map<int, Vehicle>::const_iterator begin_itr, end_itr;
+        world_state->getVehicles(&begin_itr, &end_itr);
+        for (auto vitr=begin_itr; vitr != end_itr; ++vitr) {
+            if (vitr->second.getStatus() == VehicleStatus::FREE ||
+                vitr->second.getStatus() == VehicleStatus::PARKED) {
+                ++num_avail_veh_;
+            }
+        }
+        
+        
         return amod::SUCCESS;
     }
     
@@ -52,6 +65,10 @@ namespace amod {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
                 out << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
             }
+            
+            if (e.type == EVENT_DROPOFF) {
+                ++num_avail_veh_;
+            }
 
             if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
             		e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
@@ -66,14 +83,46 @@ namespace amod {
         
         // dispatch bookings
         auto itr = bookings_.begin();
-        bool no_free_vehicles = false;
         while (itr != bookings_.end()) {
 
             // check if the time is less
             if (itr->first <= current_time) {
                 
-                // service this booking
+                // Get the relevant customer
                 Customer cust = world_state->getCustomer(itr->second.cust_id);
+                if (!cust.getId()) {
+                    // invalid customer id
+                    // delete this booking
+                    std::cout << "Invalid customer id. Deleting booking " << itr->second.id << std::endl;
+                    bookings_.erase(itr);
+                    
+                    // set to the earliest booking
+                    itr = bookings_.begin();
+                    continue;
+                }
+                
+                // check that customer is free
+                if (!(cust.getStatus() == CustomerStatus::FREE ||
+                      cust.getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT)) {
+                    // customer is not free or not waiting for assignment
+                    // we skip this booking
+                    //std::cout << "Cust " << cust.getId() << " is not free, status " << cust.getStatus() << std::endl;
+                    ++itr;
+                    continue;
+                } else {
+                    //std::cout << "Cust " << cust.getId() << " is free. Proceeding to assign. ";
+                }
+                
+                // check if we have vehicles to dispatch
+                //std::cout << world_state->getCurrentTime() << ": Num Available Veh: " << num_avail_veh_ << std::endl;
+                if (num_avail_veh_ == 0) {
+                    
+                    sim_->setCustomerStatus(world_state, itr->second.cust_id,
+                                            amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
+                    itr++;
+                    continue;
+                }
+                
                 
                 // assign a vehicle to this customer booking
                 
@@ -99,9 +148,13 @@ namespace amod {
                     bk.veh_id = best_veh_id;
                     
                     // tell the simulator to service this booking
+                    //std::cout << "... Assign bk " << bk.id << " car " << best_veh_id << std::endl;
                     amod::ReturnCode rc = sim->serviceBooking(world_state, bk);
                     if (rc!= amod::SUCCESS) {
-                        return rc;
+                        // destroy booking and print error code
+                        std::cout << kErrorStrings[rc] << std::endl;
+                    } else {
+                        --num_avail_veh_;
                     }
                     
                     // erase the booking
@@ -111,9 +164,10 @@ namespace amod {
                     itr = bookings_.begin();
                 } else {
                 	// cannot find a proper vehicle, move to next booking
-                    itr++;
+                    //std::cout << "... no car found " << std::endl;
                     sim_->setCustomerStatus(world_state, itr->second.cust_id,
                     		amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
+                    itr++;
                 }
                 
             } else {

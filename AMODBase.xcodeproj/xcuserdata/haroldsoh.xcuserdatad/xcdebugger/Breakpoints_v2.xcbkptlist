@@ -15,7 +15,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "129"
             endingLineNumber = "129"
-            landmarkName = "SimulatorBasic::pickupCustomer(amod::World *world_state, int veh_id, int cust_id, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
+            landmarkName = "SimulatorBasic::dispatchVehicle(amod::World *world_state, int veh_id, const amod::Position &amp;to, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
@@ -31,7 +31,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "130"
             endingLineNumber = "130"
-            landmarkName = "SimulatorBasic::pickupCustomer(amod::World *world_state, int veh_id, int cust_id, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
+            landmarkName = "SimulatorBasic::dispatchVehicle(amod::World *world_state, int veh_id, const amod::Position &amp;to, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
@@ -47,7 +47,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "136"
             endingLineNumber = "136"
-            landmarkName = "SimulatorBasic::pickupCustomer(amod::World *world_state, int veh_id, int cust_id, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
+            landmarkName = "SimulatorBasic::dispatchVehicle(amod::World *world_state, int veh_id, const amod::Position &amp;to, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
@@ -63,7 +63,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "140"
             endingLineNumber = "140"
-            landmarkName = "SimulatorBasic::pickupCustomer(amod::World *world_state, int veh_id, int cust_id, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
+            landmarkName = "SimulatorBasic::dispatchVehicle(amod::World *world_state, int veh_id, const amod::Position &amp;to, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
@@ -79,7 +79,23 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "144"
             endingLineNumber = "144"
-            landmarkName = "SimulatorBasic::pickupCustomer(amod::World *world_state, int veh_id, int cust_id, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
+            landmarkName = "SimulatorBasic::dispatchVehicle(amod::World *world_state, int veh_id, const amod::Position &amp;to, amod::VehicleStatus start_status, amod::VehicleStatus end_status, int booking_id)"
+            landmarkType = "5">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "src/SimulatorBasic.cpp"
+            timestampString = "450347293.02646"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "533"
+            endingLineNumber = "533"
+            landmarkName = "SimulatorBasic::simulatePickups(amod::World *world_state)"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>

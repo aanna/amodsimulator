@@ -1,4 +1,5 @@
 import java.util.Map;
+boolean ismac = true;
 
 // Event structure to load the data we load from the file
 class Event {
@@ -40,7 +41,6 @@ float max_y = 10000;
 float scale_x = 1;
 float scale_y = 1;
 
-boolean ismac = false;
 
 BufferedReader reader;
 
@@ -125,7 +125,7 @@ void draw() {
   noStroke();
   rect(0, 0, width, height);
   float sc_factor = 30;
-  float loc_s_factor = 5;
+  float loc_s_factor = 1.0;
   pushMatrix();
   scale(scale_x, scale_y);
 
@@ -142,7 +142,7 @@ void draw() {
     for (Map.Entry me : locs.entrySet()) {
       //println(me.getKey());
     Location l = (Location) me.getValue();
-    ellipse(l.x, l.y, l.s*loc_s_factor, l.s*loc_s_factor);
+    ellipse(l.x, l.y, l.s*l.s*loc_s_factor, l.s*l.s*loc_s_factor);
   }
       noStroke();
   for (int i=0; i<events.size (); i++) {

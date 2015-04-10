@@ -177,6 +177,10 @@ namespace amod {
 
         }
         
+        // output
+        if (int num_waiting_cust = getNumWaitingCustomers(world_state)) {
+            std::cout << world_state->getCurrentTime() << ": " << "Queue Size: " << num_waiting_cust << std::endl;
+        }
         return amod::SUCCESS;
     }
     
@@ -202,4 +206,52 @@ namespace amod {
         
         return amod::SUCCESS;
     }
+    
+
+    int ManagerBasic::getNumWaitingCustomers(amod::World *world_state, int loc_id) {
+        
+        if (!world_state) return 0;
+        
+        if (loc_id) { //loc_id > 0?
+            int num_cust = 0;
+            // get iterators
+            std::unordered_set<int>::const_iterator bitr, eitr;
+            Location *ploc = world_state->getLocationPtr(loc_id);
+            if (ploc) {
+                ploc->getCustomerIds(&bitr, &eitr);
+            } else {
+                // incorrect loc_id
+                return 0;
+            }
+            
+            // loop through all customers at location specific by loc_id
+            for (auto itr = bitr; itr != eitr; ++itr) {
+                int cust_id = *itr; // get customer id
+                // get customer pointer and check status
+                Customer *cust = world_state->getCustomerPtr(cust_id);
+                if (cust) {
+                    if (cust->getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT) {
+                        num_cust++;
+                    }
+                } else {
+                    throw std::runtime_error("Customer in location does not exist!");
+                }
+            }
+            
+            // return number of waiting customers
+            return num_cust;
+        }
+        
+        // if loc_id == 0, then we want all customers from all locations.
+        // get waiting customers from all locations
+        // get iterators for Locations
+        std::unordered_map<int, Location>::const_iterator bitr, eitr;
+        world_state->getLocations(&bitr, &eitr);
+        int num_cust = 0;
+        for (auto itr=bitr; itr!=eitr; itr++) {
+            num_cust += getNumWaitingCustomers(world_state, itr->second.getId());
+        }
+        return num_cust;
+    }
+    
 }

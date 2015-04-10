@@ -57,6 +57,11 @@ namespace amod {
         
         std::ofstream out;
         int num_avail_veh_; // tracks number of available vehicles
+        
+        // demo function to show how to get information from
+        // if loc_id is a valid location id, we the waiting customers from that location.
+        // if loc_id == 0, then we get all the waiting customers
+        virtual int getNumWaitingCustomers(amod::World *world_state, int loc_id = 0);
     };
 }
 

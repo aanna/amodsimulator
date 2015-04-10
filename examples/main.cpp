@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     // create vehicles
     int max_x = 10000;
     int max_y = 10000;
-    int num_vehs = 50;
+    int num_vehs = 70;
     std::vector<amod::Vehicle> vehicles;
     for (int id=1; id<=num_vehs; id++) {
         amod::Vehicle veh(id); // all vehicles must have a UNIQUE id
@@ -69,12 +69,12 @@ int main(int argc, char **argv) {
     // create bookings
     // we will load bookings from a vector
     std::vector<amod::Booking> bookings;
-    int num_bookings = 100;
+    int num_bookings = 500;
     for (int id=1; id <=num_bookings; id++) {
         amod::Booking booking;
         booking.id = id; // unique booking id
         booking.booking_time = id; // in seconds
-        booking.cust_id = (id%100) + 1; // which customer to pick up
+        booking.cust_id = (id%num_cust) + 1; // which customer to pick up
         booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
         booking.destination = amod::Position( rand()%max_x, rand()%max_y ); //where the customer wants to go
         bookings.push_back(booking);

@@ -1,5 +1,6 @@
 import java.util.Map;
-boolean ismac = true;
+boolean ismac = false;
+boolean issimmob = true;
 
 // Event structure to load the data we load from the file
 class Event {
@@ -40,7 +41,8 @@ float max_x = 10000;
 float max_y = 10000;
 float scale_x = 1;
 float scale_y = 1;
-
+float range_x = 10000;
+float range_y = 10000;
 
 BufferedReader reader;
 
@@ -57,10 +59,20 @@ void setup() {
   if (ismac) {
     filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
   }
+  if (issimmob) {
+    filename = "/home/haroldsoh/Development/simmobility/dev/Basic/logfile.txt";
+  
+   min_x = 365000; //365558.56;
+   max_x = 377000; //376789.19;
+   min_y = 140000;//140278.73;
+   max_y = 143000;//142433.66;
+   range_x = max_x - min_x;
+   range_y = max_y - min_y;
+}
   reader = createReader(filename);
 
-  float w_width = 500;
-  float w_height = 500;
+  float w_width = 800;
+  float w_height = (range_y/range_x)*700;
   size((int) w_width, (int) w_height);
   stroke(255);
   background(0, 0, 0);
@@ -68,6 +80,7 @@ void setup() {
   // compute transformation vector
   scale_x = w_width/(max_x - min_x);
   scale_y = w_height/(max_y - min_y);
+
 } 
 
 void readLogFile(float end_time, ArrayList events) {
@@ -115,7 +128,7 @@ void readLogFile(float end_time, ArrayList events) {
       }
     }
     events.add(e);
-
+  println(e.id);
     if (e.t > end_time) break;
   };
 }
@@ -124,10 +137,9 @@ void draw() {
   fill(0, 0, 0, 50);
   noStroke();
   rect(0, 0, width, height);
-  float sc_factor = 30;
-  float loc_s_factor = 1.0;
-  pushMatrix();
-  scale(scale_x, scale_y);
+  float sc_factor = 10; //30
+  float loc_s_factor = 1.0; //1.0
+
 
   //line(150, 25, mouseX, mouseY);
   float start_time = current_time;
@@ -135,7 +147,11 @@ void draw() {
   ArrayList<Event> events = new ArrayList<Event>();
   readLogFile(end_time, events);
   
-  
+  // apply transformation
+  pushMatrix();
+  scale( scale_x, scale_y);
+  translate(-min_x, -min_y);
+
   // draw locations
   stroke(100,100,100);
   fill(100,100,100,100);
@@ -164,10 +180,9 @@ void draw() {
       fill(#FF00E6); 
       ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
     }
+    println("Test:", e.x, e.y);
   }
   
-
-
   current_time = end_time;
 
   popMatrix();

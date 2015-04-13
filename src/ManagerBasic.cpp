@@ -51,7 +51,7 @@ namespace amod {
         // get events
         std::vector<Event> events;
         world_state->getEvents(&events);
-        
+        out.precision(10);
         // respond to events
         for (auto e:events) {
             out << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
@@ -152,7 +152,7 @@ namespace amod {
                     amod::ReturnCode rc = sim->serviceBooking(world_state, bk);
                     if (rc!= amod::SUCCESS) {
                         // destroy booking and print error code
-                        std::cout << kErrorStrings[rc] << std::endl;
+                        std::cout << amod::kErrorStrings[rc] << std::endl;
                     } else {
                         --num_avail_veh_;
                     }

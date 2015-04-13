@@ -292,8 +292,8 @@ namespace amod {
         int loc_id = 0;
 		if (using_locations_) {
 			// get the dropoff location
-			Location pickup_loc = loc_tree_.findNN({cust.getPosition().x, cust.getPosition().y});
-			loc_id = pickup_loc.getId();
+			Location dropoff_loc = loc_tree_.findNN({cust.getPosition().x, cust.getPosition().y});
+			loc_id = dropoff_loc.getId();
 		}
 
         //if (verbose_) std::cout << "Future Dropoff time : " << dropoff_time << std::endl;

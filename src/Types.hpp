@@ -26,20 +26,25 @@ namespace  amod {
         SOURCE_EQUALS_DESTINATION,
         ERROR_READING_BOOKINGS_FILE,
         SIMULATOR_IS_NULLPTR,
-        LOGGER_IS_NULLPTR
+        LOGGER_IS_NULLPTR,
+        NO_PATH_TO_DESTINATION
     };
     
-    const std::vector<std::string> kErrorStrings = {"Failed",
+    const std::vector<std::string> kErrorStrings = {
+    		"Failed",
         "Success",
         "Failed to get vehicle with given Id",
         "Failed to get customer with given Id",
         "Vehicle not at customer location",
         "Vehicle not associated with given customer",
         "Vehicle cannot be dispatched",
+        "Vehicle is not free",
+        "Customer is not free",
         "Source and Destination are the same",
         "Error Reading Bookings file",
         "Simulator is nullptr",
-        "Logger is nullptr"
+        "Logger is nullptr",
+        "No path to destination",
     };
     
     

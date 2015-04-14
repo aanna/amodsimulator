@@ -8,6 +8,7 @@
 #include "Amod.hpp"
 #include "SimulatorBasic.hpp"
 #include "ManagerBasic.hpp"
+#include "ManagerMatchRebalance.hpp"
 
 int main(int argc, char **argv) {
     std::cout << "AMOD Basic Test Program" << std::endl;
@@ -85,10 +86,27 @@ int main(int argc, char **argv) {
     simple_manager.setSimulator(&sim); // set simulator
     simple_manager.loadBookings(bookings); // load the bookings
     
+    // create another manager
+    amod::ManagerMatchRebalance match_manager;
+    double distance_cost_factor = 1.0;
+    double waiting_cost_factor = 1.0;
+    match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
+    match_manager.setMatchingInterval(300); //5 minutes
+
+    match_manager.init(&world_state);
+    match_manager.setSimulator(&sim); // set simulator
+    match_manager.loadBookings(bookings); // load the bookings
+
+
+
+
+    // select which manager we want
+    amod::Manager* manager = &match_manager; //simple_manager
+
     // loop until some future time
     while (world_state.getCurrentTime() < 5000) {
         sim.update(&world_state); // update the simulator
-        amod::ReturnCode rc = simple_manager.update(&world_state); // update the manager
+        amod::ReturnCode rc = manager->update(&world_state); // update the manager
         if (rc != amod::SUCCESS) {
             std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
         }

@@ -1,6 +1,6 @@
 import java.util.Map;
 boolean ismac = false;
-boolean issimmob = true;
+boolean issimmob = false;
 
 // Event structure to load the data we load from the file
 class Event {
@@ -140,7 +140,7 @@ void draw() {
   fill(0,0,0);
   rect(0, 0, width, height);
   float sc_factor = 10; //30
-  float loc_s_factor = 0.01; //1.0
+  float loc_s_factor = 1.0; //1.0
 
 
   //line(150, 25, mouseX, mouseY);

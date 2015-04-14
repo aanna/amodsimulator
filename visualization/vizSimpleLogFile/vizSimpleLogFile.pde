@@ -71,8 +71,8 @@ void setup() {
 }
   reader = createReader(filename);
 
-  float w_width = 900;
-  float w_height = (range_y/range_x)*700;
+  float w_width = 500;
+  float w_height = (range_y/range_x)*500;
   size((int) w_width, (int) w_height);
   stroke(255);
   background(0, 0, 0);
@@ -134,11 +134,10 @@ void readLogFile(float end_time, ArrayList events) {
 }
 
 void draw() {
-  //fill(0, 0, 0, 50);
-  //noStroke();
-  //rect(0, 0, width, height);
-  fill(0,0,0);
+  fill(0, 0, 0, 50);
+  noStroke();
   rect(0, 0, width, height);
+
   float sc_factor = 10; //30
   float loc_s_factor = 1.0; //1.0
 

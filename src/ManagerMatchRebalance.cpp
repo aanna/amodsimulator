@@ -111,12 +111,13 @@ namespace amod {
 			}
         }
 
-        std::cout << world_state->getCurrentTime() << ": Queue Size: " << bookings_queue_.size() << std::endl;
-
-        if (next_matching_time_ >= world_state->getCurrentTime()) {
+        if (next_matching_time_ <= world_state->getCurrentTime()) {
         	// perform matching and increase next matching time
         	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
-        	return solveMatching(world_state);
+            std::cout << world_state->getCurrentTime() << ": Before Queue Size: " << bookings_queue_.size() << std::endl;
+        	amod::ReturnCode rc = solveMatching(world_state);
+        	std::cout << world_state->getCurrentTime() << ": After Queue Size: " << bookings_queue_.size() << std::endl;
+        	return rc;
         }
         return amod::SUCCESS;
     }
@@ -278,8 +279,6 @@ namespace amod {
     		// Maximize the inverted costs
     		matching_model.set(GRB_IntAttr_ModelSense, GRB_MAXIMIZE); //
 
-
-
     		// Add constraints
 			// sum xij over j <= 1, i belongs to vehicles
 
@@ -350,6 +349,7 @@ namespace amod {
 			delete matching_var[i];
 		}
 		delete [] matching_var;
+
 
     	return amod::SUCCESS;
     }

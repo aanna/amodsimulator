@@ -20,7 +20,11 @@ int main(int argc, char **argv) {
     // create vehicles
     int max_x = 10000;
     int max_y = 10000;
-    int num_vehs = 70;
+    int num_vehs = 3000;
+    int num_cust = 40000;
+    int num_bookings = 20000;
+    int max_time = 5000;
+
     std::vector<amod::Vehicle> vehicles;
     for (int id=1; id<=num_vehs; id++) {
         amod::Vehicle veh(id); // all vehicles must have a UNIQUE id
@@ -31,7 +35,6 @@ int main(int argc, char **argv) {
     }
     
     // create customer (just one for now)
-    int num_cust = 1000;
     std::vector<amod::Customer> customers;
     for (int id=1; id<=num_cust; id++) {
         int cust_id = id; // all customers must have a unique id
@@ -70,11 +73,10 @@ int main(int argc, char **argv) {
     // create bookings
     // we will load bookings from a vector
     std::vector<amod::Booking> bookings;
-    int num_bookings = 500;
     for (int id=1; id <=num_bookings; id++) {
         amod::Booking booking;
         booking.id = id; // unique booking id
-        booking.booking_time = id; // in seconds
+        booking.booking_time = rand()%((int) (max_time - 0.2*max_time)); // in seconds
         booking.cust_id = id; // which customer to pick up
         booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
         booking.destination = amod::Position( rand()%max_x, rand()%max_y ); //where the customer wants to go
@@ -91,20 +93,17 @@ int main(int argc, char **argv) {
     double distance_cost_factor = 1.0;
     double waiting_cost_factor = 1.0;
     match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
-    match_manager.setMatchingInterval(300); //5 minutes
+    match_manager.setMatchingInterval(30); //5 minutes
 
     match_manager.init(&world_state);
     match_manager.setSimulator(&sim); // set simulator
     match_manager.loadBookings(bookings); // load the bookings
 
-
-
-
     // select which manager we want
     amod::Manager* manager = &match_manager; //simple_manager
     //amod::Manager* manager = &simple_manager;
     // loop until some future time
-    while (world_state.getCurrentTime() < 5000) {
+    while (world_state.getCurrentTime() < max_time) {
         sim.update(&world_state); // update the simulator
         amod::ReturnCode rc = manager->update(&world_state); // update the manager
         if (rc != amod::SUCCESS) {
@@ -130,11 +129,13 @@ int main(int argc, char **argv) {
         std::cout << "Before: " << num_vehs << " After: " << total_veh << std::endl;
     } else {
         std::cout << "Number of vehicles match up." << std::endl;
+        std::cout << "Did the simulation finish running?" << std::endl;
     }
     
     if (num_cust != total_cust) {
         std::cout << "Error! Total number of customers before and after simulation is not the same";
         std::cout << "Before: " << num_cust << " After: " << total_cust << std::endl;
+        std::cout << "Did the simulation finish running?" << std::endl;
     } else {
         std::cout << "Number of customers match up." << std::endl;
     }

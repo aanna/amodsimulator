@@ -134,6 +134,7 @@ void readLogFile(float end_time, ArrayList events) {
 }
 
 void draw() {
+  println(frameCount);
   fill(0, 0, 0, 50);
   noStroke();
   rect(0, 0, width, height);
@@ -181,7 +182,7 @@ void draw() {
       fill(#FF00E6); 
       ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
     }
-    println("Test:", e.x, e.y);
+    //println("Test:", e.x, e.y);
   }
   
   current_time = end_time;

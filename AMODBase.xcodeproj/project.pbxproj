@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01038E191ADD61EA0037B6AA /* ManagerMatchRebalance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01038E171ADD61EA0037B6AA /* ManagerMatchRebalance.cpp */; };
 		017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A8D1AC6AA5C009ED221 /* Customer.cpp */; };
 		017E8AA41AC6AA5C009ED221 /* Location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A921AC6AA5C009ED221 /* Location.cpp */; };
 		017E8AA51AC6AA5C009ED221 /* Logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A941AC6AA5C009ED221 /* Logger.cpp */; };
@@ -30,6 +31,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01038E171ADD61EA0037B6AA /* ManagerMatchRebalance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ManagerMatchRebalance.cpp; sourceTree = "<group>"; };
+		01038E181ADD61EA0037B6AA /* ManagerMatchRebalance.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ManagerMatchRebalance.hpp; sourceTree = "<group>"; };
 		017E8A7F1AC6A999009ED221 /* AMODBase */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AMODBase; sourceTree = BUILT_PRODUCTS_DIR; };
 		017E8A891AC6AA5C009ED221 /* Amod.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Amod.hpp; sourceTree = "<group>"; };
 		017E8A8C1AC6AA5C009ED221 /* Booking.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Booking.hpp; sourceTree = "<group>"; };
@@ -88,6 +91,8 @@
 		017E8A811AC6A999009ED221 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				01038E171ADD61EA0037B6AA /* ManagerMatchRebalance.cpp */,
+				01038E181ADD61EA0037B6AA /* ManagerMatchRebalance.hpp */,
 				017E8A891AC6AA5C009ED221 /* Amod.hpp */,
 				017E8A8C1AC6AA5C009ED221 /* Booking.hpp */,
 				017E8A8D1AC6AA5C009ED221 /* Customer.cpp */,
@@ -183,6 +188,7 @@
 				017E8AA81AC6AA5C009ED221 /* SimulatorBasic.cpp in Sources */,
 				017E8AA91AC6AA5C009ED221 /* Vehicle.cpp in Sources */,
 				017E8AAA1AC6AA5C009ED221 /* World.cpp in Sources */,
+				01038E191ADD61EA0037B6AA /* ManagerMatchRebalance.cpp in Sources */,
 				017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */,
 				017E8AAE1AC7F2FB009ED221 /* ManagerBasic.cpp in Sources */,
 				017E8AB11AC99529009ED221 /* main.cpp in Sources */,
@@ -270,14 +276,20 @@
 		017E8A871AC6A999009ED221 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
+				OTHER_LDFLAGS = "-lglpk";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = /opt/local/include;
 			};
 			name = Debug;
 		};
 		017E8A881AC6A999009ED221 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
+				OTHER_LDFLAGS = "-lglpk";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = /opt/local/include;
 			};
 			name = Release;
 		};
@@ -300,6 +312,7 @@
 				017E8A881AC6A999009ED221 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

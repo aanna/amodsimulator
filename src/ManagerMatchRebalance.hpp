@@ -23,8 +23,12 @@
 #include <sstream>
 
 // gurobi for optimization
+//#define USE_GUROBI
+#ifdef USE_GUROBI
 #include "gurobi_c++.h"
-
+#else
+#include "glpk.h"
+#endif
 
 namespace amod {
     class ManagerMatchRebalance : public Manager {
@@ -84,8 +88,11 @@ namespace amod {
         double waiting_time_cost_factor_;
 
         // Gurobi
+#ifdef USE_GUROBI
         GRBEnv *gurobi_env_;
-
+#else
+        
+#endif
         // demo function to show how to get information from
         // if loc_id is a valid location id, we the waiting customers from that location.
         // if loc_id == 0, then we get all the waiting customers

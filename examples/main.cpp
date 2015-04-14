@@ -127,9 +127,9 @@ int main(int argc, char **argv) {
     if (num_vehs != total_veh) {
         std::cout << "Error! Total number of vehicles before and after simulation is not the same";
         std::cout << "Before: " << num_vehs << " After: " << total_veh << std::endl;
+        std::cout << "Did the simulation finish running?" << std::endl;
     } else {
         std::cout << "Number of vehicles match up." << std::endl;
-        std::cout << "Did the simulation finish running?" << std::endl;
     }
     
     if (num_cust != total_cust) {

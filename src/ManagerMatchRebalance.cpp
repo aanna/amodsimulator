@@ -320,7 +320,7 @@ namespace amod {
 					if(matching_var[i][j].get(GRB_DoubleAttr_X) > 0){
 						// vehicle is assigned to this booking
 						int bid = index_to_booking_id[j];
-						int veh_id = index_to_vehicle_id[j];
+						int veh_id = index_to_vehicle_id[i];
 
 						bookings_queue_[bid].veh_id = veh_id;
 						amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
@@ -346,7 +346,6 @@ namespace amod {
     	}
 
 		// deletes
-		// commented out since this is apparently done by gurobi
 		for (int i=0; i<available_vehs_.size(); ++i) {
 			delete matching_var[i];
 		}

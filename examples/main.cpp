@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     }
     
     // create customer (just one for now)
-    int num_cust = 100;
+    int num_cust = 1000;
     std::vector<amod::Customer> customers;
     for (int id=1; id<=num_cust; id++) {
         int cust_id = id; // all customers must have a unique id
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         amod::Booking booking;
         booking.id = id; // unique booking id
         booking.booking_time = id; // in seconds
-        booking.cust_id = (id%num_cust) + 1; // which customer to pick up
+        booking.cust_id = id; // which customer to pick up
         booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
         booking.destination = amod::Position( rand()%max_x, rand()%max_y ); //where the customer wants to go
         bookings.push_back(booking);
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
 
     // select which manager we want
     amod::Manager* manager = &match_manager; //simple_manager
-
+    //amod::Manager* manager = &simple_manager;
     // loop until some future time
     while (world_state.getCurrentTime() < 5000) {
         sim.update(&world_state); // update the simulator

@@ -65,18 +65,18 @@ void setup() {
    min_x = 365000; //365558.56;
    max_x = 377000; //376789.19;
    min_y = 140000;//140278.73;
-   max_y = 143000;//142433.66;
+   max_y = 144000;//142433.66;
    range_x = max_x - min_x;
    range_y = max_y - min_y;
 }
   reader = createReader(filename);
 
-  float w_width = 800;
+  float w_width = 900;
   float w_height = (range_y/range_x)*700;
   size((int) w_width, (int) w_height);
   stroke(255);
   background(0, 0, 0);
-  smooth();
+  //smooth();
   // compute transformation vector
   scale_x = w_width/(max_x - min_x);
   scale_y = w_height/(max_y - min_y);
@@ -119,7 +119,7 @@ void readLogFile(float end_time, ArrayList events) {
       if (e.type == 5) {
         String[] entities = split(cols[6], ',');
         locid = parseInt(entities[0]);
-        println(locid);
+        //println(locid);
         Location loc = new Location();
         loc.x = e.x;
         loc.y = e.y;
@@ -128,17 +128,19 @@ void readLogFile(float end_time, ArrayList events) {
       }
     }
     events.add(e);
-  println(e.id);
+    //println(e.id);
     if (e.t > end_time) break;
   };
 }
 
 void draw() {
-  fill(0, 0, 0, 50);
-  noStroke();
+  //fill(0, 0, 0, 50);
+  //noStroke();
+  //rect(0, 0, width, height);
+  fill(0,0,0);
   rect(0, 0, width, height);
   float sc_factor = 10; //30
-  float loc_s_factor = 1.0; //1.0
+  float loc_s_factor = 0.01; //1.0
 
 
   //line(150, 25, mouseX, mouseY);
@@ -158,7 +160,7 @@ void draw() {
     for (Map.Entry me : locs.entrySet()) {
       //println(me.getKey());
     Location l = (Location) me.getValue();
-    ellipse(l.x, l.y, l.s*l.s*loc_s_factor, l.s*l.s*loc_s_factor);
+    ellipse(l.x, l.y, l.s*loc_s_factor, l.s*loc_s_factor);
   }
       noStroke();
   for (int i=0; i<events.size (); i++) {

@@ -7,7 +7,7 @@ OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
 all: AMODBasicTest
 
 AMODBasicTest: $(OBJ_FILES) examples/main.cpp
-	$(CC) $(CC_FLAGS) $(LD_FLAGS) -o $@ $^ -lgurobi_c++ -lgurobi60 
+	$(CC) $(CC_FLAGS) $(LD_FLAGS) -o $@ $^ -lgurobi_c++ -lgurobi60 -lglpk
 
 obj/%.o: src/%.cpp
 	$(CC) $(CC_FLAGS) -c -o $@ $<

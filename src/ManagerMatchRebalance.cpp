@@ -8,7 +8,7 @@
 
 #include "ManagerMatchRebalance.hpp"
 
-#define USE_GUROBI
+//#define USE_GUROBI
 
 namespace amod {
     ManagerMatchRebalance::ManagerMatchRebalance() {
@@ -108,6 +108,7 @@ namespace amod {
         while (bookings_itr_ != bookings_.end()) {
         	// check if the time is less
 			if (bookings_itr_->first <= current_time) {
+
 				// ensure that the customer is available (if not, we discard the booking)
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
 				if (cust->getStatus() == CustomerStatus::FREE ||
@@ -384,45 +385,149 @@ namespace amod {
 #else
     // use glpk to solve
     amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) {
+
+    	if (!world_state) {
+    		throw std::runtime_error("solveMatching: world_state is nullptr!");
+    	}
+
+    	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
+    	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
+
+
+    	// create variables for solving lp
+    	int nbookings = bookings_queue_.size();
+    	int nvehs = available_vehs_.size();
+    	int nvars = nbookings*nvehs;
+
+    	// set up the problem
         glp_prob *lp;
-        int  *ja = new int[1+1000];
-        int *ia = new int[1+1000];
-        double *ar = new double[1+1000];
-        double z;
-        double *x = new double[2];
-        /* create problem */
         lp = glp_create_prob();
-        
-        glp_set_prob_name(lp, "short");
+        glp_set_prob_name(lp, "matching");
         glp_set_obj_dir(lp, GLP_MAX);
-        /* fill problem */
-        glp_add_rows(lp, 2);
-        glp_set_row_name(lp, 1, "p");
-        glp_set_row_bnds(lp, 1, GLP_UP, 0.0, 1.0);
-        glp_set_row_name(lp, 2, "q");
-        glp_set_row_bnds(lp, 2, GLP_UP, 0.0, 2.0);
-        
-        
-        glp_add_cols(lp, 2);
-        glp_set_col_name(lp, 1, "x1");
-        glp_set_col_bnds(lp, 1, GLP_LO, 0.0, 0.0);
-        glp_set_obj_coef(lp, 1, 0.6);
-        glp_set_col_name(lp, 2, "x2");
-        glp_set_col_bnds(lp, 2, GLP_LO, 0.0, 0.0);
-        glp_set_obj_coef(lp, 2, 0.5);
-        ia[1] = 1, ja[1] = 1, ar[1] = 1.0; /* a[1,1] = 1 */
-        ia[2] = 1, ja[2] = 2, ar[2] = 2.0; /* a[1,2] = 2 */
-        ia[3] = 2, ja[3] = 1, ar[3] = 3.0; /* a[2,1] = 3 */
-        ia[4] = 2, ja[4] = 2, ar[4] = 1.0; /* a[2,2] = 1 */
-        glp_load_matrix(lp, 4, ia, ja, ar);
-        /* solve problem */
-        glp_simplex(lp, NULL);
-        /* recover and display results */
-        z = glp_get_obj_val(lp);
-        double x1 = glp_get_col_prim(lp, 1);
-        double x2 = glp_get_col_prim(lp, 2);
-        printf("z = %g; x1 = %g; x2 = %g\n", z, x1, x2);
-        
+        glp_add_cols(lp, nvars);
+
+        // add the structural variables (decision variables)
+		std::unordered_map<int, std::pair<int,int>> index_to_ids;
+
+		int k = 1;
+		for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
+			// loop through bookings to get bookings that can be served by this vehicle
+			for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
+				// store the indices so we can find them again
+				index_to_ids[k] = {bitr->first, *vitr};
+
+				// get cost
+				Vehicle *veh = world_state->getVehiclePtr(*vitr);
+				Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
+
+				double total_invert_cost = 0;
+				double dist_cost = distance_cost_factor_*(sim_->getDrivingDistance(veh->getPosition(), cust->getPosition()));
+				if (dist_cost < 0) {
+					// this vehicle cannot service this booking
+					total_invert_cost = -1.0;
+				} else {
+					double time_cost = waiting_time_cost_factor_*(std::max(0.0, world_state->getCurrentTime() - bitr->second.booking_time));
+					total_invert_cost = 1.0/(1.0 + dist_cost + time_cost);
+				}
+
+				// add this variable to the solver
+				std::stringstream ss;
+				ss << "x " << bitr->first << " " << *vitr;
+				const std::string& tmp = ss.str();
+				const char* cstr = tmp.c_str();
+				glp_set_col_name(lp, k, cstr);
+				glp_set_col_kind(lp, k, GLP_BV);
+				glp_set_obj_coef(lp, k, total_invert_cost);
+
+				// increment index
+				++k;
+			}
+		}
+		// setup the constraints
+		k = 1;
+		int ncons = nbookings + nvehs;
+		int nelems = nbookings*nvehs*2;
+        int *ia = new int[nelems + 1];
+        int  *ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
+        double *ar = new double[nelems + 1];
+
+
+		glp_add_rows(lp, ncons);
+		for (int i=1; i<=nvehs; ++i) {
+			std::stringstream ss;
+			ss << "veh " << i;
+			const std::string& tmp = ss.str();
+			const char* cstr = tmp.c_str();
+			glp_set_row_name(lp, i, cstr);
+			glp_set_row_bnds(lp, i, GLP_DB, 0.0, 1.0);
+
+			for (int j=1; j<=nbookings; ++j) {
+				ia[k] = i;
+				ja[k] = (i-1)*nbookings + j;
+				ar[k] = 1.0;
+				++k;
+			}
+		}
+
+		for (int j=1; j<=nbookings; ++j) {
+			std::stringstream ss;
+			ss << "booking " << j;
+			const std::string& tmp = ss.str();
+			const char* cstr = tmp.c_str();
+			glp_set_row_name(lp, nvehs+j, cstr);
+			glp_set_row_bnds(lp, nvehs+j, GLP_DB, 0.0, 1.0);
+
+			for (int i=1; i<=nvehs; ++i) {
+				ia[k] = nvehs+j;
+				ja[k] = (i-1)*nbookings + j;
+				ar[k] = 1.0;
+				++k;
+			}
+		}
+
+		// std::cout << k << " " << ncons << std::endl;
+
+		// load the matrix
+		// std::cout << "Loading the matrix" << std::endl;
+		glp_load_matrix(lp, k-1, ia, ja, ar);
+
+		// solve the problem
+		// std::cout << "Solving the problem" << std::endl;
+		glp_iocp parm;
+		glp_init_iocp(&parm);
+		parm.presolve = GLP_ON;
+		glp_intopt(lp, &parm);
+
+		// print out the objective value
+		double z = glp_mip_obj_val(lp);
+		//std::cout << z << std::endl;
+
+		// dispatch the vehicles
+		for (int k=1; k<=nvars; ++k) {
+			int opt_x = glp_mip_col_val(lp, k);
+			if(opt_x > 0){
+
+				// vehicle is assigned to this booking
+				auto ids = index_to_ids[k];
+				int bid = ids.first;
+				int veh_id = ids.second;
+
+				bookings_queue_[bid].veh_id = veh_id;
+				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
+				if (rc!= amod::SUCCESS) {
+					std::cout << amod::kErrorStrings[rc] << std::endl;
+				} else {
+					std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
+					// mark the car as no longer available
+					available_vehs_.erase(veh_id);
+				}
+
+				// erase the booking
+				bookings_queue_.erase(bid);
+			}
+		}
+
+		//double x1 = glp_mip_col_val(mip, 1);
         // housekeeping; clear up all the dynamically allocated memory
         glp_delete_prob(lp);
         glp_free_env();

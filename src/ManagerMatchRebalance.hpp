@@ -24,7 +24,7 @@
 #include <cstdlib>
 
 // gurobi for optimization
-#define USE_GUROBI
+//#define USE_GUROBI
 #ifdef USE_GUROBI
 #include "gurobi_c++.h"
 #else

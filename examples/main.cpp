@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
     int max_y = 10000;
     int num_vehs = 3000;
     int num_cust = 20000;
-    int num_bookings = 2000;
-    int max_time = 500;
+    int num_bookings = 10000;
+    int max_time = 1000;
 
     std::vector<amod::Vehicle> vehicles;
     for (int id=1; id<=num_vehs; id++) {
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     for (int id=1; id <=num_bookings; id++) {
         amod::Booking booking;
         booking.id = id; // unique booking id
-        booking.booking_time = rand()%((int) (max_time - 0.2*max_time)); // in seconds
+        booking.booking_time = rand()%((int) (max_time - 0.3*max_time)); // in seconds
         booking.cust_id = id; // which customer to pick up
         booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
         booking.destination = amod::Position( rand()%max_x, rand()%max_y ); //where the customer wants to go

@@ -323,31 +323,37 @@ namespace amod {
     amod::ReturnCode SimulatorBasic::serviceBooking(amod::World *world_state, const amod::Booking &booking) {
         // add booking to internal structure
         bookings_[booking.id] = booking;
-        
-        // get vehicle and customer
-        // make sure both vehicle and customer are valid
-        Vehicle veh = state_.getVehicle(booking.veh_id);
 
-        if (veh.getStatus() != VehicleStatus::FREE) {
-        	return amod::ReturnCode::VEHICLE_IS_NOT_FREE;
-        }
+        amod::ReturnCode rc;
 
-		Customer cust = state_.getCustomer(booking.cust_id);
-        if (!(cust.getStatus() == CustomerStatus::FREE || cust.getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT)) {
-        	return amod::ReturnCode::CUSTOMER_IS_NOT_FREE;
-        }
-
-        // dispatch the vehicle to the customer's position
-        Position from = veh.getPosition();
-        Position to = cust.getPosition();
-        
-        if (from == to) {
-            // from == to, so we just pickup the customer
-            return pickupCustomer(world_state, booking.veh_id, booking.cust_id, VehicleStatus::PICKING_UP, VehicleStatus::HIRED, booking.id);
+        // make sure the customer is valid
+		amod::Customer cust = world_state->getCustomer(booking.cust_id);
+        if (!(cust.getStatus() == amod::CustomerStatus::FREE || cust.getStatus() == amod::CustomerStatus::WAITING_FOR_ASSIGNMENT)) {
+        	rc = amod::ReturnCode::CUSTOMER_IS_NOT_FREE;
         } else {
-            // from != to, so we need to move the vehicle
-            return dispatchVehicle(world_state, booking.veh_id, to, VehicleStatus::MOVING_TO_PICKUP, VehicleStatus::HIRED, booking.id);
+
+			// dispatch the vehicle to the customer's position
+			amod::Position cust_pos = cust.getPosition();
+
+			double dist_to_dropoff = getDrivingDistance(cust_pos, booking.destination);
+			if (dist_to_dropoff < 0) {
+				rc = amod::NO_PATH_TO_DESTINATION;
+			} else {
+
+			// dispatch the vehicle
+			rc = dispatchVehicle(world_state, booking.veh_id, cust_pos,
+					amod::VehicleStatus::MOVING_TO_PICKUP, amod::VehicleStatus::HIRED, booking.id);
+			}
         }
+
+        // if the return code was not successful, then we raise an event that the booking could not be serviced
+        if (rc!= amod::SUCCESS) {
+        	// raise an event that this booking was dropped
+        	std::vector<int> entities = {booking.id, booking.cust_id};
+			amod::Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, ++event_id_, "BookingDropped", world_state->getCurrentTime(), entities);
+			world_state->addEvent(ev);
+        }
+        return rc;
     }
     
     double SimulatorBasic::getDrivingDistance(const amod::Position &from, const amod::Position &to) {

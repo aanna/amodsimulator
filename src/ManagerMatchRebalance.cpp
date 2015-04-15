@@ -8,6 +8,8 @@
 
 #include "ManagerMatchRebalance.hpp"
 
+#define USE_GUROBI
+
 namespace amod {
     ManagerMatchRebalance::ManagerMatchRebalance() {
 
@@ -126,10 +128,11 @@ namespace amod {
         if (next_matching_time_ <= world_state->getCurrentTime()) {
         	// perform matching and increase next matching time
         	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
-        	std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
             std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
+        	std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
         	amod::ReturnCode rc = solveMatching(world_state);
         	std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
+        	std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
         	return rc;
         }
         return amod::SUCCESS;
@@ -245,6 +248,8 @@ namespace amod {
     		GRBModel matching_model = GRBModel(*gurobi_env_);
     		matching_model.set(GRB_StringAttr_ModelName, "matching");
 
+    		// optimization function
+    		GRBLinExpr obj;
 
     		// Create decision variables
     		matching_var = new GRBVar* [available_vehs_.size()];
@@ -282,16 +287,16 @@ namespace amod {
 					// add this variable to the solve
 					std::stringstream vname;
 					vname << "match" << *vitr << " " << bitr->first; // vehicle to booking
-					matching_var[i][j].set(GRB_DoubleAttr_Obj, total_invert_cost);
+					//matching_var[i][j].set(GRB_DoubleAttr_Obj, total_invert_cost);
+					//if (total_invert_cost > 0)
+					obj += total_invert_cost*matching_var[i][j]; // set optimization function
 					matching_var[i][j].set(GRB_StringAttr_VarName, vname.str());
 
     			}
     		}
+
     		// Update model to integrate new variables
     		matching_model.update();
-
-    		// Maximize the inverted costs
-    		matching_model.set(GRB_IntAttr_ModelSense, GRB_MAXIMIZE); //
 
     		// Add constraints
 			// sum xij over j <= 1, i belongs to vehicles
@@ -318,7 +323,11 @@ namespace amod {
     			matching_model.addConstr(sum_elems_j <= 1, cname.str());
     		}
 
-    		matching_model.update();
+    		//matching_model.update();
+
+
+    		// Maximize the inverted costs
+    		matching_model.setObjective(obj, GRB_MAXIMIZE); //
 
 			// Solve
 			matching_model.optimize();
@@ -328,9 +337,14 @@ namespace amod {
 			std::cout << "\nOBJECTIVE: " << matching_model.get(GRB_DoubleAttr_ObjVal) << std::endl;
 			std::cout << "SOLUTION:" << std::endl;
 
-			for (i=0; i < available_vehs_.size();++i){
-				for (j=0; j < bookings_queue_.size();++j) {
-					if(matching_var[i][j].get(GRB_DoubleAttr_X) > 0){
+			int nbookings = bookings_queue_.size();
+			int nvehs = available_vehs_.size();
+			for (j=0; j < nbookings ;++j) {
+				for (i=0; i < nvehs;++i){
+					double opt_x = matching_var[i][j].get(GRB_DoubleAttr_X);
+
+					if(opt_x > 0){
+
 						// vehicle is assigned to this booking
 						int bid = index_to_booking_id[j];
 						int veh_id = index_to_vehicle_id[i];

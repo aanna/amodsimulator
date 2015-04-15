@@ -21,9 +21,9 @@ int main(int argc, char **argv) {
     int max_x = 10000;
     int max_y = 10000;
     int num_vehs = 3000;
-    int num_cust = 40000;
-    int num_bookings = 20000;
-    int max_time = 5000;
+    int num_cust = 20000;
+    int num_bookings = 2000;
+    int max_time = 500;
 
     std::vector<amod::Vehicle> vehicles;
     for (int id=1; id<=num_vehs; id++) {

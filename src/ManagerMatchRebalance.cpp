@@ -117,9 +117,10 @@ namespace amod {
 					bookings_queue_[bookings_itr_->second.id] = bookings_itr_->second;
 
 					// assign this customer to a station
-					int st_id = getClosestStationId(cust->getPosition());
-					stations_[st_id].addCustomerId(cust->getId());
-
+                    if (stations_.size() > 0) {
+                        int st_id = getClosestStationId(cust->getPosition());
+                        stations_[st_id].addCustomerId(cust->getId());
+                    }
 				}
 
 	            // erase the booking
@@ -212,6 +213,9 @@ namespace amod {
 
     void ManagerMatchRebalance::loadStations(std::vector<amod::Location> &stations, const amod::World &world_state)
     {
+        
+        if (stations.size() <= 0) return;
+        
     	// create a map for quick lookup based on id
     	for (auto l : stations) {
     		stations_[l.getId()] = l;
@@ -448,8 +452,8 @@ namespace amod {
 
 
     	// create variables for solving lp
-    	int nbookings = bookings_queue_.size();
-    	int nvehs = available_vehs_.size();
+    	long nbookings = bookings_queue_.size();
+    	long nvehs = available_vehs_.size();
     	int nvars = nbookings*nvehs;
 
     	// set up the problem
@@ -583,14 +587,16 @@ namespace amod {
 					available_vehs_.erase(veh_id);
 
 					// change station ownership of vehicle
-					int st_id = veh_id_to_station_id_[veh_id]; //old station
-					stations_[st_id].removeVehicleId(veh_id);
-					int new_st_id = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
-					stations_[new_st_id].addVehicleId(veh_id);
-					veh_id_to_station_id_[veh_id] = new_st_id;
+                    if (stations_.size() > 0) {
+                        int st_id = veh_id_to_station_id_[veh_id]; //old station
+                        stations_[st_id].removeVehicleId(veh_id);
+                        int new_st_id = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
+                        stations_[new_st_id].addVehicleId(veh_id);
+                        veh_id_to_station_id_[veh_id] = new_st_id;
 
-					// remove this customer from the station queue
-					stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
+                        // remove this customer from the station queue
+                        stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
+                    }
 
 				}
 
@@ -620,6 +626,8 @@ namespace amod {
 
     	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to rebalance
 
+        if (stations_.size() == 0) return amod::SUCCESS; // nothing to rebalance
+        
     	// create variables for solving lp
     	int nvehs = available_vehs_.size();
     	int nstations = stations_.size();
@@ -669,9 +677,11 @@ namespace amod {
 			}
             
             // compute variables for the lp
-            int cexi = sitr->second.getNumCustomers() - sitr->second.getNumCustomers();
+            int cexi = sitr->second.getNumCustomers() - sitr->second.getNumVehicles();
             cex[sitr->first] = cexi; // excess customers at this station
             cex_total += cexi; // total number of excess customers
+            
+            std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
             
 		}
         
@@ -688,10 +698,10 @@ namespace amod {
         int *ia;
         int  *ja; // +1 because glpk starts indexing at 1 (why? I don't know)
         double *ar;
-        if (vi_total <= cex_total) {
+        if (cex_total <= 0) {
             // should be possible to satisfy all customers by rebalancing
             int ncons = nstations*2;
-            int nelems = nstations*(nstations*2) + nstations*nstations;
+            int nelems = nstations*((nstations - 1)*2) + nstations*(nstations-1);
             ia = new int[nelems + 1];
             ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
             ar = new double[nelems + 1];
@@ -711,18 +721,19 @@ namespace amod {
                 
                
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    if (sitr2->first == sitr->first) continue;
                     // from i to j
                     ia[k] = i;
                     int st_source = sitr->second.getId();
                     int st_dest   = sitr2->second.getId();
                     ja[k] = ids_to_index[{st_source, st_dest}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : -1.0;
+                    ar[k] = -1.0;
                     ++k;
                     
                     // from j to i
                     ia[k] = i;
                     ja[k] = ids_to_index[{st_dest, st_source}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ar[k] = 1.0;
                     ++k;
                 }
                 ++i; // increment i
@@ -735,26 +746,31 @@ namespace amod {
                 const std::string& tmp = ss.str();
                 const char* cstr = tmp.c_str();
                 glp_set_row_name(lp, i, cstr);
+                std::cout << "vi[" << sitr->first << "]: " <<  vi[sitr->second.getId()].size() << std::endl;
                 glp_set_row_bnds(lp, i, GLP_UP, 0.0, vi[sitr->second.getId()].size());
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    if (sitr2->first == sitr->first) continue;
+                    
                     // from i to j
                     ia[k] = i;
                     int st_source = sitr->second.getId();
                     int st_dest   = sitr2->second.getId();
                     ja[k] = ids_to_index[{st_source, st_dest}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ar[k] = 1.0;
                     ++k;
                 }
                 ++i; // increment i
             }
+            
+            glp_load_matrix(lp, nelems, ia, ja, ar);
             
         } else {
             // cannot satisfy all customers, rebalance to obtain even distribution
             
             // should be possible to satisfy all customers by rebalancing
             int ncons = nstations*3;
-            int nelems = nstations*(nstations*2) + nstations*nstations + nstations*nstations ;
+            int nelems = nstations*((nstations-1)*2) + 2*nstations*(nstations-1) ;
             ia = new int[nelems + 1];
             ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
             ar = new double[nelems + 1];
@@ -776,18 +792,20 @@ namespace amod {
                 
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    if (sitr2->first == sitr->first) continue;
+
                     // from i to j
                     ia[k] = i;
                     int st_source = sitr->second.getId();
                     int st_dest   = sitr2->second.getId();
                     ja[k] = ids_to_index[{st_source, st_dest}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : -1.0;
+                    ar[k] =  -1.0;
                     ++k;
                     
                     // from j to i
                     ia[k] = i;
                     ja[k] = ids_to_index[{st_dest, st_source}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ar[k] =  1.0;
                     ++k;
                 }
                 ++i; // increment i
@@ -804,11 +822,13 @@ namespace amod {
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
                     // from i to j
+                    if (sitr2->first == sitr->first) continue;
+
                     ia[k] = i;
                     int st_source = sitr->second.getId();
                     int st_dest   = sitr2->second.getId();
                     ja[k] = ids_to_index[{st_source, st_dest}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ar[k] =  1.0;
                     ++k;
                 }
                 ++i; // increment i
@@ -825,18 +845,20 @@ namespace amod {
                 glp_set_row_bnds(lp, i, GLP_LO, constr, 0.0);
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    if (sitr2->first == sitr->first) continue;
+
                     // from i to j
                     ia[k] = i;
                     int st_source = sitr->second.getId();
                     int st_dest   = sitr2->second.getId();
                     ja[k] = ids_to_index[{st_source, st_dest}];
-                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ar[k] =  1.0;
                     ++k;
                 }
                 ++i; // increment i
             }
             
-            
+            glp_load_matrix(lp, nelems, ia, ja, ar);
         }
         
         // solve the lp
@@ -844,9 +866,10 @@ namespace amod {
         
         
         // redispatch based on lp solution
-        for (int i=0; i<nvars; i++) {
+        for (int k=1; k<=nvars; k++) {
             // get the value
             int to_dispatch = glp_get_col_prim(lp,k);
+            std::cout << k << ": " << to_dispatch << std::endl;
             if (to_dispatch > 0) {
                 int st_source = index_to_ids[k].first;
                 int st_dest = index_to_ids[k].second;
@@ -898,6 +921,7 @@ namespace amod {
             int veh_id = *itr;
             
             // send it to station st_dest
+            std::cout << "Dispatching " << veh_id << " from " << st_source << " to " << st_dest << std::endl;
             auto rc = sim_->dispatchVehicle(world_state, veh_id , itr_dest->second.getPosition(),
                                             VehicleStatus::MOVING_TO_REBALANCE, VehicleStatus::FREE);
             

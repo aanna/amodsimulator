@@ -20,7 +20,7 @@ void basicTest(void) {
     int max_y = 10000;
     int num_vehs = 100;
     int num_cust = 2000;
-    int num_bookings = 1000;
+    int num_bookings = 2000;
     int max_time = 2000;
     
     std::vector<amod::Vehicle> vehicles;
@@ -146,12 +146,115 @@ void basicTest(void) {
     
 }
 
+void rebalanceTest() {
+    // create a world state
+    amod::World world_state;
+    world_state.setCurrentTime(0);
+    
+    // create vehicles
+    int num_vehs = 100;
+    int num_cust = 200;
+    int max_time = 1000;
+    
+    // create two positions at (0,0) and (100, 100)
+    
+    // put all vehicles at (0,0)
+    std::vector<amod::Vehicle> vehicles;
+    for (int id=1; id<=num_vehs; id++) {
+        amod::Vehicle veh(id); // all vehicles must have a UNIQUE id
+        amod::Position pos(0, 0);
+        veh.setStatus(amod::VehicleStatus::FREE);
+        veh.setPosition(pos);
+        vehicles.push_back(veh);
+    }
+    
+    // create customers all at (100, 100)
+    std::vector<amod::Customer> customers;
+    for (int id=1; id<=num_cust; id++) {
+        int cust_id = id; // all customers must have a unique id
+        std::stringstream ss;
+        ss << id;
+        amod::Customer cust(cust_id, ss.str(), amod::Position(10000, 10000));
+        customers.push_back(cust);
+    }
+    
+    // Locations are places that are simulated (travel only occurs between locations
+    std::vector<amod::Location> locations;
+    locations.emplace_back(1, "0", amod::Position(0, 0), INT_MAX );
+    locations.emplace_back(2, "1", amod::Position(10000, 10000), INT_MAX );
+    
+    
+    // populate the world
+    world_state.populate(locations, vehicles, customers);
+    
+    // create the simulator
+    double resolution = 0.1;
+    bool verbose = true;
+    amod::SimulatorBasic sim(resolution, verbose);
+    
+    // set simulator parameters
+    // all parameters are truncated normal parameters: mean, sd, min, max
+    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
+    sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 0.0, 0.0); // in seconds
+    
+    // initialize the simulator with the world state
+    sim.init(&world_state);
+    
+    // create bookings
+    // we will load bookings from a vector
+    std::vector<amod::Booking> bookings;
+    for (int id=1; id <=num_cust; id++) {
+        amod::Booking booking;
+        booking.id = id; // unique booking id
+        booking.booking_time = 0; // in seconds
+        booking.cust_id = id; // which customer to pick up
+        booking.veh_id = 0; // veh_id is 0 (the manager will decide this)
+        booking.destination = amod::Position( 0, 0 ); //where the customer wants to go
+        bookings.push_back(booking);
+    }
+    
+    
+    // create the maching rebalancing manager
+    amod::ManagerMatchRebalance match_manager;
+    double distance_cost_factor = 1.0;
+    double waiting_cost_factor = 1.0;
+    match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
+    match_manager.setMatchingInterval(1e10); //it never does the matching
+    
+    match_manager.init(&world_state);
+    match_manager.setSimulator(&sim); // set simulator
+    match_manager.loadBookings(bookings); // load the bookings
+    
+    // create stations and load
+    // stations are locations that can we can park vehicles
+    std::vector<amod::Location> stations;
+    stations = locations; // stations equivalent to locations
+    match_manager.loadStations(stations, world_state); // load the stations
+    match_manager.setRebalancingInterval(10);
+    
+    // select which manager we want
+    amod::Manager* manager = &match_manager; //simple_manager
+    //amod::Manager* manager = &simple_manager;
+    // loop until some future time
+    while (world_state.getCurrentTime() < max_time) {
+        sim.update(&world_state); // update the simulator
+        amod::ReturnCode rc = manager->update(&world_state); // update the manager
+        if (rc != amod::SUCCESS) {
+            std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
+        }
+    }
+    
+    std::cout << "Simulation Ended" << std::endl;
+    
+    
+}
 
 int main(int argc, char **argv) {
     std::cout << "AMOD Basic Test Program" << std::endl;
     // run basic test
-    basicTest();
-    
+    //basicTest();
+    rebalanceTest();
     
     // return
     return 0;

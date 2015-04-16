@@ -631,6 +631,7 @@ namespace amod {
     	// create variables for solving lp
     	int nvehs = available_vehs_.size();
     	int nstations = stations_.size();
+        int nstations_underserved = 0;
     	int nvars = nstations*nstations; // how many to send from one station to another
         
         int vi_total = available_vehs_.size();
@@ -680,6 +681,10 @@ namespace amod {
             int cexi = sitr->second.getNumCustomers() - sitr->second.getNumVehicles();
             cex[sitr->first] = cexi; // excess customers at this station
             cex_total += cexi; // total number of excess customers
+
+            if (cexi > 0) {
+                nstations_underserved++;
+            }
             
             std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
             
@@ -779,6 +784,7 @@ namespace amod {
             int k = 1;
             int i = 1;
             
+            std::cout << "Even distribution: " <<  floor(vi_total/nstations_underserved) << std::endl;
             // constraint for net flow to match (or exceed) excess customers
             for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
                 std::stringstream ss;
@@ -788,7 +794,7 @@ namespace amod {
                 glp_set_row_name(lp, i, cstr);
                 glp_set_row_bnds(lp, i, GLP_LO,
                                  std::min((double) cex[sitr->second.getId()] ,
-                                          (double) floor(vi_total/nstations)), 0.0);
+                                          (double) floor(vi_total/nstations_underserved)), 0.0);
                 
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {

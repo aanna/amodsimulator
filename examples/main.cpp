@@ -152,8 +152,8 @@ void rebalanceTest() {
     world_state.setCurrentTime(0);
     
     // create vehicles
-    int num_vehs = 200;
-    int num_cust = 200;
+    int num_vehs = 50;
+    int num_cust = 20;
     int max_time = 5;
     
     // create two positions at (0,0) and (100, 100)

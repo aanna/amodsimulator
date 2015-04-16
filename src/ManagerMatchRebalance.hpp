@@ -34,6 +34,7 @@
 #endif
 
 namespace amod {
+    
     class ManagerMatchRebalance : public Manager {
     public:
         ManagerMatchRebalance();
@@ -103,7 +104,7 @@ namespace amod {
         double waiting_time_cost_factor_;
 
         // rebalancing variables
-        std::map<int, amod::Location> stations_;
+        std::map<int, amod::Location> stations_; //needs to be a map to ensure ordered lookup
         std::unordered_map<int, int> veh_id_to_station_id_;
         kdt::KDTree<amod::Location> stations_tree_; //for fast NN lookup
 
@@ -129,6 +130,13 @@ namespace amod {
         // solveRebalancing
         // solves the rebalancing problem as an LP and dispatches vehicles to other stations.
         virtual amod::ReturnCode solveRebalancing(amod::World *world_state);
+        
+        // interStationDispatch
+        // sends to_dispatch vehicles from st_source to st_dest
+        virtual amod::ReturnCode interStationDispatch(int st_source, int st_dest,
+                                                      int to_dispatch,
+                                                      amod::World *world_state,
+                                                      std::unordered_map<int, std::set<int>> &vi);
 
     };
 }

@@ -140,8 +140,22 @@ namespace amod {
         	amod::ReturnCode rc = solveMatching(world_state);
         	std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
         	std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
-        	return rc;
+            
+            // return if we encounter a failure
+            if (rc != amod::SUCCESS) {
+                return rc;
+            }
         }
+        
+        
+        if (next_rebalancing_time_ <= world_state->getCurrentTime()) {
+            amod::ReturnCode rc = solveRebalancing(world_state);
+            // return if we encounter a failure
+            if (rc != amod::SUCCESS) {
+                return rc;
+            }
+        }
+        
         return amod::SUCCESS;
     }
     
@@ -199,7 +213,6 @@ namespace amod {
     void ManagerMatchRebalance::loadStations(std::vector<amod::Location> &stations, const amod::World &world_state)
     {
     	// create a map for quick lookup based on id
-    	int i = 0;
     	for (auto l : stations) {
     		stations_[l.getId()] = l;
     	}
@@ -611,6 +624,11 @@ namespace amod {
     	int nvehs = available_vehs_.size();
     	int nstations = stations_.size();
     	int nvars = nstations*nstations; // how many to send from one station to another
+        
+        int vi_total = available_vehs_.size();
+        int cex_total = 0;
+        std::unordered_map<int, int> cex;
+        std::unordered_map<int, std::set<int>> vi; // free vehicles at this station
 
     	// set up the problem
         glp_prob *lp;
@@ -622,13 +640,15 @@ namespace amod {
 
         // add the structural variables (decision variables)
 		std::unordered_map<int, std::pair<int,int>> index_to_ids;
+        std::unordered_map<std::pair<int,int>, int> ids_to_index;
 
 		int k = 1;
 		for (auto sitr = stations_.begin(); sitr != stations_.end(); ++sitr){
 			for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
 
-				// store the indices so we can find them again
+				// store the indices to make lookups easier (can be optimized in future iterations)
 				index_to_ids[k] = {sitr->first, sitr2->first};
+                ids_to_index[std::make_pair(sitr->first, sitr2->first)] = k;
 
 				// get cost
 				double cost = sim_->getDrivingDistance(sitr->second.getPosition(),
@@ -647,56 +667,208 @@ namespace amod {
 				// increment index
 				++k;
 			}
+            
+            // compute variables for the lp
+            int cexi = sitr->second.getNumCustomers() - sitr->second.getNumCustomers();
+            cex[sitr->first] = cexi; // excess customers at this station
+            cex_total += cexi; // total number of excess customers
+            
 		}
+        
+
+        // set up available vehicles at each station
+        for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr) {
+            // get which station this vehicle belongs
+            int sid = veh_id_to_station_id_[*vitr];
+            vi[sid].insert(*vitr);
+        }
+        
 
 		// set up constraints
-		k = 1;
-		int ncons = nstations;
-		int nelems = nstations*(nstations*2);
-        int *ia = new int[nelems + 1];
-        int  *ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
-        double *ar = new double[nelems + 1];
-
-		glp_add_rows(lp, ncons);
-		int i = 1;
-		auto sitr = stations_.begin();
-		double even_dist = floor( (world_state->getNumVehicles() - bookings_queue_.size()) / nstations)
-		for (; i<=nstations; ++i, sitr++) {
-
-			// compute desired number of vehicles
-			double vd = even_dist;
-			// compute excess vehicles at this node
-			double ve = sitr->second.getNumVehicles() - sitr->second.getNumCustomers();
-
-			std::stringstream ss;
-			ss << "station " << i;
-			const std::string& tmp = ss.str();
-			const char* cstr = tmp.c_str();
-			glp_set_row_name(lp, i, cstr);
-			glp_set_row_bnds(lp, i, GLP_LO, vd-ve, 0.0);
-
-			// from j to i
-			for (int j=1; j<=nstations; ++j) {
-				// from i to j
-				ia[k] = i;
-				ja[k] = (i-1)*nstations + j;
-				ar[k] = (i==j) ? 0.0 : -1.0;
-				++k;
-
-				// from j to i
-				ia[k] = i;
-				ja[k] = (i-1)*nstations + j*(nstations);
-				ar[k] = (i==j) ? 0.0 : 1.0;
-				++k;
-
-			}
-
-			// from i to j
-
-
-		}
-
-
+        int *ia;
+        int  *ja; // +1 because glpk starts indexing at 1 (why? I don't know)
+        double *ar;
+        if (vi_total <= cex_total) {
+            // should be possible to satisfy all customers by rebalancing
+            int ncons = nstations*2;
+            int nelems = nstations*(nstations*2) + nstations*nstations;
+            ia = new int[nelems + 1];
+            ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
+            ar = new double[nelems + 1];
+            
+            glp_add_rows(lp, ncons);
+            int k = 1;
+            int i = 1;
+            
+            // constraint for net flow to match (or exceed) excess customers
+            for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
+                std::stringstream ss;
+                ss << "st " << sitr->second.getId();
+                const std::string& tmp = ss.str();
+                const char* cstr = tmp.c_str();
+                glp_set_row_name(lp, i, cstr);
+                glp_set_row_bnds(lp, i, GLP_LO, cex[sitr->second.getId()], 0.0);
+                
+               
+                for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    // from i to j
+                    ia[k] = i;
+                    int st_source = sitr->second.getId();
+                    int st_dest   = sitr2->second.getId();
+                    ja[k] = ids_to_index[{st_source, st_dest}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : -1.0;
+                    ++k;
+                    
+                    // from j to i
+                    ia[k] = i;
+                    ja[k] = ids_to_index[{st_dest, st_source}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ++k;
+                }
+                ++i; // increment i
+            }
+            
+            // constraint to make sure stations don't send more vehicles than they have
+            for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
+                std::stringstream ss;
+                ss << "st " << sitr->second.getId() << " veh constraint";
+                const std::string& tmp = ss.str();
+                const char* cstr = tmp.c_str();
+                glp_set_row_name(lp, i, cstr);
+                glp_set_row_bnds(lp, i, GLP_UP, 0.0, vi[sitr->second.getId()].size());
+                
+                for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    // from i to j
+                    ia[k] = i;
+                    int st_source = sitr->second.getId();
+                    int st_dest   = sitr2->second.getId();
+                    ja[k] = ids_to_index[{st_source, st_dest}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ++k;
+                }
+                ++i; // increment i
+            }
+            
+        } else {
+            // cannot satisfy all customers, rebalance to obtain even distribution
+            
+            // should be possible to satisfy all customers by rebalancing
+            int ncons = nstations*3;
+            int nelems = nstations*(nstations*2) + nstations*nstations + nstations*nstations ;
+            ia = new int[nelems + 1];
+            ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
+            ar = new double[nelems + 1];
+            
+            glp_add_rows(lp, ncons);
+            int k = 1;
+            int i = 1;
+            
+            // constraint for net flow to match (or exceed) excess customers
+            for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
+                std::stringstream ss;
+                ss << "st " << sitr->second.getId();
+                const std::string& tmp = ss.str();
+                const char* cstr = tmp.c_str();
+                glp_set_row_name(lp, i, cstr);
+                glp_set_row_bnds(lp, i, GLP_LO,
+                                 std::min((double) cex[sitr->second.getId()] ,
+                                          (double) floor(vi_total/nstations)), 0.0);
+                
+                
+                for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    // from i to j
+                    ia[k] = i;
+                    int st_source = sitr->second.getId();
+                    int st_dest   = sitr2->second.getId();
+                    ja[k] = ids_to_index[{st_source, st_dest}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : -1.0;
+                    ++k;
+                    
+                    // from j to i
+                    ia[k] = i;
+                    ja[k] = ids_to_index[{st_dest, st_source}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ++k;
+                }
+                ++i; // increment i
+            }
+            
+            // constraint to make sure stations don't send more vehicles than they have
+            for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
+                std::stringstream ss;
+                ss << "st " << sitr->second.getId() << " veh constraint";
+                const std::string& tmp = ss.str();
+                const char* cstr = tmp.c_str();
+                glp_set_row_name(lp, i, cstr);
+                glp_set_row_bnds(lp, i, GLP_UP, 0.0, vi[sitr->second.getId()].size());
+                
+                for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    // from i to j
+                    ia[k] = i;
+                    int st_source = sitr->second.getId();
+                    int st_dest   = sitr2->second.getId();
+                    ja[k] = ids_to_index[{st_source, st_dest}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ++k;
+                }
+                ++i; // increment i
+            }
+            
+            // constraint for stations to send as many vehicles as possible
+            for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
+                std::stringstream ss;
+                ss << "st " << sitr->second.getId() << " send all constraint";
+                const std::string& tmp = ss.str();
+                const char* cstr = tmp.c_str();
+                glp_set_row_name(lp, i, cstr);
+                double constr = std::min( (double) vi[sitr->first].size(), (double) std::max(0, -cex[sitr->first] ));
+                glp_set_row_bnds(lp, i, GLP_LO, constr, 0.0);
+                
+                for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+                    // from i to j
+                    ia[k] = i;
+                    int st_source = sitr->second.getId();
+                    int st_dest   = sitr2->second.getId();
+                    ja[k] = ids_to_index[{st_source, st_dest}];
+                    ar[k] = (st_source == st_dest) ? 0.0 : 1.0;
+                    ++k;
+                }
+                ++i; // increment i
+            }
+            
+            
+        }
+        
+        // solve the lp
+        glp_simplex(lp, nullptr);
+        
+        
+        // redispatch based on lp solution
+        for (int i=0; i<nvars; i++) {
+            // get the value
+            int to_dispatch = glp_get_col_prim(lp,k);
+            if (to_dispatch > 0) {
+                int st_source = index_to_ids[k].first;
+                int st_dest = index_to_ids[k].second;
+                
+                // dispatch to_dispatch vehicles form station st_source to st_dest
+                amod::ReturnCode rc = interStationDispatch(st_source, st_dest, to_dispatch, world_state, vi);
+                if (rc != amod::SUCCESS) {
+                    std::cout << amod::kErrorStrings[rc] << std::endl;
+                    
+                    // be stringent and throw an exception: this shouldn't happen
+                    throw std::runtime_error("solveRebalancing: interStationDispatch failed.");
+                }
+            }
+        }
+        
+        // housekeeping
+        glp_delete_prob(lp);
+        glp_free_env();
+        
+        delete [] ia;
+        delete [] ja;
+        delete [] ar;
 
     	return amod::SUCCESS;
     }
@@ -704,6 +876,46 @@ namespace amod {
 
 #endif
 
+    amod::ReturnCode ManagerMatchRebalance::interStationDispatch(int st_source, int st_dest,
+                                                                 int to_dispatch,
+                                                                 amod::World *world_state,
+                                                                 std::unordered_map<int, std::set<int>> &vi) {
+        // check that to_dispatch is positive
+        if (to_dispatch <= 0) return amod::FAILED;
+        
+        // check that st_source and st_dest are valid
+        auto itr_source = stations_.find(st_source);
+        auto itr_dest = stations_.find(st_dest);
+        
+        if (itr_source == stations_.end() || itr_dest == stations_.end() ) {
+            return amod::INVALID_STATION_ID;
+        }
+        
+        // dispatch vehicles
+        auto itr = vi[st_source].begin();
+        for (int i=0; i<to_dispatch; i++) {
+            // find a free vehicle at station st_source
+            int veh_id = *itr;
+            
+            // send it to station st_dest
+            auto rc = sim_->dispatchVehicle(world_state, veh_id , itr_dest->second.getPosition(),
+                                            VehicleStatus::MOVING_TO_REBALANCE, VehicleStatus::FREE);
+            
+            // if dispatch is success
+            if (rc != amod::SUCCESS) return rc; // return with error code
+            
+            // change station ownership of vehicle
+            stations_[st_source].removeVehicleId(veh_id);
+            stations_[st_dest].addVehicleId(veh_id);
+            veh_id_to_station_id_[veh_id] = st_dest;
+            
+            // increment iterator
+            ++itr;
+        }
+        
+        return amod::SUCCESS;
+    }
+    
 
     int ManagerMatchRebalance::getClosestStationId(const amod::Position &pos) const {
     	return stations_tree_.findNN({pos.x, pos.y}).getId();

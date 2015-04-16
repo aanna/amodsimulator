@@ -27,7 +27,8 @@ namespace  amod {
         ERROR_READING_BOOKINGS_FILE,
         SIMULATOR_IS_NULLPTR,
         LOGGER_IS_NULLPTR,
-        NO_PATH_TO_DESTINATION
+        NO_PATH_TO_DESTINATION,
+        INVALID_STATION_ID,
     };
     
     const std::vector<std::string> kErrorStrings = {
@@ -45,6 +46,7 @@ namespace  amod {
         "Simulator is nullptr",
         "Logger is nullptr",
         "No path to destination",
+        "Invalid station id"
     };
     
     
@@ -105,6 +107,20 @@ namespace std {
             return ( (hash_val << 4) ^ (hash_val >> 28) ^ hash_fn(p.y) );
         }
     };
+    
+    template <>
+    struct hash<std::pair<int, int>>
+    {
+        std::size_t operator()(const std::pair<int,int>& k) const
+        {
+            using std::size_t;
+            using std::hash;
+            
+            return ((hash<int>()(k.first)
+                     ^ (hash<int>()(k.second) << 1)) >> 1);
+        }
+    };
+
     
 }
 

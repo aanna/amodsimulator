@@ -10,9 +10,7 @@
 #include "ManagerBasic.hpp"
 #include "ManagerMatchRebalance.hpp"
 
-int main(int argc, char **argv) {
-    std::cout << "AMOD Basic Test Program" << std::endl;
-    
+void basicTest(void) {
     // create a world state
     amod::World world_state;
     world_state.setCurrentTime(0);
@@ -20,11 +18,11 @@ int main(int argc, char **argv) {
     // create vehicles
     int max_x = 10000;
     int max_y = 10000;
-    int num_vehs = 3000;
-    int num_cust = 20000;
-    int num_bookings = 10000;
-    int max_time = 1000;
-
+    int num_vehs = 100;
+    int num_cust = 2000;
+    int num_bookings = 1000;
+    int max_time = 2000;
+    
     std::vector<amod::Vehicle> vehicles;
     for (int id=1; id<=num_vehs; id++) {
         amod::Vehicle veh(id); // all vehicles must have a UNIQUE id
@@ -48,11 +46,11 @@ int main(int argc, char **argv) {
     std::vector<amod::Location> locations;
     int num_loc = 10;
     for (int id=1; id<= num_loc; ++id) {
-    	std::stringstream ss;
-    	ss << id;
-    	locations.emplace_back(id, ss.str(), amod::Position(rand()%max_x, rand()%max_y), INT_MAX );
+        std::stringstream ss;
+        ss << id;
+        locations.emplace_back(id, ss.str(), amod::Position(rand()%max_x, rand()%max_y), INT_MAX );
     }
-
+    
     // populate the world
     world_state.populate(locations, vehicles, customers);
     
@@ -60,7 +58,7 @@ int main(int argc, char **argv) {
     double resolution = 0.1;
     bool verbose = true;
     amod::SimulatorBasic sim(resolution, verbose);
-
+    
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
     sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
@@ -94,11 +92,17 @@ int main(int argc, char **argv) {
     double waiting_cost_factor = 1.0;
     match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
     match_manager.setMatchingInterval(30); //30 seconds
-
+    
     match_manager.init(&world_state);
     match_manager.setSimulator(&sim); // set simulator
     match_manager.loadBookings(bookings); // load the bookings
-
+    
+    // create stations and load
+    // stations are locations that can we can park vehicles
+    std::vector<amod::Location> stations;
+    
+    match_manager.loadStations(stations, world_state); // load the stations
+    
     // select which manager we want
     amod::Manager* manager = &match_manager; //simple_manager
     //amod::Manager* manager = &simple_manager;
@@ -112,7 +116,7 @@ int main(int argc, char **argv) {
     }
     
     std::cout << "Simulation Ended" << std::endl;
-
+    
     // checks
     // make sure the location sizes are correct
     std::unordered_map<int, amod::Location>::const_iterator bitr, eitr;
@@ -139,6 +143,15 @@ int main(int argc, char **argv) {
     } else {
         std::cout << "Number of customers match up." << std::endl;
     }
+    
+}
+
+
+int main(int argc, char **argv) {
+    std::cout << "AMOD Basic Test Program" << std::endl;
+    // run basic test
+    basicTest();
+    
     
     // return
     return 0;

@@ -686,7 +686,7 @@ namespace amod {
                 nstations_underserved++;
             }
             
-            std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
+            //std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
             
 		}
         
@@ -751,7 +751,7 @@ namespace amod {
                 const std::string& tmp = ss.str();
                 const char* cstr = tmp.c_str();
                 glp_set_row_name(lp, i, cstr);
-                std::cout << "vi[" << sitr->first << "]: " <<  vi[sitr->second.getId()].size() << std::endl;
+                //std::cout << "vi[" << sitr->first << "]: " <<  vi[sitr->second.getId()].size() << std::endl;
                 glp_set_row_bnds(lp, i, GLP_UP, 0.0, vi[sitr->second.getId()].size());
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
@@ -784,7 +784,7 @@ namespace amod {
             int k = 1;
             int i = 1;
             
-            std::cout << "Even distribution: " <<  floor(vi_total/nstations_underserved) << std::endl;
+            // std::cout << "Even distribution: " <<  floor(vi_total/nstations_underserved) << std::endl;
             // constraint for net flow to match (or exceed) excess customers
             for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
                 std::stringstream ss;
@@ -874,8 +874,8 @@ namespace amod {
         // redispatch based on lp solution
         for (int k=1; k<=nvars; k++) {
             // get the value
-            int to_dispatch = glp_get_col_prim(lp,k);
-            std::cout << k << ": " << to_dispatch << std::endl;
+            int to_dispatch = floor(glp_get_col_prim(lp,k));
+            //std::cout << k << ": " << to_dispatch << std::endl;
             if (to_dispatch > 0) {
                 int st_source = index_to_ids[k].first;
                 int st_dest = index_to_ids[k].second;

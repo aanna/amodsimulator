@@ -560,6 +560,7 @@ namespace amod {
 		glp_intopt(lp, &parm);
 		*/
 		// linear program
+        glp_term_out(GLP_OFF); // suppress terminal output
 		glp_simplex(lp, nullptr);
 
 		// print out the objective value
@@ -868,6 +869,7 @@ namespace amod {
         }
         
         // solve the lp
+        glp_term_out(GLP_OFF); // suppress terminal output
         glp_simplex(lp, nullptr);
         
         

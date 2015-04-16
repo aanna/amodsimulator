@@ -75,7 +75,7 @@ Vehicle * World::getVehiclePtr(int veh_id) {
 }
 
 
-void World::getVehicles(std::vector<Vehicle> *vehs) {
+void World::getVehicles(std::vector<Vehicle> *vehs) const {
 	if (!vehs) {
 		throw std::runtime_error("World::getVehicles vehs pointer is null");
 	}
@@ -85,13 +85,13 @@ void World::getVehicles(std::vector<Vehicle> *vehs) {
 }
     
 void World::getVehicles(std::unordered_map<int, Vehicle>::const_iterator* bitr,
-		std::unordered_map<int, Vehicle>::const_iterator* eitr) {
+		std::unordered_map<int, Vehicle>::const_iterator* eitr) const {
 	*bitr = vehicles_.begin();
 	*eitr = vehicles_.end();
 }
 
 
-int World::getNumVehicles() {
+int World::getNumVehicles() const {
 	return (int) vehicles_.size();
 }
 

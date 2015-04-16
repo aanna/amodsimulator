@@ -51,8 +51,8 @@ public:
 
 	void build(std::vector<T> &points);
 	void print(std::ostream &out);
-	T findNN(const T &p, double eps=-1.0);
-	T findNN(const std::vector<double> &p, double eps=-1.0);
+	T findNN(const T &p, double eps=-1.0) const;
+	T findNN(const std::vector<double> &p, double eps=-1.0) const;
 	int size() const { return size_; };
 
 private:
@@ -67,7 +67,7 @@ private:
 	int quickSelect(std::vector<T> &points, int low, int high, int k, int axis);
 	void swap(std::vector<T> &points, int i, int j);
 
-	void findNNHelper(std::shared_ptr<KDTreeNode<T>> root, const T &p, T *best_elem, double *best_dist, int depth, int dim, double eps);
+	void findNNHelper(std::shared_ptr<KDTreeNode<T>> root, const T &p, T *best_elem, double *best_dist, int depth, int dim, double eps) const;
 
 	double sqDist(const T& a, const T&b, int axis = -1) const;
 
@@ -124,7 +124,7 @@ std::shared_ptr<KDTreeNode<T>> KDTree<T>::buildTreeHelper(std::vector<T>&points,
 }
 
 template<typename T>
-T KDTree<T>::findNN(const T &p, double eps) {
+T KDTree<T>::findNN(const T &p, double eps) const {
 	//set eps to negative or 0 for exact search
 	if (!root_) {
 		throw std::runtime_error("KDTree: Build a tree before you can perform a NN search");
@@ -137,7 +137,7 @@ T KDTree<T>::findNN(const T &p, double eps) {
 }
 
 template<typename T>
-T KDTree<T>::findNN(const std::vector<double> &x, double eps) {
+T KDTree<T>::findNN(const std::vector<double> &x, double eps) const {
 	//set eps to negative or 0 for exact search
 	if (!root_) {
 		throw std::runtime_error("KDTree: Build a tree before you can perform a NN search");
@@ -153,7 +153,8 @@ T KDTree<T>::findNN(const std::vector<double> &x, double eps) {
 }
 
 template<typename T>
-void KDTree<T>::findNNHelper(std::shared_ptr<KDTreeNode<T>> root, const T &p, T *best_elem, double *best_dist, int depth, int dim, double eps) {
+void KDTree<T>::findNNHelper(std::shared_ptr<KDTreeNode<T>> root, const T &p, T *best_elem,
+		double *best_dist, int depth, int dim, double eps) const {
 	if (!root) {
 		return;
 	}

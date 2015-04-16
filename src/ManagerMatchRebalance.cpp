@@ -85,11 +85,12 @@ namespace amod {
             		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
                 out << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
-            }
-            
-            // increment the available vehicles
-            if (e.type == EVENT_DROPOFF) {
-                available_vehs_.insert(e.entity_ids[0]);
+
+                // make this vehicle available again
+                if (veh.getStatus() == VehicleStatus::FREE || veh.getStatus() == VehicleStatus::PARKED) {
+                	available_vehs_.insert(e.entity_ids[0]);
+                }
+
             }
 
             // output the location sizes
@@ -114,6 +115,11 @@ namespace amod {
 				if (cust->getStatus() == CustomerStatus::FREE ||
 					cust->getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT) {
 					bookings_queue_[bookings_itr_->second.id] = bookings_itr_->second;
+
+					// assign this customer to a station
+					int st_id = getClosestStationId(cust->getPosition());
+					stations_[st_id].addCustomerId(cust->getId());
+
 				}
 
 	            // erase the booking
@@ -178,10 +184,44 @@ namespace amod {
     	matching_interval_ = matching_interval;
     }
 
-    double ManagerMatchRebalance::getMatchingInterval() {
+    double ManagerMatchRebalance::getMatchingInterval() const {
     	return matching_interval_;
     }
 
+    void ManagerMatchRebalance::setRebalancingInterval(double rebalancing_interval) {
+    	rebalancing_interval_ = rebalancing_interval;
+    }
+
+    double ManagerMatchRebalance::getRebalancingInterval() const {
+    	return rebalancing_interval_;
+    }
+
+    void ManagerMatchRebalance::loadStations(std::vector<amod::Location> &stations, const amod::World &world_state)
+    {
+    	// create a map for quick lookup based on id
+    	int i = 0;
+    	for (auto l : stations) {
+    		stations_[l.getId()] = l;
+    	}
+
+    	// create a tree for quick lookup of location ids
+    	stations_tree_.build(stations);
+
+    	// assign vehicles to stations
+		std::unordered_map<int, Vehicle>::const_iterator begin_itr, end_itr;
+		world_state.getVehicles(&begin_itr, &end_itr);
+
+		for (auto itr = begin_itr; itr != end_itr; ++itr) {
+			int st_id = getClosestStationId(itr->second.getPosition());
+			stations_[st_id].addVehicleId(itr->second.getId()); // vehicle belongs to this station.
+			veh_id_to_station_id_[itr->second.getId()] = st_id;
+		}
+		return;
+    }
+
+    // **********************************************************
+    // PRIVATE FUNCTIONS
+    // **********************************************************
 
     int ManagerMatchRebalance::getNumWaitingCustomers(amod::World *world_state, int loc_id) {
         
@@ -436,7 +476,8 @@ namespace amod {
 				const std::string& tmp = ss.str();
 				const char* cstr = tmp.c_str();
 				glp_set_col_name(lp, k, cstr);
-				glp_set_col_kind(lp, k, GLP_BV);
+				//glp_set_col_kind(lp, k, GLP_BV); // use this if you want to run this as a MIP
+				glp_set_col_bnds(lp, k, GLP_DB, 0.0, 1.0);
 				glp_set_obj_coef(lp, k, total_invert_cost);
 
 				// increment index
@@ -493,18 +534,25 @@ namespace amod {
 
 		// solve the problem
 		// std::cout << "Solving the problem" << std::endl;
+
+		// integer program
+		/*
 		glp_iocp parm;
 		glp_init_iocp(&parm);
 		parm.presolve = GLP_ON;
 		glp_intopt(lp, &parm);
+		*/
+		// linear program
+		glp_simplex(lp, nullptr);
 
 		// print out the objective value
-		double z = glp_mip_obj_val(lp);
+		//double z = glp_mip_obj_val(lp);
 		//std::cout << z << std::endl;
 
 		// dispatch the vehicles
 		for (int k=1; k<=nvars; ++k) {
-			int opt_x = glp_mip_col_val(lp, k);
+			//int opt_x = glp_mip_col_val(lp, k); //to get result for integer program
+			int opt_x = glp_get_col_prim(lp,k);
 			if(opt_x > 0){
 
 				// vehicle is assigned to this booking
@@ -520,6 +568,17 @@ namespace amod {
 					std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
 					// mark the car as no longer available
 					available_vehs_.erase(veh_id);
+
+					// change station ownership of vehicle
+					int st_id = veh_id_to_station_id_[veh_id]; //old station
+					stations_[st_id].removeVehicleId(veh_id);
+					int new_st_id = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
+					stations_[new_st_id].addVehicleId(veh_id);
+					veh_id_to_station_id_[veh_id] = new_st_id;
+
+					// remove this customer from the station queue
+					stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
+
 				}
 
 				// erase the booking
@@ -539,7 +598,116 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+
+
+    amod::ReturnCode ManagerMatchRebalance::solveRebalancing(amod::World *world_state) {
+    	if (!world_state) {
+    		throw std::runtime_error("solveMatching: world_state is nullptr!");
+    	}
+
+    	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to rebalance
+
+    	// create variables for solving lp
+    	int nvehs = available_vehs_.size();
+    	int nstations = stations_.size();
+    	int nvars = nstations*nstations; // how many to send from one station to another
+
+    	// set up the problem
+        glp_prob *lp;
+        lp = glp_create_prob();
+        glp_set_prob_name(lp, "rebalancing");
+        glp_set_obj_dir(lp, GLP_MIN);
+        glp_add_cols(lp, nvars);
+
+
+        // add the structural variables (decision variables)
+		std::unordered_map<int, std::pair<int,int>> index_to_ids;
+
+		int k = 1;
+		for (auto sitr = stations_.begin(); sitr != stations_.end(); ++sitr){
+			for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
+
+				// store the indices so we can find them again
+				index_to_ids[k] = {sitr->first, sitr2->first};
+
+				// get cost
+				double cost = sim_->getDrivingDistance(sitr->second.getPosition(),
+						sitr2->second.getPosition() );
+
+				// add this variable to the solver
+				std::stringstream ss;
+				ss << "x " << sitr->first << " " << sitr2->first;
+				const std::string& tmp = ss.str();
+				const char* cstr = tmp.c_str();
+				glp_set_col_name(lp, k, cstr);
+
+				glp_set_col_bnds(lp, k, GLP_LO, 0.0, 0.0); // set lower bound of zero, no upperbound
+				glp_set_obj_coef(lp, k, cost);
+
+				// increment index
+				++k;
+			}
+		}
+
+		// set up constraints
+		k = 1;
+		int ncons = nstations;
+		int nelems = nstations*(nstations*2);
+        int *ia = new int[nelems + 1];
+        int  *ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
+        double *ar = new double[nelems + 1];
+
+		glp_add_rows(lp, ncons);
+		int i = 1;
+		auto sitr = stations_.begin();
+		double even_dist = floor( (world_state->getNumVehicles() - bookings_queue_.size()) / nstations)
+		for (; i<=nstations; ++i, sitr++) {
+
+			// compute desired number of vehicles
+			double vd = even_dist;
+			// compute excess vehicles at this node
+			double ve = sitr->second.getNumVehicles() - sitr->second.getNumCustomers();
+
+			std::stringstream ss;
+			ss << "station " << i;
+			const std::string& tmp = ss.str();
+			const char* cstr = tmp.c_str();
+			glp_set_row_name(lp, i, cstr);
+			glp_set_row_bnds(lp, i, GLP_LO, vd-ve, 0.0);
+
+			// from j to i
+			for (int j=1; j<=nstations; ++j) {
+				// from i to j
+				ia[k] = i;
+				ja[k] = (i-1)*nstations + j;
+				ar[k] = (i==j) ? 0.0 : -1.0;
+				++k;
+
+				// from j to i
+				ia[k] = i;
+				ja[k] = (i-1)*nstations + j*(nstations);
+				ar[k] = (i==j) ? 0.0 : 1.0;
+				++k;
+
+			}
+
+			// from i to j
+
+
+		}
+
+
+
+    	return amod::SUCCESS;
+    }
+
+
 #endif
+
+
+    int ManagerMatchRebalance::getClosestStationId(const amod::Position &pos) const {
+    	return stations_tree_.findNN({pos.x, pos.y}).getId();
+    }
 
 
 }

@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     double distance_cost_factor = 1.0;
     double waiting_cost_factor = 1.0;
     match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
-    match_manager.setMatchingInterval(30); //5 minutes
+    match_manager.setMatchingInterval(30); //30 seconds
 
     match_manager.init(&world_state);
     match_manager.setSimulator(&sim); // set simulator

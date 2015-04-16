@@ -1,6 +1,6 @@
 import java.util.Map;
 boolean ismac = false;
-boolean issimmob = false;
+boolean issimmob = true;
 
 // Event structure to load the data we load from the file
 class Event {
@@ -71,8 +71,8 @@ void setup() {
 }
   reader = createReader(filename);
 
-  float w_width = 500;
-  float w_height = (range_y/range_x)*500;
+  float w_width = 700;
+  float w_height = (range_y/range_x)*700;
   size((int) w_width, (int) w_height);
   stroke(255);
   background(0, 0, 0);

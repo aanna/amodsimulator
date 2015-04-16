@@ -34,10 +34,10 @@ public:
     
     virtual Vehicle getVehicle(int veh_id);
     virtual Vehicle * getVehiclePtr(int veh_id);
-    virtual void getVehicles(std::vector<Vehicle> *vehs);
+    virtual void getVehicles(std::vector<Vehicle> *vehs) const;
     virtual void getVehicles(std::unordered_map<int, Vehicle>::const_iterator* bitr,
-    		std::unordered_map<int, Vehicle>::const_iterator* eitr);
-    virtual int getNumVehicles();
+    		std::unordered_map<int, Vehicle>::const_iterator* eitr) const;
+    virtual int getNumVehicles() const;
     
     virtual Location getLocation(int loc_id);
     virtual Location * getLocationPtr(int loc_id);

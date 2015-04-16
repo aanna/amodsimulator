@@ -932,9 +932,13 @@ namespace amod {
             stations_[st_source].removeVehicleId(veh_id);
             stations_[st_dest].addVehicleId(veh_id);
             veh_id_to_station_id_[veh_id] = st_dest;
+            available_vehs_.erase(veh_id);
+            
+            // mark vehicle as no longer available for dispatch
+            vi[st_source].erase(veh_id);
             
             // increment iterator
-            ++itr;
+            itr = vi[st_source].begin();
         }
         
         return amod::SUCCESS;

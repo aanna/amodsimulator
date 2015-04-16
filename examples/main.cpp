@@ -63,7 +63,7 @@ void basicTest(void) {
     // all parameters are truncated normal parameters: mean, sd, min, max
     sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
     sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
-    sim.setDropoffDistributionParams(10.0, 1.0, 0.0, 0.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 5.0, 10.0); // in seconds
     
     // initialize the simulator with the world state
     sim.init(&world_state);
@@ -152,9 +152,9 @@ void rebalanceTest() {
     world_state.setCurrentTime(0);
     
     // create vehicles
-    int num_vehs = 100;
+    int num_vehs = 200;
     int num_cust = 200;
-    int max_time = 1000;
+    int max_time = 5;
     
     // create two positions at (0,0) and (100, 100)
     
@@ -168,20 +168,26 @@ void rebalanceTest() {
         vehicles.push_back(veh);
     }
     
-    // create customers all at (100, 100)
+    // create customers all at either (10000,10000) or (5000, 0)
     std::vector<amod::Customer> customers;
     for (int id=1; id<=num_cust; id++) {
         int cust_id = id; // all customers must have a unique id
         std::stringstream ss;
         ss << id;
-        amod::Customer cust(cust_id, ss.str(), amod::Position(10000, 10000));
-        customers.push_back(cust);
+        if (id%2 == 0) {
+            amod::Customer cust(cust_id, ss.str(), amod::Position(10000, 10000));
+            customers.push_back(cust);
+        } else {
+            amod::Customer cust(cust_id, ss.str(), amod::Position(5000, 0));
+            customers.push_back(cust);
+        }
     }
     
     // Locations are places that are simulated (travel only occurs between locations
     std::vector<amod::Location> locations;
     locations.emplace_back(1, "0", amod::Position(0, 0), INT_MAX );
     locations.emplace_back(2, "1", amod::Position(10000, 10000), INT_MAX );
+    locations.emplace_back(3, "2", amod::Position(5000, 0), INT_MAX );
     
     
     // populate the world
@@ -196,7 +202,7 @@ void rebalanceTest() {
     // all parameters are truncated normal parameters: mean, sd, min, max
     sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
     sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
-    sim.setDropoffDistributionParams(10.0, 1.0, 0.0, 0.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 5.0, 20.0); // in seconds
     
     // initialize the simulator with the world state
     sim.init(&world_state);

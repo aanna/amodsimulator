@@ -79,6 +79,19 @@ public:
                                              amod::VehicleStatus end_status = VehicleStatus::FREE);
 
 
+    // teleportCustomer
+    // teleports the customer with cust_id to location closest to Position to. This simulates
+    // transport via train or some other mode that doesn't contribute to road congestion
+    // When the custer arrives,
+	// an event is triggered and the vehicle's status is set to end_status.
+	// if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+	// one of the amod::ReturnCode error codes.
+	virtual amod::ReturnCode teleportCustomer(amod::World *world_state,
+											 int cust_id,
+											 const amod::Position &to,
+											 amod::CustomerStatus cust_start_status = CustomerStatus::TELEPORTING,
+											 amod::CustomerStatus cust_end_status = CustomerStatus::FREE);
+
 
     // setCustomerStatus
     // sets a customer status
@@ -90,7 +103,9 @@ public:
     
     
     // serviceBooking
-    // services the amod::Booking booking. This automatically simulates servicing a booking call
+    // services the amod::Booking booking.
+    // For teleportation, this simply teleports the customer to the destination.
+    // For amod travel, this automatically simulates servicing a booking call
     // from dispatch to dropoff. Specifically:
     // The vehicle specified by booking.veh_id is dispatched from it's position to the position of
     // booking.cust_id (with status MOVING_TO_PICKUP). Upon arrival, an event is triggered.
@@ -128,6 +143,8 @@ public:
     // sets the dropoff time distribution parameters in seconds
     virtual void setDropoffDistributionParams(double mean, double sd, double min, double max);
 
+    // sets the teleportation time distribution parameters in seconds
+    virtual void setTeleportDistributionParams(double mean, double sd, double min, double max);
 private:
     bool verbose_;      // print out information?
     double resolution_; // resolution of simulation in seconds
@@ -174,6 +191,13 @@ private:
         amod::VehicleStatus veh_end_status;
     };
     
+    struct Teleport {
+    	int cust_id;
+    	int loc_id;
+    	double teleport_arrival_time;
+    	amod::CustomerStatus cust_end_status;
+    };
+
     struct TruncatedNormalParams {
         std::normal_distribution<>::param_type par;
         double min;
@@ -184,6 +208,7 @@ private:
     std::unordered_map<int, Dispatch> dispatches_;
     std::multimap<double, Pickup> pickups_;
     std::multimap<double, Dropoff> dropoffs_;
+    std::multimap<double, Teleport> teleports_;
     
     // parameters for pickup distribution simulation
     TruncatedNormalParams pickup_params_;
@@ -194,11 +219,15 @@ private:
     // parameters for vehicle speeds
     TruncatedNormalParams speed_params_;
 
+    // parameters for teleportation time
+    TruncatedNormalParams teleport_params_;
+
     // internal functions
     virtual void simulateVehicles(amod::World *world_state);
     virtual void simulateCustomers(amod::World *world_state);
     virtual void simulatePickups(amod::World *world_state);
     virtual void simulateDropoffs(amod::World *world_state);
+    virtual void simulateTeleports(amod::World *world_state);
     
     
     // internal helper functions that really execute the dispatch, pickup and dropoff functions

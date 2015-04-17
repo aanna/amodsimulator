@@ -252,15 +252,120 @@ void rebalanceTest() {
     }
     
     std::cout << "Simulation Ended" << std::endl;
-    
-    
+
 }
+
+template <typename T>
+void loadEntities(std::string filename, std::vector<T> *ts) {
+	std::ifstream in(filename.c_str());
+	if (!in.good()) {
+		throw std::runtime_error("Cannot read locations file");
+	}
+
+	while (in.good()) {
+		int id;
+		double x, y;
+		in >> id >> x >> y;
+		if (id && in.good()) {
+			T t;
+	        std::stringstream ss;
+	        ss << id;
+			t.setId(id);
+			t.setPosition({x,y});
+			t.setName(ss.str());
+			ts->emplace_back(t);
+		}
+	}
+
+	// check
+	std::cout << ts->size() << std::endl;
+	for (auto t : *ts) {
+		std::cout << t.getId() << " " << t.getPosition().x << " " << t.getPosition().y << std::endl;
+	}
+}
+
+void starNetworkTest() {
+	// set parameters
+	double max_time = 80000;
+
+	// load locations
+	std::string locs_filename = "scripts/starnetwork_locs.txt";
+	std::vector<amod::Location> locations;
+	loadEntities(locs_filename, &locations);
+
+	// load customers
+	std::string custs_filename = "scripts/starnetwork_custs.txt";
+	std::vector<amod::Customer> customers;
+	loadEntities(custs_filename, &customers);
+	for (auto itr=customers.begin(); itr!=customers.end(); ++itr) {
+		itr->setStatus(amod::CustomerStatus::FREE);
+	}
+
+	// load vehicles
+	std::string vehs_filename = "scripts/starnetwork_vehs.txt";
+	std::vector<amod::Vehicle> vehicles;
+	loadEntities(vehs_filename, &vehicles);
+	for (auto itr=vehicles.begin(); itr!=vehicles.end(); ++itr) {
+		itr->setStatus(amod::VehicleStatus::FREE);
+	}
+
+	// load stations
+	std::string stns_filename = "scripts/starnetwork_stns.txt";
+	std::vector<amod::Location> stations;
+	loadEntities(stns_filename, &stations);
+
+	// setup world
+    amod::World world_state;
+    world_state.setCurrentTime(0);
+    world_state.populate(locations, vehicles, customers);
+
+    // create the simulator
+    double resolution = 0.1;
+    bool verbose = true;
+    amod::SimulatorBasic sim(resolution, verbose);
+
+    // set simulator parameters
+    // all parameters are truncated normal parameters: mean, sd, min, max
+    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
+    sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 5.0, 10.0); // in seconds
+    sim.setTeleportDistributionParams(10.0, 2.0, 2.0, 10.0); // in seconds
+
+    // initialize the simulator with the world state
+    sim.init(&world_state);
+
+	// setup manager
+    // setup our manager
+    amod::ManagerBasic simple_manager;
+    simple_manager.init(&world_state); // initialize
+    simple_manager.setSimulator(&sim); // set simulator
+    std::string books_filename = "scripts/starnetwork_books.txt";
+    simple_manager.loadBookingsFromFile(books_filename); // load the bookings
+
+	//loop until max_time
+    amod::Manager* manager = &simple_manager;
+
+    // loop until some future time
+    std::cout << "Starting Simulation" << std::endl;
+    while (world_state.getCurrentTime() < max_time) {
+        sim.update(&world_state); // update the simulator
+        amod::ReturnCode rc = manager->update(&world_state); // update the manager
+        if (rc != amod::SUCCESS) {
+            std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
+        }
+    }
+
+    std::cout << "Simulation Ended" << std::endl;
+
+}
+
 
 int main(int argc, char **argv) {
     std::cout << "AMOD Basic Test Program" << std::endl;
     // run basic test
     //basicTest();
-    rebalanceTest();
+    //rebalanceTest();
+    starNetworkTest();
     
     // return
     return 0;

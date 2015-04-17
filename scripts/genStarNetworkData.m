@@ -24,6 +24,7 @@ locs = [5000, 5000];
 % generate satellite centers (stations)
 locs = [locs; genSatellitePositions(locs(1,:), [4000 4000], 4)];
 stations = locs;
+station_ids = (1:size(stations,1))';
 nstations = size(locs,1);
 
 % generate extra locations surrounding each station
@@ -106,13 +107,13 @@ even_travel_times = aftn_travel_times(:,1) + min(...
     max(0, normrnd( 6*60*60, 3*60*60, num_custs, 1 )) , 8*60*60);
 
 even_travel_modes = rand(num_custs,1) < prob_amod_even;
-
+nearby_pos = cust_work_pos + (rand(num_custs, 2)*2 - 1)*1000;
 
 all_travel_times = [morn_travel_times; aftn_travel_times; even_travel_times];
 all_travel_modes = [morn_travel_modes; aftn_travel_modes; even_travel_modes];
 
 
-bookings = [all_travel_times repmat([1:num_custs]', 3, 1) all_travel_modes];
+bookings = [all_travel_times repmat([1:num_custs]', 3, 1) [cust_work_pos; nearby_pos; cust_home_pos] all_travel_modes];
 
 
 % plot histogram of travel
@@ -137,18 +138,18 @@ hold off
 %% save data to disk
 
 % save locations
-dlmwrite('starnetwork_locs.txt', locs, ' ');
+dlmwrite('starnetwork_locs.txt', [ (1:size(locs,1))' locs], ' ');
 
 % save stations
-dlmwrite('starnetwork_stns.txt', stations, ' ');
+dlmwrite('starnetwork_stns.txt', [station_ids stations], ' ');
 
 % save vehicles
-dlmwrite('starnetwork_vehs.txt', veh_pos, ' ');
+dlmwrite('starnetwork_vehs.txt', [(1:size(veh_pos,1))' veh_pos], ' ');
 
 % save customers
-dlmwrite('starnetwork_custs.txt', cust_home_pos, ' ');
+dlmwrite('starnetwork_custs.txt', [(1:size(cust_home_pos,1))' cust_home_pos], ' ');
 
 % save bookings
-dlmwrite('starnetwork_books.txt', bookings, ' ');
+dlmwrite('starnetwork_books.txt', [(1:size(bookings,1))' bookings], ' ');
 
 % done!

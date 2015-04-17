@@ -213,6 +213,10 @@ namespace amod {
         }
         
         
+        // create a dispatch event
+		std::vector<int> entity_ids = {veh_id, booking_id};
+		Event ev(amod::EVENT_DISPATCH, ++event_id_, "VehicleDispatch", state_.getCurrentTime(), entity_ids);
+		world_state->addEvent(ev);
 
         return amod::SUCCESS;
     }
@@ -313,6 +317,46 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+	amod::ReturnCode SimulatorBasic::teleportCustomer(amod::World *world_state,
+											 int cust_id,
+											 const amod::Position &to,
+											 amod::CustomerStatus cust_start_status,
+											 amod::CustomerStatus cust_end_status
+											 ) {
+        Customer *cust = state_.getCustomerPtr(cust_id);
+        if (!cust) {
+            return amod::CANNOT_GET_CUSTOMER;
+        }
+
+        // set a teleporation arrival time
+        double teleport_time = state_.getCurrentTime() + genRandTruncNormal(teleport_params_);
+
+		int loc_id = 0;
+		if (using_locations_) {
+			// get the teleport location
+			Location teleport_loc = loc_tree_.findNN({cust->getPosition().x, cust->getPosition().y});
+			loc_id = teleport_loc.getId();
+		}
+
+		Teleport tport{cust_id, loc_id, teleport_time, cust_end_status};
+
+		teleports_.emplace(teleport_time, tport);
+
+		// sets the status of the vehicle
+		cust->setStatus(cust_start_status);
+
+		// create a teleportation event
+		std::vector<int> entity_ids = {cust_id, loc_id};
+		Event ev(amod::EVENT_TELEPORT, ++event_id_, "CustomerTeleport", state_.getCurrentTime(), entity_ids);
+		world_state->addEvent(ev);
+
+		// set the internal state
+		state_.getCustomerPtr(cust_id)->setStatus(cust_start_status);
+
+		return amod::SUCCESS;
+	}
+
+
     void SimulatorBasic::setCustomerStatus(amod::World *world_state, int cust_id, CustomerStatus status) {
     	Customer cust = world_state->getCustomer(cust_id);
     	cust.setStatus(status);
@@ -590,6 +634,36 @@ namespace amod {
         }
     }
     
+
+    void SimulatorBasic::simulateTeleports(amod::World *world_state) {
+    	auto it = teleports_.begin();
+    	while (it != teleports_.end()) {
+    		if (it->first <= state_.getCurrentTime()) {
+    			// create teleportation arrival event
+    			if (verbose_) std::cout << it->second.cust_id << " has arrived at location " << it->second.loc_id << " at time " << it->first << std::endl;
+
+    			std::vector<int> entity_ids = {it->second.cust_id};
+    			Event ev(amod::EVENT_TELEPORT_ARRIVAL, ++event_id_, "CustomerTeleportArrival", it->first, entity_ids);
+    			world_state->addEvent(ev);
+
+    			Customer cust = world_state->getCustomer(it->second.cust_id);
+    			cust.setStatus(it->second.cust_end_status);
+    			cust.setPosition(world_state->getLocationPtr(it->second.loc_id)->getPosition());
+
+    			// update the external world and internal state
+    			world_state->setCustomer(cust);
+    			state_.setCustomer(cust);
+
+    			// erase item
+    			teleports_.erase(it);
+    			it = teleports_.begin();
+    		} else {
+    			break;
+    		}
+    	}
+    }
+
+
     void SimulatorBasic::setPickupDistributionParams(double mean, double sd, double min, double max) {
         std::normal_distribution<>::param_type par{mean, sd};
         pickup_params_.par = par;
@@ -612,6 +686,14 @@ namespace amod {
         speed_params_.min = min;
     }
     
+    void SimulatorBasic::setTeleportDistributionParams(double mean, double sd, double min, double max) {
+
+        std::normal_distribution<>::param_type par{mean, sd};
+        teleport_params_.par = par;
+        teleport_params_.max = max;
+        teleport_params_.min = min;
+    }
+
     double SimulatorBasic::genRandTruncNormal(TruncatedNormalParams &params) {
         normal_dist.param(params.par);
         double r = normal_dist(eng);

@@ -113,6 +113,17 @@ namespace amod {
                     //std::cout << "Cust " << cust.getId() << " is free. Proceeding to assign. ";
                 }
                 
+                // check for teleportation
+                if (itr->second.travel_mode == amod::Booking::TELEPORT) {
+                	sim_->teleportCustomer(world_state, itr->second.cust_id, itr->second.destination);
+                    bookings_.erase(itr);
+
+                    // set to the earliest booking
+                    itr = bookings_.begin();
+                    continue;
+                }
+
+
                 // check if we have vehicles to dispatch
                 //std::cout << world_state->getCurrentTime() << ": Num Available Veh: " << num_avail_veh_ << std::endl;
                 if (num_avail_veh_ == 0) {
@@ -200,10 +211,16 @@ namespace amod {
         
         while (in.good()) {
             Booking b;
-            in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y;
-            if (b.id) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
+            in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y >> b.travel_mode;
+            if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
         }
         
+        for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
+        	auto &b = itr->second;
+        	std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
+        }
+
+
         return amod::SUCCESS;
     }
     

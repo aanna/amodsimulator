@@ -73,6 +73,21 @@ public:
                                              amod::VehicleStatus end_status = VehicleStatus::FREE) = 0;
     
     
+    // teleportCustomer
+    // teleports the customer with cust_id to location closest to Position to. This simulates
+    // transport via train or some other mode that doesn't contribute to road congestion
+    // When the custer arrives,
+	// an event is triggered and the vehicle's status is set to end_status.
+	// if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+	// one of the amod::ReturnCode error codes.
+	virtual amod::ReturnCode teleportCustomer(amod::World *world_state,
+											 int cust_id,
+											 const amod::Position &to,
+											 amod::CustomerStatus cust_start_status = CustomerStatus::TELEPORTING,
+											 amod::CustomerStatus cust_end_status = CustomerStatus::FREE) = 0;
+
+
+
     // setCustomerStatus
     // sets a customer status
     virtual void setCustomerStatus(amod::World *world_state, int cust_id, CustomerStatus status) = 0;

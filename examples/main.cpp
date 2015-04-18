@@ -176,9 +176,11 @@ void rebalanceTest() {
         ss << id;
         if (id%2 == 0) {
             amod::Customer cust(cust_id, ss.str(), amod::Position(10000, 10000));
+            cust.setStatus(amod::CustomerStatus::FREE);
             customers.push_back(cust);
         } else {
             amod::Customer cust(cust_id, ss.str(), amod::Position(5000, 0));
+            cust.setStatus(amod::CustomerStatus::FREE);
             customers.push_back(cust);
         }
     }
@@ -227,6 +229,7 @@ void rebalanceTest() {
     double waiting_cost_factor = 1.0;
     match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
     match_manager.setMatchingInterval(1e10); //it never does the matching
+    match_manager.setRebalancingInterval(10);
     
     match_manager.init(&world_state);
     match_manager.setSimulator(&sim); // set simulator
@@ -237,7 +240,7 @@ void rebalanceTest() {
     std::vector<amod::Location> stations;
     stations = locations; // stations equivalent to locations
     match_manager.loadStations(stations, world_state); // load the stations
-    match_manager.setRebalancingInterval(10);
+
     
     // select which manager we want
     amod::Manager* manager = &match_manager; //simple_manager
@@ -341,9 +344,23 @@ void starNetworkTest() {
     simple_manager.setSimulator(&sim); // set simulator
     std::string books_filename = "scripts/starnetwork_books.txt";
     simple_manager.loadBookingsFromFile(books_filename); // load the bookings
+    
+    // setup our manager
+    amod::ManagerMatchRebalance match_manager;
+    double distance_cost_factor = 1.0;
+    double waiting_cost_factor = 1.0;
+    match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
+    match_manager.setMatchingInterval(60); //every minute
+    match_manager.setRebalancingInterval(4*60*60); //every 4 hours
+    
+    match_manager.init(&world_state); // initialize
+    match_manager.setSimulator(&sim); // set simulator
+    match_manager.loadStations(stations, world_state);
+    match_manager.loadBookingsFromFile(books_filename); // load the bookings
+    
 
 	//loop until max_time
-    amod::Manager* manager = &simple_manager;
+    amod::Manager* manager = &match_manager;
 
     // loop until some future time
     std::cout << "Starting Simulation" << std::endl;

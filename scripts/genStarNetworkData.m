@@ -5,16 +5,16 @@
 %% Parameters
 clear();
 rand(10); %setup rng
-num_vehs = 2000;
+num_vehs = 300;
 num_custs = 2000;
 
 % probability of working at the central location
 prob_work_at_central = 0.9;
 
 % probability of taking amod during the different time sessions
-prob_amod_morn = 0.0;
-prob_amod_aftn = 0.0;
-prob_amod_even = 0.0;
+prob_amod_morn = 0.9;
+prob_amod_aftn = 0.7;
+prob_amod_even = 0.5;
 
 %% Generate the locations and stations
 

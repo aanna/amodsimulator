@@ -220,12 +220,12 @@ namespace amod {
             in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y >> b.travel_mode;
             if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
         }
-        
+        /*
         for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
         	auto &b = itr->second;
         	std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
         }
-
+        */
 
         return amod::SUCCESS;
     }

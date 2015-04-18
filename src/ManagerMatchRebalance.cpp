@@ -92,6 +92,12 @@ namespace amod {
                 }
 
             }
+            
+            // teleportation event
+            if (e.type == EVENT_TELEPORT || e.type == EVENT_TELEPORT_ARRIVAL) {
+                amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
+                out << cust.getPosition().x << " " << cust.getPosition().y << std::endl;
+            }
 
             // output the location sizes
             if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
@@ -106,6 +112,7 @@ namespace amod {
         world_state->clearEvents();
         
         // dispatch bookings by solving the matching problem
+        bookings_itr_ = bookings_.begin();
         while (bookings_itr_ != bookings_.end()) {
         	// check if the time is less
 			if (bookings_itr_->first <= current_time) {
@@ -114,6 +121,18 @@ namespace amod {
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
 				if (cust->getStatus() == CustomerStatus::FREE ||
 					cust->getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT) {
+                    
+                    // check for teleportation
+                    if (bookings_itr_->second.travel_mode == amod::Booking::TELEPORT) {
+                        sim_->teleportCustomer(world_state, bookings_itr_->second.cust_id, bookings_itr_->second.destination);
+                        bookings_.erase(bookings_itr_);
+                        
+                        // set to the earliest booking
+                        bookings_itr_ = bookings_.begin();
+                        continue;
+                    }
+                    
+                    // add this to the bookings_queue for matching
 					bookings_queue_[bookings_itr_->second.id] = bookings_itr_->second;
 
 					// assign this customer to a station
@@ -151,6 +170,7 @@ namespace amod {
         
         if (next_rebalancing_time_ <= world_state->getCurrentTime()) {
             amod::ReturnCode rc = solveRebalancing(world_state);
+            next_rebalancing_time_ = world_state->getCurrentTime() + rebalancing_interval_;
             // return if we encounter a failure
             if (rc != amod::SUCCESS) {
                 return rc;
@@ -179,12 +199,17 @@ namespace amod {
         
         while (in.good()) {
             Booking b;
-            in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y;
-            if (b.id) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
+            in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y >> b.travel_mode;
+            if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
         }
         
-        bookings_itr_ = bookings_.begin();
-
+        /*
+        for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
+            auto &b = itr->second;
+            std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
+        }
+        */
+        
         return amod::SUCCESS;
     }
     
@@ -456,6 +481,7 @@ namespace amod {
     	long nvehs = available_vehs_.size();
     	int nvars = nbookings*nvehs;
 
+        
     	// set up the problem
         glp_prob *lp;
         lp = glp_create_prob();

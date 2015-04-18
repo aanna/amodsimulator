@@ -320,7 +320,7 @@ void starNetworkTest() {
     world_state.populate(locations, vehicles, customers);
 
     // create the simulator
-    double resolution = 0.1;
+    double resolution = 5;
     bool verbose = true;
     amod::SimulatorBasic sim(resolution, verbose);
 

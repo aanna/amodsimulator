@@ -61,13 +61,18 @@ namespace amod {
             out << " ";
             
             if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL ||
-            		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
+            		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF || e.type== EVENT_DISPATCH) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
                 out << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
             }
             
             if (e.type == EVENT_DROPOFF) {
                 ++num_avail_veh_;
+            }
+            
+            if (e.type == EVENT_TELEPORT || e.type == EVENT_TELEPORT_ARRIVAL) {
+                amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
+                out << cust.getPosition().x << " " << cust.getPosition().y << std::endl;
             }
 
             if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
@@ -106,7 +111,8 @@ namespace amod {
                       cust.getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT)) {
                     // customer is not free or not waiting for assignment
                     // we skip this booking
-                    //std::cout << "Cust " << cust.getId() << " is not free, status " << cust.getStatus() << std::endl;
+                    std::cout << "Booking type: " << itr->second.travel_mode << std::endl;
+                    std::cout << "Cust " << cust.getId() << " is not free, status " << cust.getStatus() << std::endl;
                     ++itr;
                     continue;
                 } else {

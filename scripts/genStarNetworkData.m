@@ -5,16 +5,16 @@
 %% Parameters
 clear();
 rand(10); %setup rng
-num_vehs = 500;
+num_vehs = 2000;
 num_custs = 2000;
 
 % probability of working at the central location
 prob_work_at_central = 0.9;
 
 % probability of taking amod during the different time sessions
-prob_amod_morn = 0.9;
-prob_amod_aftn = 0.6;
-prob_amod_even = 0.5;
+prob_amod_morn = 0.0;
+prob_amod_aftn = 0.0;
+prob_amod_even = 0.0;
 
 %% Generate the locations and stations
 
@@ -96,18 +96,17 @@ morn_travel_modes = rand(num_custs,1) < prob_amod_morn;
 % 3-6 hours after initial travel (peak at 4 hours)
 % 6 hours max
 aftn_travel_times = morn_bookings(:,1) + min(...
-    max(0, normrnd( 16200, 6000, num_custs, 1 )) , 21600);
+    max(3*60*60, normrnd( 16200, 6000, num_custs, 1 )) , 21600);
 aftn_travel_modes = rand(num_custs,1) < prob_amod_aftn;
+nearby_pos = cust_work_pos + (rand(num_custs, 2)*2 - 1)*1000;
 
 % night 
 % travel back to home
 % 4-8 hours after initial travel (peak at 6 hours)
 % 8 hours max
 even_travel_times = aftn_travel_times(:,1) + min(...
-    max(0, normrnd( 6*60*60, 3*60*60, num_custs, 1 )) , 8*60*60);
-
+    max(4*60*60, normrnd( 6*60*60, 3*60*60, num_custs, 1 )) , 8*60*60);
 even_travel_modes = rand(num_custs,1) < prob_amod_even;
-nearby_pos = cust_work_pos + (rand(num_custs, 2)*2 - 1)*1000;
 
 all_travel_times = [morn_travel_times; aftn_travel_times; even_travel_times];
 all_travel_modes = [morn_travel_modes; aftn_travel_modes; even_travel_modes];

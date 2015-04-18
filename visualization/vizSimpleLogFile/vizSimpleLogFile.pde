@@ -31,7 +31,7 @@ class Event {
 }
 
 float current_time = 0; // start time is 0
-float time_window = 1; // 1 second
+float time_window = 50; // 1 second
 
 int current_event = 0; // starting event = 0
 
@@ -106,7 +106,7 @@ void readLogFile(float end_time, ArrayList events) {
       e.x = parseFloat(cols[7]);
       e.y = parseFloat(cols[8]);
       e.s = 1;
-    } else {
+    } else if (parseInt(cols[3]) == 5 ||  parseInt(cols[3]) == 6){
       // location
       e.id = parseInt(cols[2]);
       e.type = parseInt(cols[3]);
@@ -116,7 +116,7 @@ void readLogFile(float end_time, ArrayList events) {
       e.s = parseFloat(cols[7]);
       int locid;
       
-      if (e.type == 5) {
+      if (e.type == 6) {
         String[] entities = split(cols[6], ',');
         locid = parseInt(entities[0]);
         //println(locid);
@@ -140,7 +140,7 @@ void draw() {
   rect(0, 0, width, height);
 
   float sc_factor = 10; //30
-  float loc_s_factor = 1.0; //1.0
+  float loc_s_factor = 0.01; //1.0
 
 
   //line(150, 25, mouseX, mouseY);
@@ -160,7 +160,7 @@ void draw() {
     for (Map.Entry me : locs.entrySet()) {
       //println(me.getKey());
     Location l = (Location) me.getValue();
-    ellipse(l.x, l.y, l.s*loc_s_factor, l.s*loc_s_factor);
+    ellipse(l.x, l.y, l.s*l.s*loc_s_factor, l.s*l.s*loc_s_factor);
   }
       noStroke();
   for (int i=0; i<events.size (); i++) {

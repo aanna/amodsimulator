@@ -49,7 +49,7 @@ int Location::getNumVehicles() const {
 
 
 int Location::getNumCustomers() const {
-	return customer_ids_.size();
+	return (int) customer_ids_.size();
 }
 
 void Location::getCustomerIds(std::unordered_set<int> *cust_ids) {

@@ -7,14 +7,14 @@
 	<key>IDESourceControlProjectIdentifier</key>
 	<string>56764F56-EA27-4995-9F67-ABD0CDF61076</string>
 	<key>IDESourceControlProjectName</key>
-	<string>project</string>
+	<string>AMODBase</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
 	<dict>
 		<key>C20802A162A6AD33E152CEEE08F57A0CC96C9A60</key>
 		<string>github.com:smart-fm/simmobility.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
-	<string>dev/Basic/shared/entities/amodController/AMODBase/AMODBase.xcodeproj/project.xcworkspace</string>
+	<string>dev/Basic/shared/entities/amodController/AMODBase/AMODBase.xcodeproj</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
 		<key>C20802A162A6AD33E152CEEE08F57A0CC96C9A60</key>

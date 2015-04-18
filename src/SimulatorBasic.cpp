@@ -77,6 +77,9 @@ namespace amod {
         // simulate the dropoffs
         simulateDropoffs(world_state);
         
+        // simulate the teleports
+        simulateTeleports(world_state);
+
         // simulate the customers (this is currently a placeholder for future expansion)
         simulateCustomers(world_state);
         
@@ -154,7 +157,11 @@ namespace amod {
         double dx = dp.to.x - dp.from.x;
         double dy = dp.to.y - dp.from.y;
         double rd = sqrt( dx*dx + dy*dy);
-        dp.grad = Position( dx/rd , dy/rd);
+        if (rd == 0) {
+            dp.grad = Position(1.0, 1.0); // just travel someplace (same location, will arrive at next timestep)
+        } else {
+            dp.grad = Position( dx/rd , dy/rd); // travel in the direction of the destination
+        }
         dp.veh_end_status = end_status;
         
 //        if (dp.from == dp.to) {
@@ -327,18 +334,29 @@ namespace amod {
         if (!cust) {
             return amod::CANNOT_GET_CUSTOMER;
         }
+        
+        if (cust->getStatus() != CustomerStatus::FREE) {
+            return amod::CUSTOMER_IS_NOT_FREE;
+        }
 
         // set a teleporation arrival time
         double teleport_time = state_.getCurrentTime() + genRandTruncNormal(teleport_params_);
 
-		int loc_id = 0;
+		int from_loc_id = 0;
 		if (using_locations_) {
 			// get the teleport location
 			Location teleport_loc = loc_tree_.findNN({cust->getPosition().x, cust->getPosition().y});
-			loc_id = teleport_loc.getId();
+			from_loc_id = teleport_loc.getId();
 		}
+        
+        int to_loc_id = 0;
+        if (using_locations_) {
+            // get the teleport location
+            Location teleport_loc = loc_tree_.findNN({to.x, to.y});
+            to_loc_id = teleport_loc.getId();
+        }
 
-		Teleport tport{cust_id, loc_id, teleport_time, cust_end_status};
+		Teleport tport{cust_id, to_loc_id, teleport_time, cust_end_status};
 
 		teleports_.emplace(teleport_time, tport);
 
@@ -346,9 +364,25 @@ namespace amod {
 		cust->setStatus(cust_start_status);
 
 		// create a teleportation event
-		std::vector<int> entity_ids = {cust_id, loc_id};
+		std::vector<int> entity_ids = {cust_id, from_loc_id};
 		Event ev(amod::EVENT_TELEPORT, ++event_id_, "CustomerTeleport", state_.getCurrentTime(), entity_ids);
 		world_state->addEvent(ev);
+        
+        // adjust locations
+        // location specific changes
+        if (using_locations_) {
+            Location * ploc = world_state->getLocationPtr(from_loc_id);
+            ploc->removeCustomerId(cust_id);
+            
+            // trigger event
+            Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                     "LocationCustSizeChange", state_.getCurrentTime(),
+                     {from_loc_id});
+            world_state->addEvent(ev);
+            
+            // update internal state
+            state_.setLocation(*ploc);
+        }
 
 		// set the internal state
 		state_.getCustomerPtr(cust_id)->setStatus(cust_start_status);
@@ -540,7 +574,7 @@ namespace amod {
         //return !((sign(diff.x) == sign(d.grad.x)) && (sign(diff.x) == sign(d.grad.x)));
         double dist_to_dest = getDistance(d.from, d.to);
         double dist_to_curr = getDistance(d.from, d.curr);
-        return (dist_to_curr >= dist_to_dest || (abs(dist_to_curr - dist_to_dest) < 1e-2));
+        return (dist_to_curr >= dist_to_dest); // distance travelled larger or equal to distance to destination
     }
     
     void SimulatorBasic::simulatePickups(amod::World *world_state) {
@@ -640,7 +674,7 @@ namespace amod {
     	while (it != teleports_.end()) {
     		if (it->first <= state_.getCurrentTime()) {
     			// create teleportation arrival event
-    			if (verbose_) std::cout << it->second.cust_id << " has arrived at location " << it->second.loc_id << " at time " << it->first << std::endl;
+    			if (verbose_) std::cout << it->second.cust_id << " has teleported to location " << it->second.loc_id << " at time " << it->first << std::endl;
 
     			std::vector<int> entity_ids = {it->second.cust_id};
     			Event ev(amod::EVENT_TELEPORT_ARRIVAL, ++event_id_, "CustomerTeleportArrival", it->first, entity_ids);
@@ -653,6 +687,19 @@ namespace amod {
     			// update the external world and internal state
     			world_state->setCustomer(cust);
     			state_.setCustomer(cust);
+                
+                // update the customer and trigger event if necessary
+                if (using_locations_) {
+                    int loc_id = it->second.loc_id;
+                    Location *ploc = world_state->getLocationPtr(loc_id);
+                    ploc->addCustomerId(it->second.cust_id);
+                    Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                             "LocationCustSizeChange", state_.getCurrentTime(),
+                             {loc_id});
+                    world_state->addEvent(ev);
+                    state_.setLocation(*ploc);
+                }
+                
 
     			// erase item
     			teleports_.erase(it);

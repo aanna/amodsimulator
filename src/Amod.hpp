@@ -16,7 +16,7 @@
 #include "Manager.hpp"
 #include "Simulator.hpp"
 #include "World.hpp"
-
+#include "DemandEstimator.hpp"
 
 
 #endif /* AMOD_HPP_ */

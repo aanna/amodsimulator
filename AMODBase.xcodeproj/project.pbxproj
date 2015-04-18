@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01038E191ADD61EA0037B6AA /* ManagerMatchRebalance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01038E171ADD61EA0037B6AA /* ManagerMatchRebalance.cpp */; };
+		01038E1F1AE265730037B6AA /* OracleDemandEstimator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01038E1D1AE265730037B6AA /* OracleDemandEstimator.cpp */; };
 		017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A8D1AC6AA5C009ED221 /* Customer.cpp */; };
 		017E8AA41AC6AA5C009ED221 /* Location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A921AC6AA5C009ED221 /* Location.cpp */; };
 		017E8AA51AC6AA5C009ED221 /* Logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017E8A941AC6AA5C009ED221 /* Logger.cpp */; };
@@ -33,6 +34,9 @@
 /* Begin PBXFileReference section */
 		01038E171ADD61EA0037B6AA /* ManagerMatchRebalance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ManagerMatchRebalance.cpp; sourceTree = "<group>"; };
 		01038E181ADD61EA0037B6AA /* ManagerMatchRebalance.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ManagerMatchRebalance.hpp; sourceTree = "<group>"; };
+		01038E1B1AE263230037B6AA /* DemandEstimator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DemandEstimator.hpp; sourceTree = "<group>"; };
+		01038E1D1AE265730037B6AA /* OracleDemandEstimator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OracleDemandEstimator.cpp; sourceTree = "<group>"; };
+		01038E1E1AE265730037B6AA /* OracleDemandEstimator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OracleDemandEstimator.hpp; sourceTree = "<group>"; };
 		017E8A7F1AC6A999009ED221 /* AMODBase */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AMODBase; sourceTree = BUILT_PRODUCTS_DIR; };
 		017E8A891AC6AA5C009ED221 /* Amod.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Amod.hpp; sourceTree = "<group>"; };
 		017E8A8C1AC6AA5C009ED221 /* Booking.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Booking.hpp; sourceTree = "<group>"; };
@@ -116,6 +120,9 @@
 				017E8A9F1AC6AA5C009ED221 /* World.cpp */,
 				017E8AA01AC6AA5C009ED221 /* World.hpp */,
 				017E8AAB1AC6B7E3009ED221 /* Utility.hpp */,
+				01038E1B1AE263230037B6AA /* DemandEstimator.hpp */,
+				01038E1D1AE265730037B6AA /* OracleDemandEstimator.cpp */,
+				01038E1E1AE265730037B6AA /* OracleDemandEstimator.hpp */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -191,6 +198,7 @@
 				01038E191ADD61EA0037B6AA /* ManagerMatchRebalance.cpp in Sources */,
 				017E8AA31AC6AA5C009ED221 /* Customer.cpp in Sources */,
 				017E8AAE1AC7F2FB009ED221 /* ManagerBasic.cpp in Sources */,
+				01038E1F1AE265730037B6AA /* OracleDemandEstimator.cpp in Sources */,
 				017E8AB11AC99529009ED221 /* main.cpp in Sources */,
 				017E8AA41AC6AA5C009ED221 /* Location.cpp in Sources */,
 			);

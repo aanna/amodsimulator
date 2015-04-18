@@ -35,14 +35,14 @@ float time_window = 50; // 1 second
 
 int current_event = 0; // starting event = 0
 
-float min_x = 0;
-float min_y = 0;
-float max_x = 10000;
-float max_y = 10000;
+float min_x = -2000;
+float min_y = -2000;
+float max_x = 12000;
+float max_y = 12000;
 float scale_x = 1;
 float scale_y = 1;
-float range_x = 10000;
-float range_y = 10000;
+float range_x = 12000;
+float range_y = 12000;
 
 BufferedReader reader;
 
@@ -169,16 +169,16 @@ void draw() {
 
     // draw the event
     // enum EventType {EVENT_MOVE, EVENT_ARRIVAL, EVENT_PICKUP, EVENT_DROPOFF};
-    if (e.type == 0) {
+    if (e.type == 1) {
       fill(#00B0FF); 
       ellipse(e.x, e.y, 5*sc_factor, 5*sc_factor);  // move event
-    } else if (e.type == 1) {
+    } else if (e.type == 2) {
       fill(#FFAF00); 
       ellipse(e.x, e.y, 8*sc_factor, 8*sc_factor);
-    } else if (e.type == 2) {
+    } else if (e.type == 3) {
       fill(#00C138); 
       ellipse(e.x, e.y, 10*sc_factor, 10*sc_factor);
-    } else if (e.type == 3) {
+    } else if (e.type == 4) {
       fill(#FF00E6); 
       ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
     }

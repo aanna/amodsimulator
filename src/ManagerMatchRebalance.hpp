@@ -88,7 +88,9 @@ namespace amod {
         // loads the stations which are used to house vehicles
         virtual void loadStations(std::vector<amod::Location> &stations, const amod::World &world_state);
 
-
+        
+        
+        
     private:
         std::multimap<double, Booking> bookings_;
         std::multimap<double, Booking>::iterator bookings_itr_;

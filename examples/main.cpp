@@ -9,6 +9,7 @@
 #include "SimulatorBasic.hpp"
 #include "ManagerBasic.hpp"
 #include "ManagerMatchRebalance.hpp"
+#include "SimpleDemandEstimator.hpp"
 
 void basicTest(void) {
     // create a world state
@@ -377,13 +378,27 @@ void starNetworkTest() {
 }
 
 
+void simpleDemandEstimatorTest() {
+    amod::SimpleDemandEstimator sde(3600); //hourly bins
+    
+    // load stations
+    std::string stns_filename = "scripts/starnetwork_stns.txt";
+    std::vector<amod::Location> stations;
+    loadEntities(stns_filename, &stations);
+    sde.loadLocations(stations); // we only need estimated demand at stations
+    
+    // TODO
+    
+}
+
+
 int main(int argc, char **argv) {
     std::cout << "AMOD Basic Test Program" << std::endl;
     // run basic test
     //basicTest();
     //rebalanceTest();
-    starNetworkTest();
-    
+    //starNetworkTest();
+    simpleDemandEstimatorTest();
     // return
     return 0;
 }

@@ -11,18 +11,20 @@
 
 #include <utility>
 #include "Types.hpp"
+#include "World.hpp"
 
 namespace amod {
     class DemandEstimator {
     public:
         DemandEstimator() { } ;
-        virtual ~DemandEstimator();
+        virtual ~DemandEstimator() {};
         
         // predict
-        // predicts the demand (number of customer bookings) at a given position pos
+        // predicts the demand (number of customer bookings) at a given position pos or location id
         // at a given time t
         // returns a std::pair with the mean prediction and the uncertainty
-        virtual std::pair<double, double> predict(const amod::Position &pos, double t) = 0;
+        virtual std::pair<double, double> predict(const amod::Position &pos, const amod::World &world_state, double t) = 0;
+        virtual std::pair<double, double> predict(int loc_id, const amod::World &world_state, double t) = 0;
         
         
     };

@@ -52,10 +52,14 @@ namespace amod {
         // one of the amod::ReturnCode error codes.
         virtual amod::ReturnCode loadBookingsFromFile(const std::string filename);
         
+        // setOutputFilename
+        // sets the output file for logging purposes
+        virtual amod::ReturnCode setOutputFile(std::string filename);
+
     private:
         std::multimap<double, Booking> bookings_;
         
-        std::ofstream out;
+        std::ofstream fout_;
         int num_avail_veh_; // tracks number of available vehicles
         
         // demo function to show how to get information from

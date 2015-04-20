@@ -111,8 +111,8 @@ even_travel_modes = rand(num_custs,1) < prob_amod_even;
 all_travel_times = [morn_travel_times; aftn_travel_times; even_travel_times];
 all_travel_modes = [morn_travel_modes; aftn_travel_modes; even_travel_modes];
 
-
-bookings = [all_travel_times repmat([1:num_custs]', 3, 1) [cust_work_pos; nearby_pos; cust_home_pos] all_travel_modes];
+cust_ids = [1:num_custs]';
+bookings = [all_travel_times repmat(cust_ids, 3, 1) [cust_work_pos; nearby_pos; cust_home_pos] all_travel_modes];
 
 demands = [morn_travel_times(morn_travel_modes,:) cust_home_pos(morn_travel_modes,:) cust_work_pos(morn_travel_modes,:);
             aftn_travel_times(aftn_travel_modes,:) cust_work_pos(aftn_travel_modes,:) nearby_pos(aftn_travel_modes,:);
@@ -140,21 +140,21 @@ hold off
 %% save data to disk
 
 % save locations
-dlmwrite('starnetwork_locs.txt', [ (1:size(locs,1))' locs], ' ');
+dlmwrite('../../data/starnetwork_locs.txt', [ (1:size(locs,1))' locs], ' ');
 
 % save stations
-dlmwrite('starnetwork_stns.txt', [station_ids stations], ' ');
+dlmwrite('../../data/starnetwork_stns.txt', [station_ids stations], ' ');
 
 % save vehicles
-dlmwrite('starnetwork_vehs.txt', [(1:size(veh_pos,1))' veh_pos], ' ');
+dlmwrite('../../data/starnetwork_vehs.txt', [(1:size(veh_pos,1))' veh_pos], ' ');
 
 % save customers
-dlmwrite('starnetwork_custs.txt', [(1:size(cust_home_pos,1))' cust_home_pos], ' ');
+dlmwrite('../../data/starnetwork_custs.txt', [(1:size(cust_home_pos,1))' cust_home_pos], ' ');
 
 % save bookings
-dlmwrite('starnetwork_books.txt', [(1:size(bookings,1))' bookings], ' ');
+dlmwrite('../../data/starnetwork_books.txt', [(1:size(bookings,1))' bookings], ' ');
 
 % save demands
-dlmwrite('starnetwork_demands.txt', [(1:size(demands,1))' demands], ' ');
+dlmwrite('../../data/starnetwork_demands.txt', [(1:size(demands,1))' demands], ' ');
 
 % done!

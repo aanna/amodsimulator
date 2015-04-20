@@ -29,7 +29,7 @@ namespace amod {
     }
     
     ManagerMatchRebalance::~ManagerMatchRebalance() {
-        if (out.is_open()) out.close();
+        if (fout_.is_open()) fout_.close();
         
         #ifdef USE_GUROBI
         delete gurobi_env_;
@@ -41,11 +41,7 @@ namespace amod {
     }
     
     amod::ReturnCode ManagerMatchRebalance::init(World *world_state) {
-        out.open("logfile.txt");
-        if (!out.is_open()) {
-            return amod::FAILED;
-        }
-        
+
         // get number of available vehicles
         std::unordered_map<int, Vehicle>::const_iterator begin_itr, end_itr;
         world_state->getVehicles(&begin_itr, &end_itr);
@@ -60,6 +56,14 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+    amod::ReturnCode ManagerMatchRebalance::setOutputFile(std::string filename) {
+    	fout_.open(filename.c_str());
+        if (!fout_.is_open()) {
+            return amod::FAILED;
+        }
+        return amod::SUCCESS;
+    }
+
     amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
         Simulator *sim = Manager::getSimulator();
         if (!sim) {
@@ -72,19 +76,21 @@ namespace amod {
         // get events
         std::vector<Event> events;
         world_state->getEvents(&events);
-        out.precision(10);
+        if (fout_.is_open()) fout_.precision(10);
         // respond to events
         for (auto e:events) {
-            out << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
+        	if (fout_.is_open()) {
+        	fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
             for (auto ent: e.entity_ids) {
-                out << ent << ",";
+            	fout_ << ent << ",";
             }
-            out << " ";
+            fout_ << " ";
+        	}
             
             if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL ||
             		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
-                out << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
+                if (fout_.is_open()) fout_ << veh.getPosition().x << " " << veh.getPosition().y;
 
                 // make this vehicle available again
                 if (veh.getStatus() == VehicleStatus::FREE || veh.getStatus() == VehicleStatus::PARKED) {
@@ -96,7 +102,7 @@ namespace amod {
             // teleportation event
             if (e.type == EVENT_TELEPORT || e.type == EVENT_TELEPORT_ARRIVAL) {
                 amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
-                out << cust.getPosition().x << " " << cust.getPosition().y << std::endl;
+                if (fout_.is_open()) fout_ << cust.getPosition().x << " " << cust.getPosition().y;
             }
 
             // output the location sizes
@@ -104,8 +110,9 @@ namespace amod {
             		e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
                 amod::Location * ploc = world_state->getLocationPtr(e.entity_ids[0]);
                 int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
-                out << curr_size << " " << ploc->getPosition().x << " " << ploc->getPosition().y << std::endl;
+                if (fout_.is_open()) fout_ << curr_size << " " << ploc->getPosition().x << " " << ploc->getPosition().y;
             }
+            if (fout_.is_open()) fout_ << std::endl;
 
         }
         // clear events
@@ -260,6 +267,11 @@ namespace amod {
 		}
 		return;
     }
+
+    void ManagerMatchRebalance::setDemandEstimator(amod::DemandEstimator *sde) {
+    	dem_est_ = sde;
+    }
+
 
     // **********************************************************
     // PRIVATE FUNCTIONS
@@ -705,8 +717,15 @@ namespace amod {
 			}
             
             // compute variables for the lp
-            int cexi = sitr->second.getNumCustomers() - sitr->second.getNumVehicles();
-            cex[sitr->first] = cexi; // excess customers at this station
+
+			// use current demand
+			// int cexi = sitr->second.getNumCustomers() - sitr->second.getNumVehicles();
+
+			// use predicted demand
+			int mean_pred = ceil(dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first);
+			int cexi = mean_pred - sitr->second.getNumVehicles();
+
+			cex[sitr->first] = cexi; // excess customers at this station
             cex_total += cexi; // total number of excess customers
 
             if (cexi > 0) {

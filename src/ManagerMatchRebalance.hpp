@@ -15,6 +15,7 @@
 #include "World.hpp"
 #include "Event.hpp"
 #include "KDTree.hpp"
+#include "SimpleDemandEstimator.hpp"
 
 #include <map>
 #include <set>
@@ -89,15 +90,20 @@ namespace amod {
         virtual void loadStations(std::vector<amod::Location> &stations, const amod::World &world_state);
 
         
+        // setDemandEstimator
+        virtual void setDemandEstimator(amod::DemandEstimator *sde);
         
-        
+        // setOutputFilename
+        // sets the output filename for logging purposes
+        virtual amod::ReturnCode setOutputFile(std::string filename);
+
     private:
         std::multimap<double, Booking> bookings_;
         std::multimap<double, Booking>::iterator bookings_itr_;
         
-        std::ofstream out;
+        std::ofstream fout_; //output file stream for logging
 
-        // matching varibles
+        // matching variables
         std::set<int> available_vehs_;
         std::map<int, Booking> bookings_queue_;
         double matching_interval_;
@@ -106,6 +112,7 @@ namespace amod {
         double waiting_time_cost_factor_;
 
         // rebalancing variables
+        amod::DemandEstimator *dem_est_;
         std::map<int, amod::Location> stations_; //needs to be a map to ensure ordered lookup
         std::unordered_map<int, int> veh_id_to_station_id_;
         kdt::KDTree<amod::Location> stations_tree_; //for fast NN lookup

@@ -291,14 +291,21 @@ void loadEntities(std::string filename, std::vector<T> *ts) {
 void starNetworkTest() {
 	// set parameters
 	double max_time = 80000;
+	enum ManagerType {
+		SIMPLE_MANAGER,
+		MATCH_MANAGER,
+		MATCH_REBALANCE_MANAGER,
+	};
+
+    ManagerType mgr_type = MATCH_MANAGER;
 
 	// load locations
-	std::string locs_filename = "scripts/starnetwork_locs.txt";
+	std::string locs_filename = "data/starnetwork_locs.txt";
 	std::vector<amod::Location> locations;
 	loadEntities(locs_filename, &locations);
 
 	// load customers
-	std::string custs_filename = "scripts/starnetwork_custs.txt";
+	std::string custs_filename = "data/starnetwork_custs.txt";
 	std::vector<amod::Customer> customers;
 	loadEntities(custs_filename, &customers);
 	for (auto itr=customers.begin(); itr!=customers.end(); ++itr) {
@@ -306,7 +313,7 @@ void starNetworkTest() {
 	}
 
 	// load vehicles
-	std::string vehs_filename = "scripts/starnetwork_vehs.txt";
+	std::string vehs_filename = "data/starnetwork_vehs.txt";
 	std::vector<amod::Vehicle> vehicles;
 	loadEntities(vehs_filename, &vehicles);
 	for (auto itr=vehicles.begin(); itr!=vehicles.end(); ++itr) {
@@ -314,7 +321,7 @@ void starNetworkTest() {
 	}
 
 	// load stations
-	std::string stns_filename = "scripts/starnetwork_stns.txt";
+	std::string stns_filename = "data/starnetwork_stns.txt";
 	std::vector<amod::Location> stations;
 	loadEntities(stns_filename, &stations);
 
@@ -343,25 +350,48 @@ void starNetworkTest() {
     amod::ManagerBasic simple_manager;
     simple_manager.init(&world_state); // initialize
     simple_manager.setSimulator(&sim); // set simulator
-    std::string books_filename = "scripts/starnetwork_books.txt";
+    std::string books_filename = "data/starnetwork_books.txt";
     simple_manager.loadBookingsFromFile(books_filename); // load the bookings
-    
+
+    // setup our demand estimator
+    amod::SimpleDemandEstimator sde;
+    sde.loadLocations(stations);
+    std::string demand_filename = "data/starnetwork_demands.txt";
+    sde.loadDemandFromFile(demand_filename);
+
     // setup our manager
     amod::ManagerMatchRebalance match_manager;
     double distance_cost_factor = 1.0;
     double waiting_cost_factor = 1.0;
     match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
-    match_manager.setMatchingInterval(60); //every minute
-    match_manager.setRebalancingInterval(4*60*60); //every 4 hours
     
     match_manager.init(&world_state); // initialize
     match_manager.setSimulator(&sim); // set simulator
     match_manager.loadStations(stations, world_state);
     match_manager.loadBookingsFromFile(books_filename); // load the bookings
-    
+    match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
+    match_manager.setMatchingInterval(5);
 
-	//loop until max_time
-    amod::Manager* manager = &match_manager;
+	// set the manager we want to use
+
+    amod::Manager* manager = nullptr;
+    switch (mgr_type) {
+    case SIMPLE_MANAGER:
+    	simple_manager.setOutputFile("spLog.txt");
+    	manager = &simple_manager;
+    	break;
+    case MATCH_MANAGER:
+    	match_manager.setOutputFile("maLog.txt");
+    	match_manager.setRebalancingInterval(1e10); //effectively never
+    	manager = &match_manager;
+    	break;
+
+    case MATCH_REBALANCE_MANAGER:
+    	match_manager.setOutputFile("mrLog.txt");
+        match_manager.setRebalancingInterval(1*60*60); //every hour
+    	manager = &match_manager;
+    	break;
+    }
 
     // loop until some future time
     std::cout << "Starting Simulation" << std::endl;
@@ -411,8 +441,8 @@ int main(int argc, char **argv) {
     // run basic test
     //basicTest();
     //rebalanceTest();
-    //starNetworkTest();
-    simpleDemandEstimatorTest();
+    starNetworkTest();
+    //simpleDemandEstimatorTest();
     // return
     return 0;
 }

@@ -24,7 +24,7 @@
 
 
 namespace amod {
-    class SimpleDemandEstimator : DemandEstimator {
+    class SimpleDemandEstimator : public DemandEstimator {
     public:
         SimpleDemandEstimator(double bin_width = 3600): bin_width_(bin_width),
             daily_mean_(0.0),

@@ -1,5 +1,5 @@
 import java.util.Map;
-boolean ismac = true;
+boolean ismac = false;
 boolean issimmob = false;
 
 // Event structure to load the data we load from the file
@@ -54,7 +54,7 @@ void setup() {
   frameRate(50);
   // load the data file
 
-  String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
+  String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
 
   if (ismac) {
     filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
@@ -98,8 +98,10 @@ void readLogFile(float end_time, ArrayList events) {
 
     String[] cols = split(line, ' ');
     Event e = new Event();
-    if (parseInt(cols[3]) < 4) { //based on event id in AMODBase
+    
+    if (parseInt(cols[3]) < 4 && parseInt(cols[3]) > 0 ) { //based on event id in AMODBase
      // moves, dropoffs or pickups
+      //println(line);
       e.id = parseInt(cols[2]);
       e.type = parseInt(cols[3]);
       e.t = parseFloat(cols[0]);

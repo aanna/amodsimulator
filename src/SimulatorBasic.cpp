@@ -481,8 +481,18 @@ namespace amod {
                 }
                 
                 // trigger arrival event
+                int bid = it->second.booking_id;
                 std::vector<int> entities = {veh.getId()};
                 
+                if (cust_id && cust.isInVehicle()) {
+                    entities.push_back(cust_id);
+                }
+
+                if (bid) {
+                	entities.push_back(bid);
+                }
+
+
                 Event ev(amod::EVENT_ARRIVAL, ++event_id_, "VehicleArrival", state_.getCurrentTime(), entities);
                 world_state->addEvent(ev);
                 
@@ -496,6 +506,8 @@ namespace amod {
                 world_state->setCustomer(cust);
                 state_.setCustomer(cust);
                 
+
+
                 // update the location to indicate the vehicle ishere.
                 if (using_locations_) {
                 	int loc_id = it->second.to_loc_id;
@@ -519,7 +531,7 @@ namespace amod {
                 }
                 
                 
-                int bid = it->second.booking_id;
+
                 dispatches_.erase(it++);
                 
                 // if dispatch has non-zero booking id
@@ -583,9 +595,13 @@ namespace amod {
             if (it->first <= state_.getCurrentTime()) {
                 
                 if (verbose_) std::cout << it->second.veh_id << " has picked up " << it->second.cust_id << " at time " << it->first << std::endl;
-                
+
                 // create pickup event
                 std::vector<int> entity_ids = {it->second.veh_id, it->second.cust_id};
+                int bid = it->second.booking_id;
+                if (bid) {
+                	entity_ids.push_back(bid);
+                }
                 Event ev(amod::EVENT_PICKUP, ++event_id_, "CustomerPickup", it->first, entity_ids);
                 world_state->addEvent(ev);
                 
@@ -605,7 +621,7 @@ namespace amod {
                 state_.setCustomer(cust);
                 state_.setVehicle(veh);
                 
-                int bid = it->second.booking_id;
+
                 if (bid) {
                     ReturnCode rc = dispatchVehicle(world_state, veh.getId(), bookings_[bid].destination,
                     		VehicleStatus::MOVING_TO_DROPOFF, VehicleStatus::HIRED,
@@ -633,8 +649,12 @@ namespace amod {
             if (it->first <= state_.getCurrentTime()) {
                 // create dropoff event
                 if (verbose_) std::cout << it->second.veh_id << " has dropped off " << it->second.cust_id << " at time " << it->first << std::endl;
+                int bid = it->second.booking_id;
 
                 std::vector<int> entity_ids = {it->second.veh_id, it->second.cust_id};
+                if (bid) {
+                	entity_ids.push_back(bid);
+                }
                 Event ev(amod::EVENT_DROPOFF, ++event_id_, "CustomerDropoff", it->first, entity_ids);
                 world_state->addEvent(ev);
                 
@@ -647,12 +667,10 @@ namespace amod {
                 cust.setStatus(CustomerStatus::FREE);
                 
                 // if is part of a booking, clear it since the vehicle has fropped off the custmer
-                int bid = it->second.booking_id;
                 if (bid) {
                     bookings_.erase(bid);
                 }
                 
-
                 // update the external world and internal state
                 world_state->setCustomer(cust);
                 world_state->setVehicle(veh);

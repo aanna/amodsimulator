@@ -59,12 +59,12 @@ namespace amod {
             if (d.id && in.good()) demands.emplace_back(d); //only positive booking ids allowed
         }
         
-        
-         for (auto itr = demands.begin(); itr != demands.end(); itr++) {
-             auto &d = *itr;
-             std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
-         }
-         
+        /*
+        for (auto itr = demands.begin(); itr != demands.end(); itr++) {
+            auto &d = *itr;
+            std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
+        }
+        */
         
         makeDemandHist(demands);
         return amod::SUCCESS;

@@ -297,7 +297,7 @@ void starNetworkTest() {
 		MATCH_REBALANCE_MANAGER,
 	};
 
-    ManagerType mgr_type = MATCH_MANAGER;
+    ManagerType mgr_type = SIMPLE_MANAGER;
 
 	// load locations
 	std::string locs_filename = "data/starnetwork_locs.txt";

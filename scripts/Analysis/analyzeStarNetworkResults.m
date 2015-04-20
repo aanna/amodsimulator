@@ -19,7 +19,9 @@ EVENT_TELEPORT_ARRIVAL= 9;
 
 filenames = {'../../spLog.txt', '../../maLog.txt', '../../mrLog.txt'};
 titles = {'Simple Manager', 'Match Manager', 'Match Rebalance Manager'};
-
+plot_colors = {'r', 'g', 'b'};
+%filenames = {'../../mrLog.txt'};
+%titles = {'Match Rebalance Manager'};
 %% load the dataset
 if reload
     events_to_skip = [EVENT_MOVE];
@@ -30,7 +32,6 @@ if reload
     end
     bookings = loadBookingsFile('../../data/starnetwork_books.txt');
     nbookings = size(bookings,1);
-
 end
 
 %% match bookings, custid, booking time, dispatches, pickups, dropoff
@@ -43,10 +44,12 @@ DROPOFF_COL = 6;
 amod_bookings = cell2mat(bookings(:,6)) > 0;
 
 %%
+results = {};
 for mid=1:nmgrs
-    results = zeros(nbookings, 6);
+    fprintf('=== Loading %s ===\n', titles{mid});
+    results{mid} = zeros(nbookings, 6);
     for j=1:3
-        results(amod_bookings,j) = cell2mat(bookings(amod_bookings,j));
+        results{mid}(amod_bookings,j) = cell2mat(bookings(amod_bookings,j));
     end
     nevents{mid} = length(events{mid});
     for i=1:nevents{mid}
@@ -56,39 +59,48 @@ for mid=1:nmgrs
                 if length(e.entities) == 2
                     bid = e.entities(2);
                     if bid > 0
-                        results(bid, DISPATCH_COL) = e.t;
+                        results{mid}(bid, DISPATCH_COL) = e.t;
                     end
                 end
             case EVENT_PICKUP
                 bid = e.entities(3);
-                results(bid, PICKUP_COL) = e.t;
+                results{mid}(bid, PICKUP_COL) = e.t;
             case EVENT_DROPOFF
                 bid = e.entities(3);
-                results(bid, DROPOFF_COL) = e.t;
+                results{mid}(bid, DROPOFF_COL) = e.t;
         end
     end
     
     % remove zero lines (Teleports)
-    results( ~any(results,2), : ) = [];  %rows
-    
-    %% plots
-    figure();
+    results{mid}( ~any(results{mid},2), : ) = [];  %rows
+end    
+%% plots
+
+figure();
+for mid = 1:nmgrs
     title(titles{mid});
     fprintf('=== %s ===\n', titles{mid});
     
-    waiting_time = results(:, PICKUP_COL) - results(:, BOOKING_TIME_COL);
+    waiting_time = results{mid}(:, PICKUP_COL) - results{mid}(:, BOOKING_TIME_COL);
+    %size(waiting_time)
     mean_waiting_time = mean(waiting_time);
     std_waiting_time = std(waiting_time);
     fprintf('Waiting time: %f (s.d. %f)\n', mean_waiting_time, std_waiting_time);
-    subplot(2,1,1);
-    hist(waiting_time, 50);
+    fprintf('Min Max Waiting time: %f %f \n', min(waiting_time), max(waiting_time));
+    subplot(2,1,1); hold on;
+    [hx, binx] = hist(waiting_time, 50);
+    plot(binx, hx, plot_colors{mid});
     title('Waiting time');
     
-    travel_time = results(:, DROPOFF_COL) - results(:, PICKUP_COL);
+    travel_time = results{mid}(:, DROPOFF_COL) - results{mid}(:, PICKUP_COL);
     mean_travel_time = mean(travel_time);
     std_travel_time = std(travel_time);
     fprintf('Travel time: %f (s.d. %f)\n', mean_travel_time, std_travel_time);
-    subplot(2,1,2);
-    hist(waiting_time, 50);
+    subplot(2,1,2); hold on;
+    [hx, binx] = hist(travel_time, 50);
+    plot(binx, hx, plot_colors{mid});
     title('Travel time');
 end
+
+legend(titles);
+ 

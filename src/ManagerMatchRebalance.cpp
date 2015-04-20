@@ -723,6 +723,10 @@ namespace amod {
 
 			// use predicted demand
 			int mean_pred = ceil(dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first);
+			/*int mean_pred = ceil(std::max(
+					(double) dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first,
+					(double) sitr->second.getNumCustomers()));
+			*/
 			int cexi = mean_pred - sitr->second.getNumVehicles();
 
 			cex[sitr->first] = cexi; // excess customers at this station

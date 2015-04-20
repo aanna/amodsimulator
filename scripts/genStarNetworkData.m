@@ -114,6 +114,9 @@ all_travel_modes = [morn_travel_modes; aftn_travel_modes; even_travel_modes];
 
 bookings = [all_travel_times repmat([1:num_custs]', 3, 1) [cust_work_pos; nearby_pos; cust_home_pos] all_travel_modes];
 
+demands = [morn_travel_times(morn_travel_modes,:) cust_home_pos(morn_travel_modes,:) cust_work_pos(morn_travel_modes,:);
+            aftn_travel_times(aftn_travel_modes,:) cust_work_pos(aftn_travel_modes,:) nearby_pos(aftn_travel_modes,:);
+            even_travel_times(even_travel_modes,:) nearby_pos(even_travel_modes,:) cust_home_pos(even_travel_modes,:)];
 
 % plot histogram of travel
 subplot(1,2,2);
@@ -150,5 +153,8 @@ dlmwrite('starnetwork_custs.txt', [(1:size(cust_home_pos,1))' cust_home_pos], ' 
 
 % save bookings
 dlmwrite('starnetwork_books.txt', [(1:size(bookings,1))' bookings], ' ');
+
+% save demands
+dlmwrite('starnetwork_demands.txt', [(1:size(demands,1))' demands], ' ');
 
 % done!

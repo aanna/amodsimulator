@@ -56,14 +56,16 @@ namespace amod {
         struct Demand {
             int id;
             double t;
-            int loc_id;
-            Position pos;
+            int from_id;
+            int to_id;
+            Position from_pos;
+            Position to_pos;
         };
         
         const double kSecondsInDay = 86400;
         double bin_width_;
         std::unordered_map<int, std::unordered_map<int, double>> demands_hist_;
-        std::unordered_map<int, std::unordered_map<int, double>> day_counts_;
+        std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>> day_counts_;
         
         kdt::KDTree<amod::Location> locs_tree_; //for fast NN lookup
 

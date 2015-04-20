@@ -387,7 +387,21 @@ void simpleDemandEstimatorTest() {
     loadEntities(stns_filename, &stations);
     sde.loadLocations(stations); // we only need estimated demand at stations
     
-    // TODO
+    std::string demand_filename = "scripts/starnetwork_demands.txt";
+    sde.loadDemandFromFile(demand_filename);
+    
+    // create an empty world state
+    amod::World world;
+    
+    // simple output to disk
+    std::ofstream fout("demandEstimatorTestResults.txt");
+    for (auto s : stations) {
+        for (double t = 0; t < 24*60*60; t += 3600) {
+            auto pred = sde.predict(s.getId(), world, t);
+            fout << s.getId() << " " << t << " " << pred.first << " " << pred.second << std::endl;
+        }
+    }
+    fout.close();
     
 }
 

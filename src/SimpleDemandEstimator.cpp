@@ -55,16 +55,16 @@ namespace amod {
         
         while (in.good()) {
             Demand d; 
-            in >> d.id >> d.t >> d.loc_id >> d.pos.x >> d.pos.y;
+            in >> d.id >> d.t >>  d.from_pos.x >> d.from_pos.y >> d.to_pos.x >> d.to_pos.y;
             if (d.id && in.good()) demands.emplace_back(d); //only positive booking ids allowed
         }
         
-        /*
-         for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
-         auto &b = itr->second;
-         std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
+        
+         for (auto itr = demands.begin(); itr != demands.end(); itr++) {
+             auto &d = *itr;
+             std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
          }
-         */
+         
         
         makeDemandHist(demands);
         return amod::SUCCESS;
@@ -95,26 +95,27 @@ namespace amod {
         for (auto d : demands) {
             
             // get the source location id
-            if (d.loc_id == 0) {
-                d.loc_id = locs_tree_.findNN({d.pos.x, d.pos.y}).getId();
+            if (d.from_id == 0) {
+                d.from_id = locs_tree_.findNN({d.from_pos.x, d.from_pos.y}).getId();
             }
             
             // update day counts
             int day = floor(d.t/kSecondsInDay);
-            auto ditr = day_counts_[d.loc_id].find(day);
-            if (ditr != day_counts_[d.loc_id].end()) {
-                ditr->second += 1;
+            int bin = floor(fmod(d.t, kSecondsInDay)/bin_width_);
+            
+            auto ditr = day_counts_[d.from_id].find(bin);
+            if (ditr != day_counts_[d.from_id].end()) {
+                ditr->second.insert(day);
             } else {
-                day_counts_[d.loc_id][day] = 1.0;
+                day_counts_[d.from_id][bin] = {day};
             }
             
             // update bin counts
-            int bin = floor(fmod(d.t, kSecondsInDay)/bin_width_);
-            auto itr = demands_hist_[d.loc_id].find(bin);
-            if (itr != demands_hist_[d.loc_id].end()) {
+            auto itr = demands_hist_[d.from_id].find(bin);
+            if (itr != demands_hist_[d.from_id].end()) {
                 itr->second += 1;
             } else {
-                demands_hist_[d.loc_id][bin] = 1.0;
+                demands_hist_[d.from_id][bin] = 1.0;
             }
             
         }
@@ -123,7 +124,7 @@ namespace amod {
         for (auto itr=demands_hist_.begin(); itr != demands_hist_.end(); ++itr) {
             int loc_id = itr->first;
             for (auto ditr=demands_hist_[loc_id].begin(); ditr != demands_hist_[loc_id].end(); ++ditr) {
-                ditr->second /= day_counts_[loc_id][ditr->first];
+                ditr->second /= day_counts_[loc_id][ditr->first].size();
             }
         }
         

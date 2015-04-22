@@ -10,6 +10,7 @@
 
 namespace amod {
     ManagerBasic::ManagerBasic() {
+        output_move_events_ = true;
         return;
     }
     
@@ -19,7 +20,7 @@ namespace amod {
     }
     
     amod::ReturnCode ManagerBasic::init(World *world_state) {
-
+        
         // get number of available vehicles
         num_avail_veh_ = 0;
         std::unordered_map<int, Vehicle>::const_iterator begin_itr, end_itr;
@@ -35,14 +36,15 @@ namespace amod {
         return amod::SUCCESS;
     }
     
-    amod::ReturnCode ManagerBasic::setOutputFile(std::string filename) {
-    	fout_.open(filename.c_str());
+    amod::ReturnCode ManagerBasic::setOutputFile(std::string filename, bool output_move_events) {
+        fout_.open(filename.c_str());
         if (!fout_.is_open()) {
             return amod::FAILED;
         }
+        output_move_events_ = output_move_events;
         return amod::SUCCESS;
     }
-
+    
     amod::ReturnCode ManagerBasic::update(World *world_state) {
         Simulator *sim = Manager::getSimulator();
         if (!sim) {
@@ -58,18 +60,22 @@ namespace amod {
         if (fout_.is_open()) fout_.precision(10);
         // respond to events
         for (auto e:events) {
-        	if (fout_.is_open())  {
-				fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
-				for (auto ent: e.entity_ids) {
-					fout_ << ent << ",";
-				}
-				fout_ << " ";
-        	}
+            if (fout_.is_open())  {
+                if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                    fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
+                    for (auto ent: e.entity_ids) {
+                        fout_ << ent << ",";
+                    }
+                    fout_ << " ";
+                }
+            }
             
             if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL ||
-            		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF || e.type== EVENT_DISPATCH) {
+                e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF || e.type== EVENT_DISPATCH) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
-                if (fout_.is_open()) fout_ << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
+                if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                    if (fout_.is_open()) fout_ << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
+                }
             }
             
             if (e.type == EVENT_DROPOFF) {
@@ -80,14 +86,14 @@ namespace amod {
                 amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
                 if (fout_.is_open()) fout_ << cust.getPosition().x << " " << cust.getPosition().y << std::endl;
             }
-
+            
             if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
-            		e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
+                e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
                 amod::Location * ploc = world_state->getLocationPtr(e.entity_ids[0]);
                 int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
                 if (fout_.is_open()) fout_ << curr_size << " " << ploc->getPosition().x << " " << ploc->getPosition().y << std::endl;
             }
-
+            
         }
         // clear events
         world_state->clearEvents();
@@ -95,7 +101,7 @@ namespace amod {
         // dispatch bookings
         auto itr = bookings_.begin();
         while (itr != bookings_.end()) {
-
+            
             // check if the time is less
             if (itr->first <= current_time) {
                 
@@ -127,15 +133,15 @@ namespace amod {
                 
                 // check for teleportation
                 if (itr->second.travel_mode == amod::Booking::TELEPORT) {
-                	sim_->teleportCustomer(world_state, itr->second.cust_id, itr->second.destination);
+                    sim_->teleportCustomer(world_state, itr->second.cust_id, itr->second.destination);
                     bookings_.erase(itr);
-
+                    
                     // set to the earliest booking
                     itr = bookings_.begin();
                     continue;
                 }
-
-
+                
+                
                 // check if we have vehicles to dispatch
                 //std::cout << world_state->getCurrentTime() << ": Num Available Veh: " << num_avail_veh_ << std::endl;
                 if (num_avail_veh_ == 0) {
@@ -186,18 +192,18 @@ namespace amod {
                     // set to the earliest booking
                     itr = bookings_.begin();
                 } else {
-                	// cannot find a proper vehicle, move to next booking
+                    // cannot find a proper vehicle, move to next booking
                     //std::cout << "... no car found " << std::endl;
                     sim_->setCustomerStatus(world_state, itr->second.cust_id,
-                    		amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
+                                            amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
                     itr++;
                 }
                 
             } else {
-            	// exceeded the current time
+                // exceeded the current time
                 break;
             }
-
+            
         }
         
         // output
@@ -227,16 +233,16 @@ namespace amod {
             if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
         }
         /*
-        for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
-        	auto &b = itr->second;
-        	std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
-        }
-        */
-
+         for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
+         auto &b = itr->second;
+         std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
+         }
+         */
+        
         return amod::SUCCESS;
     }
     
-
+    
     int ManagerBasic::getNumWaitingCustomers(amod::World *world_state, int loc_id) {
         
         if (!world_state) return 0;

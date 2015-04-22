@@ -54,13 +54,14 @@ namespace amod {
         
         // setOutputFilename
         // sets the output file for logging purposes
-        virtual amod::ReturnCode setOutputFile(std::string filename);
+        virtual amod::ReturnCode setOutputFile(std::string filename, bool output_move_events = true);
 
     private:
         std::multimap<double, Booking> bookings_;
         
         std::ofstream fout_;
         int num_avail_veh_; // tracks number of available vehicles
+        bool output_move_events_;
         
         // demo function to show how to get information from
         // if loc_id is a valid location id, we the waiting customers from that location.

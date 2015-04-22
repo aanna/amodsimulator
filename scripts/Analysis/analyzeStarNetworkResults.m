@@ -1,5 +1,5 @@
 %% parameters
-doclear = false;
+doclear = true;
 if doclear
     clear();
 end
@@ -22,6 +22,8 @@ titles = {'Simple Manager', 'Match Manager', 'Match Rebalance Manager'};
 plot_colors = {'r', 'g', 'b'};
 %filenames = {'../../mrLog.txt'};
 %titles = {'Match Rebalance Manager'};
+filenames = {'../../spLog.txt', '../../mrLog.txt'};
+titles = {'Simple Manager', 'Match Manager'};
 %% load the dataset
 if reload
     events_to_skip = [EVENT_MOVE];

@@ -290,7 +290,7 @@ void loadEntities(std::string filename, std::vector<T> *ts) {
 
 void starNetworkTest() {
 	// set parameters
-	double max_time = 80000;
+	double max_time = 24*60*60*1;
 	enum ManagerType {
 		SIMPLE_MANAGER,
 		MATCH_MANAGER,
@@ -331,16 +331,16 @@ void starNetworkTest() {
     world_state.populate(locations, vehicles, customers);
 
     // create the simulator
-    double resolution = 5;
+    double resolution = 1;
     bool verbose = true;
     amod::SimulatorBasic sim(resolution, verbose);
 
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
-    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
-    sim.setPickupDistributionParams(20.0, 10.0, 5.0, 50.0); // in seconds
-    sim.setDropoffDistributionParams(10.0, 1.0, 5.0, 10.0); // in seconds
-    sim.setTeleportDistributionParams(10.0, 2.0, 2.0, 10.0); // in seconds
+    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 20.0); // in m/s
+    sim.setPickupDistributionParams(20.0, 10.0, 0.0, 0.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, .0, 0.0); // in seconds
+    sim.setTeleportDistributionParams(10.0, 2.0, 10.0, 10.0); // in seconds
 
     // initialize the simulator with the world state
     sim.init(&world_state);
@@ -373,21 +373,21 @@ void starNetworkTest() {
     match_manager.setMatchingInterval(5);
 
 	// set the manager we want to use
-
     amod::Manager* manager = nullptr;
+    bool output_move_events = false;
     switch (mgr_type) {
     case SIMPLE_MANAGER:
-    	simple_manager.setOutputFile("spLog.txt");
+    	simple_manager.setOutputFile("spLog.txt", output_move_events);
     	manager = &simple_manager;
     	break;
     case MATCH_MANAGER:
-    	match_manager.setOutputFile("maLog.txt");
+    	match_manager.setOutputFile("maLog.txt", output_move_events);
     	match_manager.setRebalancingInterval(1e10); //effectively never
     	manager = &match_manager;
     	break;
 
     case MATCH_REBALANCE_MANAGER:
-    	match_manager.setOutputFile("mrLog.txt");
+    	match_manager.setOutputFile("mrLog.txt", output_move_events);
         match_manager.setRebalancingInterval(1*60*60); //every hour
     	manager = &match_manager;
     	break;
@@ -426,7 +426,7 @@ void simpleDemandEstimatorTest() {
     // simple output to disk
     std::ofstream fout("demandEstimatorTestResults.txt");
     for (auto s : stations) {
-        for (double t = 0; t < 24*60*60; t += 3600) {
+        for (double t = 0; t < 3*24*60*60; t += 3600) {
             auto pred = sde.predict(s.getId(), world, t);
             fout << s.getId() << " " << t << " " << pred.first << " " << pred.second << std::endl;
         }

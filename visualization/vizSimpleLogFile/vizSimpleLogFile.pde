@@ -1,6 +1,6 @@
   import java.util.Map;
-  boolean ismac = false;
-  boolean issimmob = true;
+  boolean ismac = true;
+  boolean issimmob = false;
   
   // Event structure to load the data we load from the file
   class Event {
@@ -31,7 +31,7 @@
   }
   
   float current_time = 0; // start time is 0
-  float time_window = 1; // 1 second
+  float time_window = 10; // 1 second
   int frame_rate = 50;
   int current_event = 0; // starting event = 0
   
@@ -60,7 +60,7 @@
     String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
   
     if (ismac) {
-      filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/logfile.txt";
+      filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
     }
     if (issimmob) {
       filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";

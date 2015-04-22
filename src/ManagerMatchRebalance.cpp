@@ -15,6 +15,7 @@ namespace amod {
 
         distance_cost_factor_ = 1;
         waiting_time_cost_factor_ = 1;
+        output_move_events_ = true;
         bookings_itr_ = bookings_.begin();
     
 		matching_interval_ = 60; //every 60 seconds
@@ -56,11 +57,12 @@ namespace amod {
         return amod::SUCCESS;
     }
     
-    amod::ReturnCode ManagerMatchRebalance::setOutputFile(std::string filename) {
+    amod::ReturnCode ManagerMatchRebalance::setOutputFile(std::string filename, bool output_move_events) {
     	fout_.open(filename.c_str());
         if (!fout_.is_open()) {
             return amod::FAILED;
         }
+        output_move_events_ = output_move_events;
         return amod::SUCCESS;
     }
 
@@ -79,18 +81,27 @@ namespace amod {
         if (fout_.is_open()) fout_.precision(10);
         // respond to events
         for (auto e:events) {
+            
+
         	if (fout_.is_open()) {
-        	fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
-            for (auto ent: e.entity_ids) {
-            	fout_ << ent << ",";
-            }
-            fout_ << " ";
+                if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                    fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
+                    for (auto ent: e.entity_ids) {
+                        fout_ << ent << ",";
+                    }
+                    fout_ << " ";
+                }
         	}
             
-            if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL ||
-            		e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
+            if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL || e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
-                if (fout_.is_open()) fout_ << veh.getPosition().x << " " << veh.getPosition().y;
+                
+                
+                if (fout_.is_open()) {
+                    if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                        fout_ << veh.getPosition().x << " " << veh.getPosition().y;
+                    }
+                }
 
                 // make this vehicle available again
                 if (veh.getStatus() == VehicleStatus::FREE || veh.getStatus() == VehicleStatus::PARKED) {
@@ -112,7 +123,10 @@ namespace amod {
                 int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
                 if (fout_.is_open()) fout_ << curr_size << " " << ploc->getPosition().x << " " << ploc->getPosition().y;
             }
-            if (fout_.is_open()) fout_ << std::endl;
+            
+            if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                if (fout_.is_open()) fout_ << std::endl;
+            }
 
         }
         // clear events

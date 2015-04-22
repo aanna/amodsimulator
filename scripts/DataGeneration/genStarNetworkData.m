@@ -6,8 +6,8 @@
 clear();
 rand(10); %setup rng
 num_vehs = 500;
-num_custs = 10000;
-
+num_custs = 500;
+num_days = 1;
 % probability of working at the central location
 prob_work_at_central = 0.9;
 
@@ -118,9 +118,27 @@ demands = [morn_travel_times(morn_travel_modes,:) cust_home_pos(morn_travel_mode
             aftn_travel_times(aftn_travel_modes,:) cust_work_pos(aftn_travel_modes,:) nearby_pos(aftn_travel_modes,:);
             even_travel_times(even_travel_modes,:) nearby_pos(even_travel_modes,:) cust_home_pos(even_travel_modes,:)];
 
-% plot histogram of travel
+        
+%% generate daily data
+hr = 60*60;
+all_bookings = [];
+all_demands = [];
+for day=1:num_days
+    % for each time period, generate a deviation up to 1 hour
+    new_travel_times = min(max(normrnd(all_travel_times, 20*60), ...
+        all_travel_times - hr), all_travel_times + hr) + (day-1)*(24*hr);
+    size(new_travel_times)
+    all_bookings = [all_bookings; ...
+        new_travel_times bookings(:,2:end)];
+    size(all_bookings)
+    all_demands = [all_demands; 
+        new_travel_times(all_travel_modes) demands(:,2:end)];
+end
+        
+        
+%% plot histogram of travel
 subplot(1,2,2);
-hist(21600 + all_travel_times(all_travel_modes), 50);
+hist(21600 + all_demands(:,1), num_days*24);
 
 ticks = [21600:3600:(68400 + 21600)];
 tick_labels = cell(length(ticks),1);
@@ -157,4 +175,11 @@ dlmwrite('../../data/starnetwork_books.txt', [(1:size(bookings,1))' bookings], '
 % save demands
 dlmwrite('../../data/starnetwork_demands.txt', [(1:size(demands,1))' demands], ' ');
 
+% save multi day bookings
+dlmwrite('../../data/starnetwork_all_books.txt', [(1:size(all_bookings,1))' all_bookings], ' ');
+
+% save multi day demands
+dlmwrite('../../data/starnetwork_all_demands.txt', [(1:size(all_demands,1))' all_demands], ' ');
+
 % done!
+

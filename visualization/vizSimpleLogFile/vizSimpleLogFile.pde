@@ -31,8 +31,8 @@
   }
   
   float current_time = 0; // start time is 0
-  float time_window = 1.0; // 1 second
-  
+  float time_window = 1; // 1 second
+  int frame_rate = 50;
   int current_event = 0; // starting event = 0
   
   float min_x = -2000;
@@ -54,7 +54,7 @@
   }
   HashMap<Integer,Location> locs = new HashMap<Integer,Location>();
   void setup() {
-    frameRate(50);
+    frameRate(frame_rate);
     // load the data file
   
     String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
@@ -66,7 +66,7 @@
       filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
     
      mult_x = 1.0;
-     mult_y = 2.5;
+     mult_y = 3.0;
      min_x = 365000*mult_x; //365558.56;
      max_x = 377000*mult_x; //376789.19;
      min_y = 140000*mult_y;//140278.73;

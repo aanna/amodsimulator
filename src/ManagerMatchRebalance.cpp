@@ -124,6 +124,15 @@ namespace amod {
         	// check if the time is less
 			if (bookings_itr_->first <= current_time) {
 
+				if (bookings_itr_->second.id == 0) {
+		            // erase the booking
+		            bookings_.erase(bookings_itr_);
+
+		            // set to the earliest booking
+		            bookings_itr_ = bookings_.begin();
+		            continue;
+				}
+
 				// ensure that the customer is available (if not, we discard the booking)
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
 				if (cust->getStatus() == CustomerStatus::FREE ||
@@ -162,11 +171,11 @@ namespace amod {
         if (next_matching_time_ <= world_state->getCurrentTime()) {
         	// perform matching and increase next matching time
         	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
-            std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
-        	std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+            //std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
+        	//std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
         	amod::ReturnCode rc = solveMatching(world_state);
-        	std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
-        	std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+        	//std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
+        	//std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
             
             // return if we encounter a failure
             if (rc != amod::SUCCESS) {

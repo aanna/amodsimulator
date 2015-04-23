@@ -297,7 +297,7 @@ void starNetworkTest() {
 		MATCH_REBALANCE_MANAGER,
 	};
 
-    ManagerType mgr_type = SIMPLE_MANAGER;
+    ManagerType mgr_type = MATCH_MANAGER;
 
 	// load locations
 	std::string locs_filename = "data/starnetwork_locs.txt";
@@ -392,7 +392,7 @@ void starNetworkTest() {
     	manager = &match_manager;
     	break;
     }
-
+    
     // loop until some future time
     std::cout << "Starting Simulation" << std::endl;
     while (world_state.getCurrentTime() < max_time) {
@@ -412,12 +412,12 @@ void simpleDemandEstimatorTest() {
     amod::SimpleDemandEstimator sde(3600); //hourly bins
     
     // load stations
-    std::string stns_filename = "scripts/starnetwork_stns.txt";
+    std::string stns_filename = "data/starnetwork_stns.txt";
     std::vector<amod::Location> stations;
     loadEntities(stns_filename, &stations);
     sde.loadLocations(stations); // we only need estimated demand at stations
     
-    std::string demand_filename = "scripts/starnetwork_demands.txt";
+    std::string demand_filename = "data/starnetwork_demands.txt";
     sde.loadDemandFromFile(demand_filename);
     
     // create an empty world state
@@ -429,6 +429,7 @@ void simpleDemandEstimatorTest() {
         for (double t = 0; t < 3*24*60*60; t += 3600) {
             auto pred = sde.predict(s.getId(), world, t);
             fout << s.getId() << " " << t << " " << pred.first << " " << pred.second << std::endl;
+            std::cout << s.getId() << " " << t << " " << pred.first << " " << pred.second << std::endl;
         }
     }
     fout.close();

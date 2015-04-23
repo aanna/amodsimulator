@@ -759,7 +759,7 @@ namespace amod {
                 nstations_underserved++;
             }
             
-            //std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
+            std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
             
 		}
         
@@ -941,7 +941,7 @@ namespace amod {
         }
         
         // solve the lp
-        glp_term_out(GLP_OFF); // suppress terminal output
+        // glp_term_out(GLP_OFF); // suppress terminal output
         glp_simplex(lp, nullptr);
         
         
@@ -1001,7 +1001,7 @@ namespace amod {
             int veh_id = *itr;
             
             // send it to station st_dest
-            std::cout << "Dispatching " << veh_id << " from " << st_source << " to " << st_dest << std::endl;
+            std::cout << "Rebalancing " << veh_id << " from " << st_source << " to " << st_dest << std::endl;
             auto rc = sim_->dispatchVehicle(world_state, veh_id , itr_dest->second.getPosition(),
                                             VehicleStatus::MOVING_TO_REBALANCE, VehicleStatus::FREE);
             

@@ -61,7 +61,7 @@ namespace amod {
             Position from_pos;
             Position to_pos;
         };
-        
+    
         const double kSecondsInDay = 86400;
         double bin_width_;
         std::unordered_map<int, std::unordered_map<int, double>> demands_hist_;

@@ -44,7 +44,6 @@ namespace amod {
             throw std::runtime_error("SimpleDemandEstimator needs locations before loading demand.");
         }
         
-        
         std::ifstream in(filename.c_str());
         if (!in.good()) {
             std::cout << "Cannot read: " << filename << std::endl;
@@ -56,17 +55,19 @@ namespace amod {
         while (in.good()) {
             Demand d; 
             in >> d.id >> d.t >>  d.from_pos.x >> d.from_pos.y >> d.to_pos.x >> d.to_pos.y;
-            if (d.id && in.good()) demands.emplace_back(d); //only positive booking ids allowed
+            //std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
+            if (d.id && in.good()) {
+                demands.emplace_back(d); //only positive booking ids allowed
+            }
         }
-        
-        /*
-        for (auto itr = demands.begin(); itr != demands.end(); itr++) {
-            auto &d = *itr;
-            std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
-        }
-        */
         
         makeDemandHist(demands);
+        
+        for (auto itr = demands.begin(); itr != demands.end(); itr++) {
+            auto &d = *itr;
+            //std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
+        }
+        
         return amod::SUCCESS;
     }
     
@@ -91,13 +92,15 @@ namespace amod {
         day_counts_.clear();
         demands_hist_.clear();
         
-        
+
         for (auto d : demands) {
             
             // get the source location id
             if (d.from_id == 0) {
                 d.from_id = locs_tree_.findNN({d.from_pos.x, d.from_pos.y}).getId();
             }
+            //std::cout << d.from_id << std::endl;
+            
             
             // update day counts
             int day = floor(d.t/kSecondsInDay);
@@ -125,6 +128,7 @@ namespace amod {
             int loc_id = itr->first;
             for (auto ditr=demands_hist_[loc_id].begin(); ditr != demands_hist_[loc_id].end(); ++ditr) {
                 ditr->second /= day_counts_[loc_id][ditr->first].size();
+                //std::cout << ditr->second << std::endl;
             }
         }
         

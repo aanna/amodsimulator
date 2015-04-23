@@ -373,7 +373,7 @@ void starNetworkTest(ManagerType mgr_type) {
 
 	// set the manager we want to use
     amod::Manager* manager = nullptr;
-    bool output_move_events = false;
+    bool output_move_events = true;
     switch (mgr_type) {
     case SIMPLE_MANAGER:
     	simple_manager.setOutputFile("spLog.txt", output_move_events);
@@ -441,9 +441,9 @@ int main(int argc, char **argv) {
     // run basic test
     //basicTest();
     //rebalanceTest();
-    starNetworkTest(SIMPLE_MANAGER);
+    //starNetworkTest(SIMPLE_MANAGER);
     //starNetworkTest(MATCH_MANAGER);
-    //starNetworkTest(MATCH_REBALANCE_MANAGER);
+    starNetworkTest(MATCH_REBALANCE_MANAGER);
     //simpleDemandEstimatorTest();
     // return
     return 0;

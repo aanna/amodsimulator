@@ -5,9 +5,9 @@
 %% Parameters
 clear();
 rng(1); %setup rng
-num_vehs = 150;
+num_vehs = 50;
 num_custs = 1000;
-num_days = 2;
+num_days = 5;
 % probability of working at the central location
 prob_work_at_central = 0.9;
 
@@ -127,6 +127,7 @@ for day=1:num_days
     % for each time period, generate a deviation up to 1 hour
     new_travel_times = min(max(normrnd(all_travel_times, 20*60), ...
         all_travel_times - hr), all_travel_times + hr) + (day-1)*(24*hr);
+    new_travel_times = max(new_travel_times, 0);
     size(new_travel_times)
     all_bookings = [all_bookings; ...
         new_travel_times bookings(:,2:end)];
@@ -134,7 +135,36 @@ for day=1:num_days
     all_demands = [all_demands; 
         new_travel_times(all_travel_modes) demands(:,2:end)];
 end
-        
+      
+
+%% create demand histograms 
+bin_width = 3600;
+kSecsInDay = 24*60*60;
+
+% get the day for each row
+day = floor(all_demands(:,1)/kSecsInDay) + 1;
+secs = mod(all_demands(:,1), kSecsInDay);
+max_day = max(day);
+
+% find closest station to all positions
+stid = knnsearch(stations, all_demands(:,2:3));
+
+% generate time indexes
+bins = (0:bin_width:(kSecsInDay-bin_width)) + bin_width/2;
+
+hs = {};
+mhs = [];
+shs = [];
+for s=1:nstations
+    for d=1:max_day
+       hs{s}(d,:) = hist(secs((day == d) & (stid == s)), bins);
+    end
+    
+    mhs(s,:) = mean(hs{s});
+    shs(s,:) = std(hs{s});
+end
+all_demands_hist = [(1:nstations)' mhs; (1:nstations)' shs];
+
         
 %% plot histogram of travel
 subplot(1,2,2);
@@ -150,10 +180,13 @@ ax = gca;
 set(ax, 'xtick',ticks);
 set(ax, 'xticklabel', tick_labels);
 
+
+
 %% 
 subplot(1,2,1);
 scatter(locs(central_nodes, 1), locs(central_nodes, 2));
 hold off
+
 
 %% save data to disk
 
@@ -180,6 +213,10 @@ dlmwrite('../../data/starnetwork_all_books.txt', [(1:size(all_bookings,1))' all_
 
 % save multi day demands
 dlmwrite('../../data/starnetwork_all_demands.txt', [(1:size(all_demands,1))' all_demands], ' ');
+
+% output demand histograms (mean and variance)
+dlmwrite('../../data/starnetwork_all_demands_hist.txt', [nstations bin_width], 'delimiter', ' ');
+dlmwrite('../../data/starnetwork_all_demands_hist.txt', all_demands_hist, '-append', 'delimiter', ' ');
 
 % done!
 

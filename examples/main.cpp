@@ -288,16 +288,15 @@ void loadEntities(std::string filename, std::vector<T> *ts) {
 	}
 }
 
-void starNetworkTest() {
-	// set parameters
-	double max_time = 24*60*60*1;
-	enum ManagerType {
-		SIMPLE_MANAGER,
-		MATCH_MANAGER,
-		MATCH_REBALANCE_MANAGER,
-	};
+enum ManagerType {
+    SIMPLE_MANAGER,
+    MATCH_MANAGER,
+    MATCH_REBALANCE_MANAGER,
+};
 
-    ManagerType mgr_type = MATCH_MANAGER;
+void starNetworkTest(ManagerType mgr_type) {
+	// set parameters
+	double max_time = 24*60*60*2;
 
 	// load locations
 	std::string locs_filename = "data/starnetwork_locs.txt";
@@ -350,13 +349,13 @@ void starNetworkTest() {
     amod::ManagerBasic simple_manager;
     simple_manager.init(&world_state); // initialize
     simple_manager.setSimulator(&sim); // set simulator
-    std::string books_filename = "data/starnetwork_books.txt";
+    std::string books_filename = "data/starnetwork_all_books.txt";
     simple_manager.loadBookingsFromFile(books_filename); // load the bookings
 
     // setup our demand estimator
     amod::SimpleDemandEstimator sde;
     sde.loadLocations(stations);
-    std::string demand_filename = "data/starnetwork_demands.txt";
+    std::string demand_filename = "data/starnetwork_all_demands.txt";
     sde.loadDemandFromFile(demand_filename);
 
     // setup our manager
@@ -442,7 +441,9 @@ int main(int argc, char **argv) {
     // run basic test
     //basicTest();
     //rebalanceTest();
-    starNetworkTest();
+    starNetworkTest(SIMPLE_MANAGER);
+    //starNetworkTest(MATCH_MANAGER);
+    //starNetworkTest(MATCH_REBALANCE_MANAGER);
     //simpleDemandEstimatorTest();
     // return
     return 0;

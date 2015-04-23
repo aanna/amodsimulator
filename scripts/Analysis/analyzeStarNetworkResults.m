@@ -20,10 +20,11 @@ EVENT_TELEPORT_ARRIVAL= 9;
 filenames = {'../../spLog.txt', '../../maLog.txt', '../../mrLog.txt'};
 titles = {'Simple Manager', 'Match Manager', 'Match Rebalance Manager'};
 plot_colors = {'r', 'g', 'b'};
+nbins = 30;
 %filenames = {'../../mrLog.txt'};
 %titles = {'Match Rebalance Manager'};
-filenames = {'../../spLog.txt', '../../mrLog.txt'};
-titles = {'Simple Manager', 'Match Manager'};
+%filenames = {'../../spLog.txt', '../../mrLog.txt'};
+%titles = {'Simple Manager', 'Match Manager'};
 %% load the dataset
 if reload
     events_to_skip = [EVENT_MOVE];
@@ -32,7 +33,7 @@ if reload
     for mid = 1:nmgrs
         events{mid} = loadEventsFile(filenames{mid}, events_to_skip);
     end
-    bookings = loadBookingsFile('../../data/starnetwork_books.txt');
+    bookings = loadBookingsFile('../../data/starnetwork_all_books.txt');
     nbookings = size(bookings,1);
 end
 
@@ -90,7 +91,7 @@ for mid = 1:nmgrs
     fprintf('Waiting time: %f (s.d. %f)\n', mean_waiting_time, std_waiting_time);
     fprintf('Min Max Waiting time: %f %f \n', min(waiting_time), max(waiting_time));
     subplot(2,1,1); hold on;
-    [hx, binx] = hist(waiting_time, 50);
+    [hx, binx] = hist(waiting_time, nbins);
     plot(binx, hx, plot_colors{mid});
     title('Waiting time');
     
@@ -99,7 +100,7 @@ for mid = 1:nmgrs
     std_travel_time = std(travel_time);
     fprintf('Travel time: %f (s.d. %f)\n', mean_travel_time, std_travel_time);
     subplot(2,1,2); hold on;
-    [hx, binx] = hist(travel_time, 50);
+    [hx, binx] = hist(travel_time, nbins);
     plot(binx, hx, plot_colors{mid});
     title('Travel time');
 end

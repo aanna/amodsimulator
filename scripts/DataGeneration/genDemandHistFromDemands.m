@@ -64,11 +64,11 @@ plot(m, test_data(:,3))
 pred_mhs = [];
 pred_shs = [];
 for i=1:size(test_data,1)
-    pred_mhs(test_data(i,1), test_data(i,2)) = m(i);
+    pred_mhs(test_data(i,1), test_data(i,2)) = max(m(i), 0.0);
     pred_shs(test_data(i,1), test_data(i,2)) = sqrt(s2(i));
 end
 
-all_pred_demands_hist = [pred_mhs; pred_shs];
+all_pred_demands_hist = [(1:nstations)' pred_mhs; (1:nstations)' pred_shs];
 %% output demand histograms (mean and stdev)
 dlmwrite('../../data/starnetwork_all_demands_hist.txt', [nstations bin_width], 'delimiter', ' ');
 dlmwrite('../../data/starnetwork_all_demands_hist.txt', all_demands_hist, '-append', 'delimiter', ' ');

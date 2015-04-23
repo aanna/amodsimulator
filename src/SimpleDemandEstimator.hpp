@@ -14,6 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <fstream>
+#include <sstream>
 
 #include "Types.hpp"
 #include "Booking.hpp"
@@ -49,6 +50,12 @@ namespace amod {
         // loadStations
         // loads the locations which the predictions will be based on
         virtual void loadLocations(std::vector<amod::Location> &locations);
+
+        // loadDemandHistFromFile
+        // loads demand histogram from a file specified by filename that the manager should respond to.
+        // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+        // one of the amod::ReturnCode error codes.
+        virtual amod::ReturnCode loadDemandHistFromFile(const std::string filename);
 
         
     private:

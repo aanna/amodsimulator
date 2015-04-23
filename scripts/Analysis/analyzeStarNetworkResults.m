@@ -17,11 +17,11 @@ EVENT_BOOKING_CANNOT_BE_SERVICED= 7;
 EVENT_TELEPORT= 8;
 EVENT_TELEPORT_ARRIVAL= 9;
 
-filenames = {'../../spLog.txt', '../../maLog.txt', '../../mrLog.txt'};
-titles = {'Simple Manager', 'Match Manager', 'Match Rebalance Manager'};
-plot_colors = {'r', 'g', 'b'};
-nbins = 30;
-%filenames = {'../../mrLog.txt'};
+filenames = {'../../spLog.txt', '../../maLog.txt', '../../mrLog.txt', '../../mrpLog.txt'};
+titles = {'Simple Manager', 'Match Manager', 'Match Rebalance Manager (oracle)', 'Match Rebalance Manager (predict)'};
+plot_colors = {'r', 'g', 'b', 'm'};
+
+%filenames = {'../../mrpLog.txt'};
 %titles = {'Match Rebalance Manager'};
 %filenames = {'../../spLog.txt', '../../mrLog.txt'};
 %titles = {'Simple Manager', 'Match Manager'};
@@ -76,9 +76,20 @@ for mid=1:nmgrs
     
     % remove zero lines (Teleports)
     results{mid}( ~any(results{mid},2), : ) = [];  %rows
+    
+    % remove cases of bookings not finished
+    results{mid}( ~any(results{mid}(:, 4),2), : ) = [];  %rows
+    results{mid}( ~any(results{mid}(:, 5),2), : ) = [];  %rows
+    results{mid}( ~any(results{mid}(:, 6),2), : ) = [];  %rows
 end    
-%% plots
 
+%% print number
+for mid=1:nmgrs
+   disp(size(results{mid})) 
+end
+%% plots
+nbins = 20;
+binx = [0:5*60:60*60];
 figure();
 for mid = 1:nmgrs
     title(titles{mid});
@@ -86,24 +97,30 @@ for mid = 1:nmgrs
     
     waiting_time = results{mid}(:, PICKUP_COL) - results{mid}(:, BOOKING_TIME_COL);
     %size(waiting_time)
-    mean_waiting_time = mean(waiting_time);
-    std_waiting_time = std(waiting_time);
+    mean_waiting_time(mid) = mean(waiting_time);
+    std_waiting_time(mid) = std(waiting_time);
     fprintf('Waiting time: %f (s.d. %f)\n', mean_waiting_time, std_waiting_time);
     fprintf('Min Max Waiting time: %f %f \n', min(waiting_time), max(waiting_time));
-    subplot(2,1,1); hold on;
-    [hx, binx] = hist(waiting_time, nbins);
+    subplot(3,1,1); hold on;
+    [hx] = hist(waiting_time, binx);
     plot(binx, hx, plot_colors{mid});
     title('Waiting time');
     
     travel_time = results{mid}(:, DROPOFF_COL) - results{mid}(:, PICKUP_COL);
-    mean_travel_time = mean(travel_time);
-    std_travel_time = std(travel_time);
+    mean_travel_time(mid) = mean(travel_time);
+    std_travel_time(mid) = std(travel_time);
     fprintf('Travel time: %f (s.d. %f)\n', mean_travel_time, std_travel_time);
-    subplot(2,1,2); hold on;
-    [hx, binx] = hist(travel_time, nbins);
-    plot(binx, hx, plot_colors{mid});
+    subplot(3,1,2); hold on;
+    [hx, binxt] = hist(travel_time, nbins);
+    plot(binxt, hx, plot_colors{mid});
     title('Travel time');
 end
-
 legend(titles);
+%%
+subplot(3,1,3); 
+bar(mean_waiting_time');
+set(gca, 'xticklabel', {'Simple', 'Match', 'Match-Reb (ora)', 'Match-Reb (pred)'});
+ylabel('Wait Time (Seconds)');
+%set(gca, 'YScale', 'log') % this screws the bar series
+
  

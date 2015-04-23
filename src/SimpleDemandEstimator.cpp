@@ -63,6 +63,8 @@ namespace amod {
         
         makeDemandHist(demands);
         
+        // its silly but we need to the following or it doesn't work properly in the clang compiler
+        // TODO: further testing required.
         for (auto itr = demands.begin(); itr != demands.end(); itr++) {
             auto &d = *itr;
             //std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
@@ -71,6 +73,48 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+    amod::ReturnCode SimpleDemandEstimator::loadDemandHistFromFile(const std::string filename) {
+    	if (locs_tree_.size() == 0) {
+			throw std::runtime_error("SimpleDemandEstimator needs locations before loading demand.");
+		}
+
+		std::ifstream in(filename.c_str());
+		if (!in.good()) {
+			std::cout << "Cannot read: " << filename << std::endl;
+			return amod::ERROR_READING_DEMAND_HIST_FILE;
+		}
+
+		demands_hist_.clear();
+		int nstations;
+		in >> nstations >> bin_width_;
+		int nbins = kSecondsInDay/bin_width_;
+
+		if (nstations != locs_tree_.size()) {
+			std::cout << nstations << " " << bin_width_ << std::endl;
+			throw std::runtime_error("SimpleDemandEstimator: locations tree size does not match number of stations in demands histogram file");
+		}
+
+		// read in just the mean predictions for now
+		// TODO: Read in predicted variances and use that
+		for (int s=0; s<nstations; ++s) {
+			int station_id;
+			double bin_data;
+			in >> station_id;
+			for (int bin=0; bin<nbins; bin++) {
+				in >> bin_data;
+	            auto itr = demands_hist_[station_id].find(bin);
+	            if (itr != demands_hist_[station_id].end()) {
+	                itr->second = bin_data;
+	            } else {
+	                demands_hist_[station_id][bin] = bin_data;
+	            }
+			}
+		}
+
+
+		return amod::SUCCESS;
+    }
+
     
     void SimpleDemandEstimator::loadLocations(std::vector<amod::Location> &locations)
     {

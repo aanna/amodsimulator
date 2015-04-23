@@ -292,6 +292,7 @@ enum ManagerType {
     SIMPLE_MANAGER,
     MATCH_MANAGER,
     MATCH_REBALANCE_MANAGER,
+    MATCH_REBALANCE_PREDICT_MANAGER,
 };
 
 void starNetworkTest(ManagerType mgr_type) {
@@ -337,9 +338,9 @@ void starNetworkTest(ManagerType mgr_type) {
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
     sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 20.0); // in m/s
-    sim.setPickupDistributionParams(20.0, 10.0, 0.0, 0.0); // in seconds
-    sim.setDropoffDistributionParams(10.0, 1.0, .0, 0.0); // in seconds
-    sim.setTeleportDistributionParams(10.0, 2.0, 10.0, 10.0); // in seconds
+    sim.setPickupDistributionParams(20.0, 10.0, 20.0, 20.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 20.0); // in seconds
+    sim.setTeleportDistributionParams(10.0, 2.0, 20.0, 20.0); // in seconds
 
     // initialize the simulator with the world state
     sim.init(&world_state);
@@ -355,8 +356,6 @@ void starNetworkTest(ManagerType mgr_type) {
     // setup our demand estimator
     amod::SimpleDemandEstimator sde;
     sde.loadLocations(stations);
-    std::string demand_filename = "data/starnetwork_all_demands.txt";
-    sde.loadDemandFromFile(demand_filename);
 
     // setup our manager
     amod::ManagerMatchRebalance match_manager;
@@ -368,28 +367,44 @@ void starNetworkTest(ManagerType mgr_type) {
     match_manager.setSimulator(&sim); // set simulator
     match_manager.loadStations(stations, world_state);
     match_manager.loadBookingsFromFile(books_filename); // load the bookings
-    match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     match_manager.setMatchingInterval(5);
 
 	// set the manager we want to use
     amod::Manager* manager = nullptr;
-    bool output_move_events = true;
+    bool output_move_events = false;
+    std::string demand_filename;
     switch (mgr_type) {
     case SIMPLE_MANAGER:
     	simple_manager.setOutputFile("spLog.txt", output_move_events);
     	manager = &simple_manager;
     	break;
     case MATCH_MANAGER:
+        demand_filename = "data/starnetwork_all_demands.txt";
+        sde.loadDemandFromFile(demand_filename);
+        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	match_manager.setOutputFile("maLog.txt", output_move_events);
     	match_manager.setRebalancingInterval(1e10); //effectively never
     	manager = &match_manager;
     	break;
 
     case MATCH_REBALANCE_MANAGER:
+        demand_filename = "data/starnetwork_all_demands.txt";
+        sde.loadDemandFromFile(demand_filename);
+        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	match_manager.setOutputFile("mrLog.txt", output_move_events);
         match_manager.setRebalancingInterval(1*60*60); //every hour
     	manager = &match_manager;
     	break;
+
+    case MATCH_REBALANCE_PREDICT_MANAGER:
+
+        std::string demand_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
+        sde.loadDemandHistFromFile(demand_hist_filename);
+        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
+    	match_manager.setOutputFile("mrpLog.txt", output_move_events);
+        match_manager.setRebalancingInterval(1*60*60); //every hour
+    	manager = &match_manager;
+        break;
     }
     
     // loop until some future time
@@ -416,9 +431,10 @@ void simpleDemandEstimatorTest() {
     loadEntities(stns_filename, &stations);
     sde.loadLocations(stations); // we only need estimated demand at stations
     
-    std::string demand_filename = "data/starnetwork_demands.txt";
-    sde.loadDemandFromFile(demand_filename);
-    
+    //std::string demand_filename = "data/starnetwork_demands.txt";
+    //sde.loadDemandFromFile(demand_filename);
+    std::string demand_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
+    sde.loadDemandHistFromFile(demand_hist_filename);
     // create an empty world state
     amod::World world;
     
@@ -443,7 +459,8 @@ int main(int argc, char **argv) {
     //rebalanceTest();
     //starNetworkTest(SIMPLE_MANAGER);
     //starNetworkTest(MATCH_MANAGER);
-    starNetworkTest(MATCH_REBALANCE_MANAGER);
+    //starNetworkTest(MATCH_REBALANCE_MANAGER);
+    starNetworkTest(MATCH_REBALANCE_PREDICT_MANAGER);
     //simpleDemandEstimatorTest();
     // return
     return 0;

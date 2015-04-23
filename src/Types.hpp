@@ -29,6 +29,7 @@ namespace  amod {
         LOGGER_IS_NULLPTR,
         NO_PATH_TO_DESTINATION,
         INVALID_STATION_ID,
+        ERROR_READING_DEMAND_HIST_FILE,
     };
     
     const std::vector<std::string> kErrorStrings = {
@@ -46,7 +47,8 @@ namespace  amod {
         "Simulator is nullptr",
         "Logger is nullptr",
         "No path to destination",
-        "Invalid station id"
+        "Invalid station id",
+        "Error Reading Demand Histogram file"
     };
     
     

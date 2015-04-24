@@ -457,10 +457,10 @@ int main(int argc, char **argv) {
     // run basic test
     //basicTest();
     //rebalanceTest();
-    //starNetworkTest(SIMPLE_MANAGER);
+    starNetworkTest(SIMPLE_MANAGER);
     //starNetworkTest(MATCH_MANAGER);
     //starNetworkTest(MATCH_REBALANCE_MANAGER);
-    starNetworkTest(MATCH_REBALANCE_PREDICT_MANAGER);
+    //starNetworkTest(MATCH_REBALANCE_PREDICT_MANAGER);
     //simpleDemandEstimatorTest();
     // return
     return 0;

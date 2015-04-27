@@ -25,7 +25,9 @@ public:
 	};
 
 public:
-	Customer(int id = 0, std::string name = "", amod::Position pos = Position(), int assigned_vehicle = 0, bool in_vehicle_ = false);
+	Customer(int id = 0, std::string name = "", amod::Position pos = Position(),
+			int assigned_vehicle = 0, bool in_vehicle_ = false,
+			Customer::Status status = Customer::Status::FREE);
 	virtual ~Customer();
 
 	virtual void setAssignedVehicleId(int veh_id);

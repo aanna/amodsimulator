@@ -43,6 +43,10 @@ namespace amod {
         double dispatch_time;   // dispatch time (in seconds)
         double pickup_time;     // pickup time (in seconds)
         double dropoff_time;    // dropoff time (in seconds)
+
+        bool operator<(const Booking &rhs) const {
+        	return booking_time < rhs.booking_time;
+        }
         
     };
     
@@ -53,6 +57,7 @@ namespace amod {
     		v = static_cast<Booking::Mode>(mode);
     	return str;
     }
+
 
 
 } /* namespace AMOD */

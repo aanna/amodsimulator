@@ -1,5 +1,5 @@
 CC:=g++
-CC_FLAGS:=-g  -std=c++11 -Isrc/ -I/opt/gurobi602/linux64/include
+CC_FLAGS:=-g -O2 -std=c++11 -Isrc/ -I/opt/gurobi602/linux64/include
 LD_FLAGS:=-L/opt/gurobi602/linux64/lib/ 
 CPP_FILES := $(wildcard src/*.cpp)
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))

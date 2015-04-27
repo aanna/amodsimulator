@@ -136,7 +136,6 @@ namespace amod {
             return amod::CANNOT_GET_VEHICLE;
         }
         
-
         Dispatch dp;
         dp.booking_id = booking_id;
         dp.veh_id = veh_id;
@@ -153,6 +152,7 @@ namespace amod {
             dp.from = des.getPosition(); // find the closest location to be the destination position
             dp.from_loc_id = des.getId();
         }
+
         dp.curr = dp.from;
         double dx = dp.to.x - dp.from.x;
         double dy = dp.to.y - dp.from.y;
@@ -216,7 +216,11 @@ namespace amod {
         	
             
             // update internal state
-            state_.setLocation(*ploc);
+            ploc = state_.getLocationPtr(dp.from_loc_id);
+            ploc->removeVehicleId(veh.getId());
+            if (cust.isInVehicle()) {
+            	ploc->removeCustomerId(cust.getId());
+            }
         }
         
         
@@ -343,6 +347,7 @@ namespace amod {
         double teleport_time = state_.getCurrentTime() + genRandTruncNormal(teleport_params_);
 
 		int from_loc_id = 0;
+
 		if (using_locations_) {
 			// get the teleport location
 			Location teleport_loc = loc_tree_.findNN({cust->getPosition().x, cust->getPosition().y});
@@ -355,6 +360,8 @@ namespace amod {
             Location teleport_loc = loc_tree_.findNN({to.x, to.y});
             to_loc_id = teleport_loc.getId();
         }
+
+
 
 		Teleport tport{cust_id, to_loc_id, teleport_time, cust_end_status};
 
@@ -370,22 +377,26 @@ namespace amod {
         
         // adjust locations
         // location specific changes
+
         if (using_locations_) {
             Location * ploc = world_state->getLocationPtr(from_loc_id);
+
             ploc->removeCustomerId(cust_id);
-            
             // trigger event
             Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
                      "LocationCustSizeChange", state_.getCurrentTime(),
                      {from_loc_id});
             world_state->addEvent(ev);
             
-            // update internal state
-            state_.setLocation(*ploc);
+            // update internal state;
+            ploc = state_.getLocationPtr(from_loc_id);
+            ploc->removeCustomerId(cust_id);
         }
 
 		// set the internal state
 		state_.getCustomerPtr(cust_id)->setStatus(cust_start_status);
+
+
 
 		return amod::SUCCESS;
 	}
@@ -715,10 +726,12 @@ namespace amod {
                              "LocationCustSizeChange", state_.getCurrentTime(),
                              {loc_id});
                     world_state->addEvent(ev);
-                    state_.setLocation(*ploc);
-                }
-                
 
+                    // update internal state
+                    ploc = state_.getLocationPtr(loc_id);
+                    ploc->addCustomerId(it->second.cust_id);
+
+                }
     			// erase item
     			teleports_.erase(it);
     			it = teleports_.begin();

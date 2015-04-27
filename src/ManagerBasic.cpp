@@ -55,6 +55,9 @@ namespace amod {
         double current_time = world_state->getCurrentTime();
         
         // get events
+        std::clock_t start;
+        double duration;
+        start = std::clock();
         std::vector<Event> events;
         world_state->getEvents(&events);
         if (fout_.is_open()) fout_.precision(10);
@@ -98,23 +101,33 @@ namespace amod {
         // clear events
         world_state->clearEvents();
         
+        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+        std::cout<<"Event processing: "<< duration <<'\n';
+
         // dispatch bookings
+        start = std::clock();
+
+        double teleport_duration = 0;
+
         auto itr = bookings_.begin();
+        int num_skipped = 0;
+        int num_processed = 0;
+        std::list<std::list<Booking>::iterator> to_erase;
         while (itr != bookings_.end()) {
-            
+
+        	Booking bk = *itr;
+
             // check if the time is less
-            if (itr->first <= current_time) {
-                
+            if (bk.booking_time <= current_time) {
+            	++num_processed;
                 // Get the relevant customer
-                Customer cust = world_state->getCustomer(itr->second.cust_id);
+                Customer cust = world_state->getCustomer(bk.cust_id);
                 if (!cust.getId()) {
                     // invalid customer id
                     // delete this booking
-                    std::cout << "Invalid customer id. Deleting booking " << itr->second.id << std::endl;
-                    bookings_.erase(itr);
-                    
-                    // set to the earliest booking
-                    itr = bookings_.begin();
+                    std::cout << "Invalid customer id. Deleting booking " << bk.id << std::endl;
+                    to_erase.emplace_back(itr);
+                    ++itr;
                     continue;
                 }
                 
@@ -123,30 +136,32 @@ namespace amod {
                       cust.getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT)) {
                     // customer is not free or not waiting for assignment
                     // we skip this booking
-                    std::cout << "Booking type: " << itr->second.travel_mode << std::endl;
-                    std::cout << "Cust " << cust.getId() << " is not free, status " << cust.getStatus() << std::endl;
+                    //std::cout << "Booking type: " << itr->second.travel_mode << std::endl;
+                    //std::cout << "Cust " << cust.getId() << " is not free, status " << cust.getStatus() << std::endl;
                     ++itr;
+                    ++num_skipped;
                     continue;
                 } else {
                     //std::cout << "Cust " << cust.getId() << " is free. Proceeding to assign. ";
                 }
-                
+
                 // check for teleportation
-                if (itr->second.travel_mode == amod::Booking::TELEPORT) {
-                    sim_->teleportCustomer(world_state, itr->second.cust_id, itr->second.destination);
-                    bookings_.erase(itr);
-                    
-                    // set to the earliest booking
-                    itr = bookings_.begin();
+                if (bk.travel_mode == amod::Booking::TELEPORT) {
+                	std::clock_t teleport_start = std::clock();
+                    sim_->teleportCustomer(world_state, bk.cust_id, bk.destination);
+                    to_erase.emplace_back(itr);
+                    ++itr;
+                    teleport_duration += ( std::clock() - teleport_start ) / (double) CLOCKS_PER_SEC;
                     continue;
                 }
                 
-                
+
+
                 // check if we have vehicles to dispatch
                 //std::cout << world_state->getCurrentTime() << ": Num Available Veh: " << num_avail_veh_ << std::endl;
                 if (num_avail_veh_ == 0) {
                     
-                    sim_->setCustomerStatus(world_state, itr->second.cust_id,
+                    sim_->setCustomerStatus(world_state, bk.cust_id,
                                             amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
                     itr++;
                     continue;
@@ -157,6 +172,8 @@ namespace amod {
                 
                 // find closest free vehicle
                 // simple iterative method
+
+
                 double min_dist = -1;
                 int best_veh_id = 0;
                 std::unordered_map<int, Vehicle>::const_iterator begin_itr, end_itr;
@@ -173,7 +190,6 @@ namespace amod {
                 }
                 
                 if (best_veh_id) {
-                    Booking bk = itr->second;
                     bk.veh_id = best_veh_id;
                     
                     // tell the simulator to service this booking
@@ -187,36 +203,49 @@ namespace amod {
                     }
                     
                     // erase the booking
-                    bookings_.erase(itr);
-                    
-                    // set to the earliest booking
-                    itr = bookings_.begin();
+                    to_erase.emplace_back(itr);
+                    ++itr;
                 } else {
                     // cannot find a proper vehicle, move to next booking
                     //std::cout << "... no car found " << std::endl;
-                    sim_->setCustomerStatus(world_state, itr->second.cust_id,
+                    sim_->setCustomerStatus(world_state, bk.cust_id,
                                             amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
-                    itr++;
+                    ++itr;
                 }
-                
+
+
+
             } else {
                 // exceeded the current time
                 break;
             }
             
         }
-        
+
+        // erase the bookings that were serviced/removed
+        for (auto vitr=to_erase.begin(); vitr!=to_erase.end(); ++vitr) {
+        	bookings_.erase(*vitr);
+        }
+
+        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+        std::cout<<"Booking processing (" << num_processed <<   ") : "<< duration <<'\n';
+        std::cout<<"Teleport processing : "<< teleport_duration <<'\n';
+
         // output
         if (int num_waiting_cust = getNumWaitingCustomers(world_state)) {
-            std::cout << world_state->getCurrentTime() << ": " << "Queue Size: " << num_waiting_cust << std::endl;
+            std::cout << world_state->getCurrentTime() << ": " << "Queue Size: " << num_waiting_cust <<
+            		" Num Skipped: " << num_skipped << std::endl;
         }
         return amod::SUCCESS;
     }
     
     amod::ReturnCode ManagerBasic::loadBookings(const std::vector<Booking> &bookings) {
         for (auto b : bookings) {
-            bookings_.emplace( b.booking_time, b);
+            bookings_.emplace_back(b);
         }
+
+        bookings_.sort();
+
         return amod::SUCCESS;
     }
     
@@ -230,7 +259,7 @@ namespace amod {
         while (in.good()) {
             Booking b;
             in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y >> b.travel_mode;
-            if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
+            if (b.id && in.good()) bookings_.emplace_back( b); //only positive booking ids allowed
         }
         /*
          for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
@@ -238,7 +267,7 @@ namespace amod {
          std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
          }
          */
-        
+        bookings_.sort();
         return amod::SUCCESS;
     }
     

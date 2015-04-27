@@ -18,6 +18,9 @@
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
+#include <cstdio>
+#include <ctime>
 
 namespace amod {
     class ManagerBasic : public Manager {
@@ -57,8 +60,9 @@ namespace amod {
         virtual amod::ReturnCode setOutputFile(std::string filename, bool output_move_events = true);
 
     private:
-        std::multimap<double, Booking> bookings_;
-        
+        //std::multimap<double, Booking> bookings_;
+        std::list<Booking> bookings_;
+
         std::ofstream fout_;
         int num_avail_veh_; // tracks number of available vehicles
         bool output_move_events_;

@@ -260,10 +260,16 @@ void rebalanceTest() {
 }
 
 template <typename T>
-void loadEntities(std::string filename, std::vector<T> *ts) {
+void loadEntities(std::string filename, std::vector<T> *ts, bool skip_header=false) {
 	std::ifstream in(filename.c_str());
 	if (!in.good()) {
 		throw std::runtime_error("Cannot read locations file");
+	}
+
+	// skip header if necessary
+	if (skip_header) {
+        std::string header_line;
+        getline(in, header_line);
 	}
 
 	while (in.good()) {
@@ -282,6 +288,7 @@ void loadEntities(std::string filename, std::vector<T> *ts) {
 	}
 
 	// check
+	std::cout.precision(10);
 	std::cout << ts->size() << std::endl;
 	for (auto t : *ts) {
 		std::cout << t.getId() << " " << t.getPosition().x << " " << t.getPosition().y << std::endl;
@@ -422,6 +429,10 @@ void starNetworkTest(ManagerType mgr_type) {
 }
 
 
+
+
+
+
 void simpleDemandEstimatorTest() {
     amod::SimpleDemandEstimator sde(3600); //hourly bins
     
@@ -451,17 +462,273 @@ void simpleDemandEstimatorTest() {
     
 }
 
+// ********************************************************************
+// Test Using Singapore Mid Term Data
+// ********************************************************************
+
+void loadSingaporeMidTermData(std::string activities_filename,
+		std::string locs_filename,
+		std::string stations_filename,
+		int nvehicles,
+		std::vector<amod::Customer> *pcustomers,
+		std::vector<amod::Vehicle> *pvehicles,
+		std::vector<amod::Location> *plocations,
+		std::vector<amod::Location> *pstations,
+		std::vector<amod::Booking> *pbookings
+		) {
+
+	// create references to simplify syntax
+	auto &customers = *pcustomers;
+	auto &vehicles = *pvehicles;
+	auto &locations = *plocations;
+	auto &stations = *pstations;
+	auto &bookings = *pbookings;
+
+	//loadEntities(locs_filename, plocations, true); //locations
+
+	loadEntities(stations_filename, pstations, true); //stations
+
+	// load the activities file
+	std::ifstream in(activities_filename.c_str());
+	if (!in.good()) {
+		throw std::runtime_error("Cannot read activities file");
+	}
+
+	// read in the travel modes
+	int nmodes;
+	in >> nmodes;
+	if (nmodes == 0) {
+		throw std::runtime_error("Num modes is zero!");
+	}
+
+	struct Mode {
+		int id;
+		std::string name;
+	};
+
+	std::map<int, Mode> modes;
+
+	for (int i=0; i<nmodes; ++i) {
+		Mode m;
+		in >> m.id >> m.name;
+		modes.insert({m.id, m});
+	}
+
+//	for (auto itr = modes.begin(); itr != modes.end(); ++itr) {
+//		std::cout << itr->first << ": " << itr->second.name << std::endl;
+//	}
+
+	// read in the locations
+	int nlocs;
+	in >> nlocs;
+	std::cout << "Loading " << nlocs << " locations" << std::endl;
+	std::map<int, amod::Position> locs;
+
+	for (int i=0; i<nlocs; ++i) {
+
+		int id;
+		amod::Position p;
+		std::stringstream ss;
+		in >> id >> p.x >> p.y;
+		locations.emplace_back(id, ss.str(), p, 1e10);
+		locs.insert({id,p});
+	}
+
+//	for (int i=0; i<nlocs; i++) {
+//		std::cout << locations[i].getId() << " " << locations[i].getPosition().x << " " << locations[i].getPosition().y << std::endl;
+//	}
+
+	// read in the customers
+	int ncusts;
+	in >> ncusts;
+	std:: cout << "Loading " << ncusts << " customers" << std::endl;
+	for (int i=0; i<ncusts; ++i) {
+		int id;
+		int home_id;
+		in >> id >> home_id;
+		std::stringstream ss;
+		ss << id;
+		customers.emplace_back(id, ss.str(), locs[home_id]);
+	}
+
+	// read in the activities
+	int nacts;
+	in >> nacts;
+	std:: cout << "Loading " << nacts << " activities/bookings" << std::endl;
+	for (int i=0; i<nacts; ++i) {
+		amod::Booking b;
+		double des_arrival_time;
+		int source_node_id;
+		int dest_node_id;
+		int mode_choice;
+		in >> b.id >> b.cust_id >> b.booking_time >> source_node_id >> dest_node_id >> mode_choice >> des_arrival_time;
+		if (modes[mode_choice].name == "Car" || modes[mode_choice].name == "Taxi") {
+			b.travel_mode = amod::Booking::AMODTRAVEL;
+		} else {
+			b.travel_mode = amod::Booking::TELEPORT;
+		}
+		b.booking_time -= 10800; //starting time;
+		b.destination = locs[dest_node_id];
+		bookings.emplace_back(b);
+	}
+
+	// setup the vehicles
+	int nstations = stations.size();
+	int nvehsperstation = nvehicles/nstations;
+	int remvehs = nvehicles%nstations;
+
+	// loop through all stations
+	int id = 1;
+	for (int i=0; i<nstations; ++i) {
+		for (int j=0; j<nvehsperstation; ++j) {
+			std::stringstream ss;
+			ss << id;
+			vehicles.emplace_back(id++, ss.str(), stations[i].getPosition(), 1, amod::VehicleStatus::FREE);
+		}
+	}
+
+	return;
+}
+
+void singaporeMidTermTest(ManagerType mgr_type) {
+	// set parameters
+	double max_time = 24*60*60;
+	int nvehicles = 20000;
+
+	// load data
+	std::string activities_filename("data/SingaporeDemandMidTerm/sg_midterm_activities.txt");
+	std::string locs_filename("data/SingaporeDemandMidTerm/sg_midterm_locations.txt");
+	std::string stations_filename("data/SingaporeDemandMidTerm/sg_midterm_stations.txt");
+
+	std::vector<amod::Customer> customers;
+	std::vector<amod::Vehicle> vehicles;
+	std::vector<amod::Location> locations;
+	std::vector<amod::Location> stations;
+	std::vector<amod::Booking> bookings;
+
+	// load data
+	loadSingaporeMidTermData(activities_filename,
+			locs_filename,
+			stations_filename,
+			nvehicles,
+			&customers,
+			&vehicles,
+			&locations,
+			&stations,
+			&bookings);
+
+
+	// setup world
+    amod::World world_state;
+    world_state.setCurrentTime(0);
+    world_state.populate(locations, vehicles, customers);
+
+    // create the simulator
+    double resolution = 1;
+    bool verbose = true;
+    amod::SimulatorBasic sim(resolution, verbose);
+
+    // set simulator parameters
+    // all parameters are truncated normal parameters: mean, sd, min, max
+    sim.setVehicleSpeedParams(20.0, 5.0, 20.0, 20.0); // in m/s
+    sim.setPickupDistributionParams(20.0, 10.0, 20.0, 20.0); // in seconds
+    sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 20.0); // in seconds
+    sim.setTeleportDistributionParams(10.0, 2.0, 20.0, 20.0); // in seconds
+
+    // initialize the simulator with the world state
+    std::cout << "Initializing world state" << std::endl;
+    sim.init(&world_state);
+
+	// setup manager
+    // setup our manager
+    amod::ManagerBasic simple_manager;
+    simple_manager.init(&world_state); // initialize
+    simple_manager.setSimulator(&sim); // set simulator
+    simple_manager.loadBookings(bookings); // load the bookings
+
+    // setup our demand estimator
+    amod::SimpleDemandEstimator sde;
+    sde.loadLocations(stations);
+
+    // setup our manager
+    amod::ManagerMatchRebalance match_manager;
+    double distance_cost_factor = 1.0;
+    double waiting_cost_factor = 1.0;
+    match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
+
+    match_manager.init(&world_state); // initialize
+    match_manager.setSimulator(&sim); // set simulator
+    match_manager.loadStations(stations, world_state);
+    match_manager.loadBookings(bookings); // load the bookings
+    match_manager.setMatchingInterval(5);
+
+	// set the manager we want to use
+    amod::Manager* manager = nullptr;
+    bool output_move_events = true;
+    std::string demand_filename;
+    switch (mgr_type) {
+    case SIMPLE_MANAGER:
+    	simple_manager.setOutputFile("smt_spLog.txt", output_move_events);
+    	manager = &simple_manager;
+    	break;
+    case MATCH_MANAGER:
+        demand_filename = "data/starnetwork_all_demands.txt";
+        sde.loadDemandFromFile(demand_filename);
+        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
+    	match_manager.setOutputFile("smt_maLog.txt", output_move_events);
+    	match_manager.setRebalancingInterval(1e10); //effectively never
+    	manager = &match_manager;
+    	break;
+
+    case MATCH_REBALANCE_MANAGER:
+        demand_filename = "data/starnetwork_all_demands.txt";
+        sde.loadDemandFromFile(demand_filename);
+        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
+    	match_manager.setOutputFile("smt_mrLog.txt", output_move_events);
+        match_manager.setRebalancingInterval(1*60*60); //every hour
+    	manager = &match_manager;
+    	break;
+
+    case MATCH_REBALANCE_PREDICT_MANAGER:
+
+        std::string demand_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
+        sde.loadDemandHistFromFile(demand_hist_filename);
+        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
+    	match_manager.setOutputFile("smt_mrpLog.txt", output_move_events);
+        match_manager.setRebalancingInterval(1*60*60); //every hour
+    	manager = &match_manager;
+        break;
+    }
+
+    // loop until some future time
+    std::cout << "Starting Simulation" << std::endl;
+    while (world_state.getCurrentTime() < max_time) {
+    	std::cout << world_state.getCurrentTime() << std::endl;
+    	std::cout << "Updating simulator" << std::endl;
+        sim.update(&world_state); // update the simulator
+        std::cout << "Updating manager" << std::endl;
+        amod::ReturnCode rc = manager->update(&world_state); // update the manager
+        if (rc != amod::SUCCESS) {
+            std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
+        }
+    }
+
+    std::cout << "Simulation Ended" << std::endl;
+}
 
 int main(int argc, char **argv) {
     std::cout << "AMOD Basic Test Program" << std::endl;
     // run basic test
     //basicTest();
     //rebalanceTest();
-    starNetworkTest(SIMPLE_MANAGER);
+    //starNetworkTest(SIMPLE_MANAGER);
     //starNetworkTest(MATCH_MANAGER);
     //starNetworkTest(MATCH_REBALANCE_MANAGER);
     //starNetworkTest(MATCH_REBALANCE_PREDICT_MANAGER);
     //simpleDemandEstimatorTest();
+
+    singaporeMidTermTest(SIMPLE_MANAGER);
+
     // return
     return 0;
 }

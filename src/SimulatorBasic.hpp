@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <random>
 #include <iostream>
+#include <ctime>
+#include <cstdio>
 
 namespace amod {
 

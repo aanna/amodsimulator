@@ -1,6 +1,6 @@
   import java.util.Map;
   boolean ismac = false;
-  boolean issimmob = false;
+  boolean issimmob = true;
   
   // Event structure to load the data we load from the file
   class Event {

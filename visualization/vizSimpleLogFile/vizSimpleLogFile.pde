@@ -72,7 +72,7 @@ void setup() {
 // load the data file
 
     String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrpLog.txt";
-    frame_filename = "mrpLog-########.png";
+    frame_filename = "/media/haroldsoh/DataHD/SimmobDemandMidTerm/Results/img/mrpLog-########.png";
     if (ismac) {
         filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
     }
@@ -91,8 +91,8 @@ void setup() {
       
       }
 if (isfullsg) {
-    filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
-    filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
+    //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
+    filename = "/media/haroldsoh/DataHD/SimmobDemandMidTerm/Results/smt_spLog.txt";
     mult_x = 1.0;
     mult_y = 1.0;
     flipy = -1.0;

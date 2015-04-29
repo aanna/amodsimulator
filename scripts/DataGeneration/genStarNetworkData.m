@@ -5,8 +5,8 @@
 %% Parameters
 clear();
 rng(1); %setup rng
-num_vehs = 5000;
-num_custs = 100000;
+num_vehs = 50;
+num_custs = 1000;
 num_days = 5;
 % probability of working at the central location
 prob_work_at_central = 0.9;

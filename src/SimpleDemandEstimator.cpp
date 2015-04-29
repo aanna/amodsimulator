@@ -67,7 +67,7 @@ namespace amod {
         // TODO: further testing required.
         for (auto itr = demands.begin(); itr != demands.end(); itr++) {
             auto &d = *itr;
-            //std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
+            std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
         }
         
         return amod::SUCCESS;

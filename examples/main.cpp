@@ -304,7 +304,7 @@ enum ManagerType {
 
 void starNetworkTest(ManagerType mgr_type) {
 	// set parameters
-	double max_time = 24*60*60*2;
+    double max_time = 24*60*60*2;
 
 	// load locations
 	std::string locs_filename = "data/starnetwork_locs.txt";
@@ -378,8 +378,8 @@ void starNetworkTest(ManagerType mgr_type) {
 
 	// set the manager we want to use
     amod::Manager* manager = nullptr;
-    bool output_move_events = false;
-    std::string demand_filename;
+    bool output_move_events = true;
+    std::string demand_filename, demand_hist_filename, demand_pred_hist_filename;
     switch (mgr_type) {
     case SIMPLE_MANAGER:
     	simple_manager.setOutputFile("spLog.txt", output_move_events);
@@ -395,18 +395,16 @@ void starNetworkTest(ManagerType mgr_type) {
     	break;
 
     case MATCH_REBALANCE_MANAGER:
-        demand_filename = "data/starnetwork_all_demands.txt";
-        sde.loadDemandFromFile(demand_filename);
+        demand_hist_filename = "data/starnetwork_all_demands_hist.txt";
+        sde.loadDemandHistFromFile(demand_hist_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	match_manager.setOutputFile("mrLog.txt", output_move_events);
         match_manager.setRebalancingInterval(1*60*60); //every hour
     	manager = &match_manager;
     	break;
-
     case MATCH_REBALANCE_PREDICT_MANAGER:
-
-        std::string demand_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
-        sde.loadDemandHistFromFile(demand_hist_filename);
+        demand_pred_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
+        sde.loadDemandHistFromFile(demand_pred_hist_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	match_manager.setOutputFile("mrpLog.txt", output_move_events);
         match_manager.setRebalancingInterval(1*60*60); //every hour
@@ -732,10 +730,10 @@ int main(int argc, char **argv) {
     //starNetworkTest(SIMPLE_MANAGER);
     //starNetworkTest(MATCH_MANAGER);
     //starNetworkTest(MATCH_REBALANCE_MANAGER);
-    //starNetworkTest(MATCH_REBALANCE_PREDICT_MANAGER);
+    starNetworkTest(MATCH_REBALANCE_PREDICT_MANAGER);
     //simpleDemandEstimatorTest();
 
-    singaporeMidTermTest(SIMPLE_MANAGER);
+    //singaporeMidTermTest(SIMPLE_MANAGER);
 
     // return
     return 0;

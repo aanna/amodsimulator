@@ -99,7 +99,7 @@ namespace amod {
                 
                 if (fout_.is_open()) {
                     if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-                        fout_ << veh.getPosition().x << " " << veh.getPosition().y;
+                        fout_ << veh.getPosition().x << " " << veh.getPosition().y << " " << veh.getStatus();
                     }
                 }
 
@@ -113,7 +113,7 @@ namespace amod {
             // teleportation event
             if (e.type == EVENT_TELEPORT || e.type == EVENT_TELEPORT_ARRIVAL) {
                 amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
-                if (fout_.is_open()) fout_ << cust.getPosition().x << " " << cust.getPosition().y;
+                if (fout_.is_open()) fout_ << cust.getPosition().x << " " << cust.getPosition().y << " " << cust.getStatus();
             }
 
             // output the location sizes
@@ -121,7 +121,7 @@ namespace amod {
             		e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
                 amod::Location * ploc = world_state->getLocationPtr(e.entity_ids[0]);
                 int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
-                if (fout_.is_open()) fout_ << curr_size << " " << ploc->getPosition().x << " " << ploc->getPosition().y;
+                if (fout_.is_open()) fout_ << ploc->getPosition().x << " " << ploc->getPosition().y << " " << curr_size;
             }
             
             if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
@@ -750,8 +750,11 @@ namespace amod {
 					(double) dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first,
 					(double) sitr->second.getNumCustomers()));
 			*/
+            std::cout << "Mean prediction: " << mean_pred;
 			int cexi = mean_pred - sitr->second.getNumVehicles();
-
+            std::cout << "cexi: " << cexi;
+            std::cout << "vehs: " << sitr->second.getNumVehicles();
+            
 			cex[sitr->first] = cexi; // excess customers at this station
             cex_total += cexi; // total number of excess customers
 

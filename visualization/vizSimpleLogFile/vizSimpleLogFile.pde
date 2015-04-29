@@ -11,8 +11,9 @@ float flipy = 1;
 float time_window = 30; // 1 second
 int frame_rate = 50;
 
-float day_start_time = 0;
+float day_start_time = 6*60*60;
 int ncars = 0;
+String frame_filename;
 // Event structure to load the data we load from the file
 class Event {
     public int id;
@@ -21,14 +22,16 @@ class Event {
     public float x;
     public float y;
     public float s;
-
-    public Event(int id, int type, float t, float x, float y, float s) {
+    public int status;
+    
+    public Event(int id, int type, float t, float x, float y, float s, int status) {
         this.id = id;
         this.type = type;
         this.t = t;
         this.x = x;
         this.y = y;
         this.s = s;
+        this.status = status;
     }
 
     public Event() {
@@ -38,6 +41,7 @@ class Event {
         this.x = 0;
         this.y = 0;
         this.s = 0;
+        this.status = 0;
     }
 }
 
@@ -67,8 +71,8 @@ void setup() {
     frameRate(frame_rate);
 // load the data file
 
-    String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
-
+    String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrpLog.txt";
+    frame_filename = "mrpLog-########.png";
     if (ismac) {
         filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
     }
@@ -78,14 +82,14 @@ void setup() {
         mult_x = 1.0;
         mult_y = 1.0;
         flipy = -1.0;
-min_x = 365000*mult_x; //365558.56;
-max_x = 377000*mult_x; //376789.19;
-min_y = 140000*mult_y;//140278.73;
-max_y = 144000*mult_y;//142433.66;
-range_x = max_x - min_x;
-range_y = max_y - min_y;
-
-}
+      min_x = 365000*mult_x; //365558.56;
+      max_x = 377000*mult_x; //376789.19;
+      min_y = 140000*mult_y;//140278.73;
+      max_y = 144000*mult_y;//142433.66;
+      range_x = max_x - min_x;
+      range_y = max_y - min_y;
+      
+      }
 if (isfullsg) {
     filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
     filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
@@ -143,9 +147,9 @@ if (parseInt(cols[3]) < 4 && parseInt(cols[3]) > 0 ) { //based on event id in AM
     e.t = parseFloat(cols[0]);
     e.x = parseFloat(cols[7])*mult_x;
     e.y = flipy*parseFloat(cols[8])*mult_y;
-
+    e.status = parseInt(cols[9]);
     e.s = 1;
-    if (e.type == 1) {
+    if (e.type == 2) {
       ncars++;
     }
 } else if (parseInt(cols[3]) == 5 ||  parseInt(cols[3]) == 6){
@@ -185,7 +189,7 @@ void draw() {
     rect(0, 0, width, height);
 
 float sc_factor = 10; //30
-float loc_s_factor = 0.001; //1.0
+float loc_s_factor = 0.1; //1.0
 
 if (issimmob) {
     sc_factor = 10;
@@ -225,19 +229,24 @@ for (int i=0; i<events.size (); i++) {
 // draw the event
 // enum EventType {EVENT_MOVE, EVENT_ARRIVAL, EVENT_PICKUP, EVENT_DROPOFF};
     if (e.type == 1) {
-        fill(#00B0FF); 
-ellipse(e.x, e.y, 5*sc_factor, 5*sc_factor);  // move event
-} else if (e.type == 2) {
-    fill(#FFAF00); 
-    ellipse(e.x, e.y, 8*sc_factor, 8*sc_factor);
-} else if (e.type == 3) {
-    fill(#00C138); 
-    ellipse(e.x, e.y, 10*sc_factor, 10*sc_factor);
-} else if (e.type == 4) {
-    fill(#FF00E6); 
-    ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
-}
-//println("Test:", e.x, e.y);
+      if (e.status == 8) {
+         fill(#FFAF00);
+      }
+      else {
+        fill(#00B0FF);
+      }
+      ellipse(e.x, e.y, 5*sc_factor, 5*sc_factor);  // move event
+    } else if (e.type == 2) {
+        fill(#FFAF00); 
+        ellipse(e.x, e.y, 8*sc_factor, 8*sc_factor);
+    } else if (e.type == 3) {
+        fill(#00C138); 
+        ellipse(e.x, e.y, 10*sc_factor, 10*sc_factor);
+    } else if (e.type == 4) {
+        fill(#FF00E6); 
+        ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
+    }
+    //println("Test:", e.x, e.y);
 }
 
 current_time = end_time;
@@ -251,9 +260,11 @@ Calendar calendar = Calendar.getInstance();
 calendar.set(2000, 1, 1, 0, 0, 0);
 //calendar.setTimeInMillis((int) sim_time*1000);
 calendar.add(Calendar.SECOND, (int) sim_time);
-DateFormat formatter = new SimpleDateFormat("hh:mm:ss");
+DateFormat formatter = new SimpleDateFormat("HH:mm:ss");
 text(formatter.format(calendar.getTime()), 10, 30);
 textSize(16);
 text(str(ncars) + " dispatches" , 10, 50);
+
+saveFrame(frame_filename);
 }
 

@@ -145,8 +145,9 @@ if (parseInt(cols[3]) < 4 && parseInt(cols[3]) > 0 ) { //based on event id in AM
     e.y = flipy*parseFloat(cols[8])*mult_y;
 
     e.s = 1;
-    ncars++;
-
+    if (e.type == 1) {
+      ncars++;
+    }
 } else if (parseInt(cols[3]) == 5 ||  parseInt(cols[3]) == 6){
 // location
     e.id = parseInt(cols[2]);
@@ -184,7 +185,7 @@ void draw() {
     rect(0, 0, width, height);
 
 float sc_factor = 10; //30
-float loc_s_factor = 0.01; //1.0
+float loc_s_factor = 0.001; //1.0
 
 if (issimmob) {
     sc_factor = 10;
@@ -253,6 +254,6 @@ calendar.add(Calendar.SECOND, (int) sim_time);
 DateFormat formatter = new SimpleDateFormat("hh:mm:ss");
 text(formatter.format(calendar.getTime()), 10, 30);
 textSize(16);
-text(str(ncars) + " vehicles" , 10, 50);
+text(str(ncars) + " dispatches" , 10, 50);
 }
 

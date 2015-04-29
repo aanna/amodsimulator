@@ -703,11 +703,19 @@ void singaporeMidTermTest(ManagerType mgr_type) {
     // loop until some future time
     std::cout << "Starting Simulation" << std::endl;
     while (world_state.getCurrentTime() < max_time) {
+
     	std::cout << world_state.getCurrentTime() << std::endl;
-    	std::cout << "Updating simulator" << std::endl;
-        sim.update(&world_state); // update the simulator
-        std::cout << "Updating manager" << std::endl;
+    	std::cout << "Updating simulator: ";
+    	std::clock_t start = std::clock();
+    	sim.update(&world_state); // update the simulator
+        double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+        std::cout << duration << "s\n";
+
+        std::cout << "Updating manager :";
+        start = std::clock();
         amod::ReturnCode rc = manager->update(&world_state); // update the manager
+        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+                std::cout << duration << "s\n";
         if (rc != amod::SUCCESS) {
             std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
         }

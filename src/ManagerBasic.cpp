@@ -55,9 +55,9 @@ namespace amod {
         double current_time = world_state->getCurrentTime();
         
         // get events
-        std::clock_t start;
-        double duration;
-        start = std::clock();
+        // std::clock_t start = std::clock();
+        // double duration = 0;
+
         std::vector<Event> events;
         world_state->getEvents(&events);
         if (fout_.is_open()) fout_.precision(10);
@@ -100,15 +100,8 @@ namespace amod {
         }
         // clear events
         world_state->clearEvents();
-        
-        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-        std::cout<<"Event processing: "<< duration <<'\n';
 
         // dispatch bookings
-        start = std::clock();
-
-        double teleport_duration = 0;
-
         auto itr = bookings_.begin();
         int num_skipped = 0;
         int num_processed = 0;
@@ -147,11 +140,9 @@ namespace amod {
 
                 // check for teleportation
                 if (bk.travel_mode == amod::Booking::TELEPORT) {
-                	std::clock_t teleport_start = std::clock();
                     sim_->teleportCustomer(world_state, bk.cust_id, bk.destination);
                     to_erase.emplace_back(itr);
                     ++itr;
-                    teleport_duration += ( std::clock() - teleport_start ) / (double) CLOCKS_PER_SEC;
                     continue;
                 }
                 
@@ -160,7 +151,6 @@ namespace amod {
                 // check if we have vehicles to dispatch
                 //std::cout << world_state->getCurrentTime() << ": Num Available Veh: " << num_avail_veh_ << std::endl;
                 if (num_avail_veh_ == 0) {
-                    
                     sim_->setCustomerStatus(world_state, bk.cust_id,
                                             amod::CustomerStatus::WAITING_FOR_ASSIGNMENT);
                     itr++;
@@ -227,9 +217,9 @@ namespace amod {
         	bookings_.erase(*vitr);
         }
 
-        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-        std::cout<<"Booking processing (" << num_processed <<   ") : "<< duration <<'\n';
-        std::cout<<"Teleport processing : "<< teleport_duration <<'\n';
+//        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+//        std::cout<<"Booking processing (" << num_processed <<   ") : "<< duration <<'\n';
+//        std::cout<<" processing : "<< duration << ",   ";
 
         // output
         if (int num_waiting_cust = getNumWaitingCustomers(world_state)) {

@@ -4,13 +4,13 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 // configuration
-boolean ismac = false;
+boolean ismac = true;
 boolean issimmob = false;
-boolean isfullsg = true;
+boolean isfullsg = false;
 float flipy = 1;
 float time_window = 30; // 1 second
 int frame_rate = 50;
-
+boolean save_frame = false;
 float day_start_time = 6*60*60;
 int ncars = 0;
 String frame_filename;
@@ -71,10 +71,13 @@ void setup() {
     frameRate(frame_rate);
 // load the data file
 
-    String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrpLog.txt";
+    //String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrpLog.txt";
+    String filename = "/home/haroldsoh/Development/amodbase/mrpLog.txt";
+    
     frame_filename = "/media/haroldsoh/DataHD/SimmobDemandMidTerm/Results/img/mrpLog-########.png";
     if (ismac) {
-        filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
+        //filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
+    filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
         filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
@@ -111,8 +114,8 @@ day_start_time = 10800;
 
 reader = createReader(filename);
 
-float w_width = 1000;
-float w_height = (range_y/range_x)*1000;
+float w_width = 500;
+float w_height = (range_y/range_x)*w_width;
 size((int) w_width, (int) w_height);
 stroke(255);
 background(0, 0, 0);
@@ -264,7 +267,8 @@ DateFormat formatter = new SimpleDateFormat("HH:mm:ss");
 text(formatter.format(calendar.getTime()), 10, 30);
 textSize(16);
 text(str(ncars) + " dispatches" , 10, 50);
-
+if (save_frame) {
 saveFrame(frame_filename);
+}
 }
 

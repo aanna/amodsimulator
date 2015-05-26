@@ -38,6 +38,10 @@ namespace amod {
     
     class ManagerMatchRebalance : public Manager {
     public:
+        
+        enum MatchMethod { ASSIGNMENT, GREEDY};
+        
+        
         ManagerMatchRebalance();
         virtual ~ManagerMatchRebalance();
         
@@ -67,6 +71,14 @@ namespace amod {
         // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
         // one of the amod::ReturnCode error codes.
         virtual amod::ReturnCode loadBookingsFromFile(const std::string filename);
+        
+        // setMatchingMethod
+        // sets the matching method to use
+        // either ManagerMatchRebalance::ASSIGNMENT or ManagerMatchRebalance::GREEDY
+        // inline function
+        virtual void setMatchMethod(ManagerMatchRebalance::MatchMethod m) {
+            match_method = m;
+        }
         
         // setCostFactors
         // sets the multiplicative factors for the individual matching cost components. Currently
@@ -105,6 +117,7 @@ namespace amod {
         bool output_move_events_;
         
         // matching variables
+        MatchMethod match_method;
         std::set<int> available_vehs_;
         std::map<int, Booking> bookings_queue_;
         double matching_interval_;
@@ -136,6 +149,9 @@ namespace amod {
         // solveMatching
         // solves the assignment problem and dispatches vehicles to serve bookings
         virtual amod::ReturnCode solveMatching(amod::World *world_state);
+        
+        // solves the assignment problem in a greedy FIFO manner
+        virtual amod::ReturnCode solveMatchingGreedy(amod::World *world_state);
 
         // solveRebalancing
         // solves the rebalancing problem as an LP and dispatches vehicles to other stations.

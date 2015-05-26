@@ -44,7 +44,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase"
+      customWorkingDirectory = "/Users/haroldsoh/Development/amodbase"
       buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"

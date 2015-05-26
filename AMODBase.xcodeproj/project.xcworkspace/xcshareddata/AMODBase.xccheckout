@@ -10,31 +10,31 @@
 	<string>AMODBase</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
 	<dict>
-		<key>C20802A162A6AD33E152CEEE08F57A0CC96C9A60</key>
-		<string>github.com:smart-fm/simmobility.git</string>
+		<key>BF278F28482EF9692772B4CBED96723DBD5B0CA4</key>
+		<string>bitbucket.org:haroldsoh/amodbase.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
-	<string>dev/Basic/shared/entities/amodController/AMODBase/AMODBase.xcodeproj</string>
+	<string>AMODBase.xcodeproj</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
-		<key>C20802A162A6AD33E152CEEE08F57A0CC96C9A60</key>
-		<string>../../../../../../../..</string>
+		<key>BF278F28482EF9692772B4CBED96723DBD5B0CA4</key>
+		<string>../..</string>
 	</dict>
 	<key>IDESourceControlProjectURL</key>
-	<string>github.com:smart-fm/simmobility.git</string>
+	<string>bitbucket.org:haroldsoh/amodbase.git</string>
 	<key>IDESourceControlProjectVersion</key>
 	<integer>111</integer>
 	<key>IDESourceControlProjectWCCIdentifier</key>
-	<string>C20802A162A6AD33E152CEEE08F57A0CC96C9A60</string>
+	<string>BF278F28482EF9692772B4CBED96723DBD5B0CA4</string>
 	<key>IDESourceControlProjectWCConfigurations</key>
 	<array>
 		<dict>
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
 			<string>public.vcs.git</string>
 			<key>IDESourceControlWCCIdentifierKey</key>
-			<string>C20802A162A6AD33E152CEEE08F57A0CC96C9A60</string>
+			<string>BF278F28482EF9692772B4CBED96723DBD5B0CA4</string>
 			<key>IDESourceControlWCCName</key>
-			<string>simmobility</string>
+			<string>amodbase</string>
 		</dict>
 	</array>
 </dict>

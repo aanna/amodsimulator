@@ -12,7 +12,7 @@
 
 namespace amod {
     ManagerMatchRebalance::ManagerMatchRebalance() {
-
+        match_method = ASSIGNMENT;
         distance_cost_factor_ = 1;
         waiting_time_cost_factor_ = 1;
         output_move_events_ = true;
@@ -679,7 +679,73 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+    amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_state) {
+        
+        if (!world_state) {
+            throw std::runtime_error("solveMatching: world_state is nullptr!");
+        }
+        
+        if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
+        if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
+        
+        
+        // create variables for solving lp
+        long nbookings = bookings_queue_.size();
+        long nvehs = available_vehs_.size();
+        
+        // for each booking, find closest vehicle
+        for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
+            double min_dist_cost = std::numeric_limits<int>::max();
+            Vehicle *closest_veh = nullptr;
+            
+            for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
+                // get cost
+                Vehicle *veh = world_state->getVehiclePtr(*vitr);
+                Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
 
+                double dist_cost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+                if (min_dist_cost > dist_cost) {
+                    closest_veh = veh;
+                    min_dist_cost = dist_cost;
+                }
+            }
+            
+            if (closest_veh != nullptr) {
+                // assign vehicle to booking
+                int veh_id = closest_veh->getId();
+                int bid = bitr->second.id;
+                bookings_queue_[bid].veh_id = veh_id;
+                amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
+                if (rc!= amod::SUCCESS) {
+                    std::cout << amod::kErrorStrings[rc] << std::endl;
+                } else {
+                    std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
+                    // mark the car as no longer available
+                    available_vehs_.erase(veh_id);
+                    
+                    // change station ownership of vehicle
+                    if (stations_.size() > 0) {
+                        int st_id = veh_id_to_station_id_[veh_id]; //old station
+                        stations_[st_id].removeVehicleId(veh_id);
+                        int new_st_id = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
+                        stations_[new_st_id].addVehicleId(veh_id);
+                        veh_id_to_station_id_[veh_id] = new_st_id;
+                        
+                        // remove this customer from the station queue
+                        stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
+                    }
+                    
+                }
+                
+                // erase the booking
+                bookings_queue_.erase(bid);
+            }
+            
+        }
+        
+        
+        return amod::SUCCESS;
+    }
 
     amod::ReturnCode ManagerMatchRebalance::solveRebalancing(amod::World *world_state) {
     	if (!world_state) {

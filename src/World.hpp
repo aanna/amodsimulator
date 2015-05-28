@@ -87,7 +87,7 @@ private:
 	std::unordered_map<int, Vehicle> vehicles_;
 	std::unordered_map<int, Location> locations_;
 	std::unordered_map<int, Customer> customers_;
-	std::map<long long, Event> events_;
+	std::multimap<int, Event> events_;
 	double current_time_;
     
     

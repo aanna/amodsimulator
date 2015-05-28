@@ -463,15 +463,7 @@ namespace amod {
             
             double x_dist = dist*(it->second.grad.x)*resolution_;
             double y_dist = dist*(it->second.grad.y)*resolution_;
-            
-            //test code
-            double dd = sqrt(x_dist*x_dist + y_dist*y_dist);
-            if (dd < 10.0) {
-                std::cout << dd << std::endl;
-                std::cout << "Something wrong!" << std::endl;
-            }
-            //if (getVerbose()) std::cout  << x_dist << " " << y_dist << std::endl;
-            
+                        
             it->second.curr.x += x_dist;
             it->second.curr.y += y_dist;
             

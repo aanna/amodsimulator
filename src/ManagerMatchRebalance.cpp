@@ -20,7 +20,7 @@ namespace amod {
     
 		matching_interval_ = 60; //every 60 seconds
 		next_matching_time_ = matching_interval_;
-        
+        event_id_ = 0;
         #ifdef USE_GUROBI
         gurobi_env_ = new GRBEnv();
         #else
@@ -98,6 +98,10 @@ namespace amod {
 		            bookings_itr_ = bookings_.begin();
 		            continue;
 				}
+				
+				// issue a booking received event
+				Event ev(amod::EVENT_BOOKING_RECEIVED, --event_id_, "BookingReceived", world_state->getCurrentTime(), {bookings_itr_->second.id, bookings_itr_->second.cust_id});
+                world_state->addEvent(ev);
 
 				// ensure that the customer is available (if not, we discard the booking)
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
@@ -122,7 +126,11 @@ namespace amod {
                         int st_id = getClosestStationId(cust->getPosition());
                         stations_[st_id].addCustomerId(cust->getId());
                     }
-				}
+				} else {
+                    // issue a booking discarded event
+                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, "BookingDiscarded", world_state->getCurrentTime(), {bookings_itr_->second.id, -1});
+                    world_state->addEvent(ev);    
+                }
 
 	            // erase the booking
 	            bookings_.erase(bookings_itr_);
@@ -443,6 +451,8 @@ namespace amod {
 				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
 				if (rc!= amod::SUCCESS) {
 					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
+                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, "BookingDiscarded", world_state->getCurrentTime(), {bid, -2});
+                    world_state->addEvent(ev);   
 				} else {
 					if (verbose_) std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
 					// mark the car as no longer available
@@ -460,6 +470,10 @@ namespace amod {
                         stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
                     }
 
+                    // issue a booking serviced event
+                    Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
+                    world_state->addEvent(ev);   
+                    
 				}
 
 				// erase the booking
@@ -536,6 +550,10 @@ namespace amod {
                     }
                     
                 }
+                
+                // issue a booking serviced event
+                Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
+                world_state->addEvent(ev);   
                 
                 // erase the booking
                 bookings_queue_.erase(bid);

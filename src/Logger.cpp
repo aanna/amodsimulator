@@ -43,7 +43,6 @@ amod::ReturnCode Logger::logEvents(amod::World *world_state, bool output_move_ev
     world_state->getEvents(&events);
     // respond to events
     for (auto e:events) {
-        
         if (fout_.is_open()) {
             if ((output_move_events && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
                 fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";

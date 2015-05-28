@@ -104,6 +104,7 @@ namespace amod {
         std::multimap<double, Booking> bookings_;
         std::multimap<double, Booking>::iterator bookings_itr_;
         
+        int event_id_;
         std::ofstream fout_; //output file stream for logging
         bool output_move_events_;
         
@@ -125,10 +126,6 @@ namespace amod {
         double rebalancing_interval_;
         double next_rebalancing_time_;
 
-        // Gurobi
-#ifdef USE_GUROBI
-        GRBEnv *gurobi_env_;
-#endif
         // demo function to show how to get information from
         // if loc_id is a valid location id, we the waiting customers from that location.
         // if loc_id == 0, then we get all the waiting customers

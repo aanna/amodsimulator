@@ -221,11 +221,11 @@ int World::getNumLocations() {
 }
 
 void World::addEvent(Event &event) {
-	events_[event.id] = event;
+    events_.insert({event.id, event});
 }
 
 void World::setEvent(Event &event) {
-	events_[event.id] = event;
+	events_.insert({event.id, event});
 }
 
 void World::addEvents(const std::vector<Event> &events) {

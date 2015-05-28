@@ -421,7 +421,13 @@ void starNetworkTest(ManagerType mgr_type) {
     
     // loop until some future time
     std::cout << "Starting Simulation" << std::endl;
+    int percent_done = 0;
     while (world_state.getCurrentTime() < max_time) {
+        int curr_percent_done = floor(world_state.getCurrentTime()*100/max_time);
+        if (curr_percent_done > percent_done) {
+            percent_done = curr_percent_done;
+            std::cout << percent_done << "\% complete" << std::endl;
+        }
         sim.update(&world_state); // update the simulator
         amod::ReturnCode rc = manager->update(&world_state); // update the manager
         if (rc != amod::SUCCESS) {

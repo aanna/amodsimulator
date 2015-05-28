@@ -25,14 +25,8 @@
 #include <sstream>
 #include <cstdlib>
 
-// gurobi for optimization
-//#define USE_GUROBI
-#ifdef USE_GUROBI
-#include "gurobi_c++.h"
-#else
-// we use GLPK
 #include "glpk.h"
-#endif
+
 
 namespace amod {
     
@@ -104,10 +98,7 @@ namespace amod {
         
         // setDemandEstimator
         virtual void setDemandEstimator(amod::DemandEstimator *sde);
-        
-        // setOutputFilename
-        // sets the output filename for logging purposes
-        virtual amod::ReturnCode setOutputFile(std::string filename, bool output_move_events = true);
+       
 
     private:
         std::multimap<double, Booking> bookings_;

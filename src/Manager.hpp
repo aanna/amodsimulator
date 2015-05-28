@@ -19,7 +19,7 @@ namespace amod {
 
 class Manager {
 public:
-    Manager() : sim_(nullptr), logger_(nullptr) {};
+    Manager() : sim_(nullptr), logger_(nullptr), verbose_(false) {};
     virtual ~Manager() {};
 
     // init
@@ -76,10 +76,20 @@ public:
         return logger_;
     }
     
+    virtual void setVerbose(bool v) {
+        verbose_ = v;    
+    }
+    
+    virtual bool getVerbose() {
+        return verbose_;
+    }
+    
 
 protected:
     amod::Simulator* sim_;
     amod::Logger *logger_;
+    
+    bool verbose_;
 
 };
 

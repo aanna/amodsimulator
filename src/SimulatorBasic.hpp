@@ -28,7 +28,7 @@ public:
     // constructor
     // initalize the simulator, optionally with a simulation resolution in seconds
     // default resolution is 0.1 seconds.
-    SimulatorBasic(double resolution = 0.1, bool verbose = false);
+    SimulatorBasic(double resolution = 0.1);
 	virtual ~SimulatorBasic();
 
     // init
@@ -148,7 +148,6 @@ public:
     // sets the teleportation time distribution parameters in seconds
     virtual void setTeleportDistributionParams(double mean, double sd, double min, double max);
 private:
-    bool verbose_;      // print out information?
     double resolution_; // resolution of simulation in seconds
     amod::World state_; // ideally, the true simulator will maintain it's own internal state
 

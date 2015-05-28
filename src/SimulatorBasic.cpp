@@ -9,8 +9,8 @@
 
 namespace amod {
     
-    SimulatorBasic::SimulatorBasic(double resolution, bool verbose):
-        resolution_(resolution), verbose_(verbose), event_id_(0),
+    SimulatorBasic::SimulatorBasic(double resolution):
+        resolution_(resolution), event_id_(0),
         using_locations_(false)
     {
         // just return
@@ -125,14 +125,14 @@ namespace amod {
         // check if vehicle already exists in the dispatch map
         auto it = dispatches_.find(veh_id);
         if (it != dispatches_.end()) {
-            if (verbose_) std::cout << "Vehicle ID found (it is currently being dispatched!): " << veh_id << std::endl;
+            if (getVerbose()) std::cout << "Vehicle ID found (it is currently being dispatched!): " << veh_id << std::endl;
             return amod::VEHICLE_CANNOT_BE_DISPATCHED;
         }
         
         // create a new dispatch
         Vehicle veh = state_.getVehicle(veh_id);
         if (!veh.getId()) {
-            if (verbose_) std::cout << "Can't get vehicle from world_state" << std::endl;
+            if (getVerbose()) std::cout << "Can't get vehicle from world_state" << std::endl;
             return amod::CANNOT_GET_VEHICLE;
         }
         
@@ -181,12 +181,12 @@ namespace amod {
         	Customer cust = world_state->getCustomer(bookings_[booking_id].cust_id);
             
             if (!cust.isInVehicle()) {
-                //if (verbose_) std::cout << "Set customer waiting for pickup" << std::endl;
+                //if (getVerbose()) std::cout << "Set customer waiting for pickup" << std::endl;
         		cust.setStatus(CustomerStatus::WAITING_FOR_PICKUP);
         		world_state->setCustomer(cust);
                 state_.setCustomer(cust);
             } else {
-                //if (verbose_) std::cout << "Set customer in vehicle" << std::endl;
+                //if (getVerbose()) std::cout << "Set customer in vehicle" << std::endl;
                 cust.setStatus(CustomerStatus::IN_VEHICLE);
                 world_state->setCustomer(cust);
                 state_.setCustomer(cust);
@@ -254,7 +254,7 @@ namespace amod {
         
         // add a pickup to simulate
         double pickup_time = state_.getCurrentTime() + genRandTruncNormal(pickup_params_);
-        //if (verbose_) std::cout << "Future Pickup time : " << pickup_time << std::endl;
+        //if (getVerbose()) std::cout << "Future Pickup time : " << pickup_time << std::endl;
 
         int loc_id = 0;
         if (using_locations_) {
@@ -311,7 +311,7 @@ namespace amod {
 			loc_id = dropoff_loc.getId();
 		}
 
-        //if (verbose_) std::cout << "Future Dropoff time : " << dropoff_time << std::endl;
+        //if (getVerbose()) std::cout << "Future Dropoff time : " << dropoff_time << std::endl;
         Dropoff doff{booking_id, veh_id, cust_id, loc_id, dropoff_time, end_status};
         dropoffs_.emplace(dropoff_time, doff);
         
@@ -464,7 +464,13 @@ namespace amod {
             double x_dist = dist*(it->second.grad.x)*resolution_;
             double y_dist = dist*(it->second.grad.y)*resolution_;
             
-            //std::cout << x_dist << " " << y_dist << std::endl;
+            //test code
+            double dd = sqrt(x_dist*x_dist + y_dist*y_dist);
+            if (dd < 10.0) {
+                std::cout << dd << std::endl;
+                std::cout << "Something wrong!" << std::endl;
+            }
+            //if (getVerbose()) std::cout  << x_dist << " " << y_dist << std::endl;
             
             it->second.curr.x += x_dist;
             it->second.curr.y += y_dist;
@@ -481,7 +487,7 @@ namespace amod {
             // if vehicle (specified by the dispatch) has arrived
             if (hasArrived(it->second)) {
                 // vehicle has arrived
-                if (verbose_) std::cout << veh.getId() << " has arrived at " << it->second.to.x << " " << it->second.to.y <<
+                if (getVerbose()) std::cout << veh.getId() << " has arrived at " << it->second.to.x << " " << it->second.to.y <<
                     " at time "  << world_state->getCurrentTime() << std::endl;
                 it->second.curr = it->second.to;
                 veh.setPosition(it->second.curr);
@@ -549,14 +555,14 @@ namespace amod {
                 if (bid) {
                     if (cust.isInVehicle()) {
                         //dropoff
-                        //std::cout << "Car has customer - dropping off" << cust.getId() << std::endl;
+                        //if (getVerbose()) std::cout << "Car has customer - dropping off" << cust.getId() << std::endl;
                         auto rc = dropoffCustomer(world_state, veh.getId(), cust.getId(), VehicleStatus::DROPPING_OFF, VehicleStatus::FREE, bid);
                         if (rc != amod::SUCCESS) {
                             throw std::runtime_error("Could not drop off customer");
                         }
                     } else {
                         // pickup the customer
-                        //std::cout << "Car is empty - picking up " << cust.getId() << std::endl;
+                        //if (getVerbose()) std::cout << "Car is empty - picking up " << cust.getId() << std::endl;
                         pickupCustomer(world_state, bookings_[bid].veh_id, bookings_[bid].cust_id, VehicleStatus::PICKING_UP, VehicleStatus::FREE, bid);
                     }
                 }
@@ -565,7 +571,7 @@ namespace amod {
 
             } else {
                 ++it;
-                //if (verbose_) std::cout << "Vehicle pos:" << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
+                //if (getVerbose()) std::cout << "Vehicle pos:" << veh.getPosition().x << " " << veh.getPosition().y << std::endl;
                 std::vector<int> entities = {veh.getId()};
                 
                 // check if the customer is in the vehicle
@@ -605,7 +611,7 @@ namespace amod {
         while (it != pickups_.end()) {
             if (it->first <= state_.getCurrentTime()) {
                 
-                if (verbose_) std::cout << it->second.veh_id << " has picked up " << it->second.cust_id << " at time " << it->first << std::endl;
+                if (getVerbose()) std::cout << it->second.veh_id << " has picked up " << it->second.cust_id << " at time " << it->first << std::endl;
 
                 // create pickup event
                 std::vector<int> entity_ids = {it->second.veh_id, it->second.cust_id};
@@ -638,9 +644,9 @@ namespace amod {
                     		VehicleStatus::MOVING_TO_DROPOFF, VehicleStatus::HIRED,
                                                     bid);
                     if (rc != amod::SUCCESS) {
-                    	std::cout << bookings_[bid].destination.x << " " <<
+                    	if (getVerbose()) std::cout << bookings_[bid].destination.x << " " <<
                     			bookings_[bid].destination.y << std::endl;
-                        if (verbose_) std::cout << kErrorStrings[rc] << std::endl;
+                        if (getVerbose()) std::cout << kErrorStrings[rc] << std::endl;
                         throw std::runtime_error("redispatch failed!");
                     }
                 }
@@ -659,7 +665,7 @@ namespace amod {
         while (it != dropoffs_.end()) {
             if (it->first <= state_.getCurrentTime()) {
                 // create dropoff event
-                if (verbose_) std::cout << it->second.veh_id << " has dropped off " << it->second.cust_id << " at time " << it->first << std::endl;
+                if (getVerbose()) std::cout << it->second.veh_id << " has dropped off " << it->second.cust_id << " at time " << it->first << std::endl;
                 int bid = it->second.booking_id;
 
                 std::vector<int> entity_ids = {it->second.veh_id, it->second.cust_id};
@@ -703,7 +709,7 @@ namespace amod {
     	while (it != teleports_.end()) {
     		if (it->first <= state_.getCurrentTime()) {
     			// create teleportation arrival event
-    			if (verbose_) std::cout << it->second.cust_id << " has teleported to location " << it->second.loc_id << " at time " << it->first << std::endl;
+    			if (getVerbose()) std::cout << it->second.cust_id << " has teleported to location " << it->second.loc_id << " at time " << it->first << std::endl;
 
     			std::vector<int> entity_ids = {it->second.cust_id};
     			Event ev(amod::EVENT_TELEPORT_ARRIVAL, ++event_id_, "CustomerTeleportArrival", it->first, entity_ids);

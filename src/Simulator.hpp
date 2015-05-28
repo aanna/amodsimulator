@@ -20,7 +20,7 @@ namespace amod {
 
 class Simulator {
 public:
-	Simulator() {};
+	Simulator() : verbose_(false) {};
 
 	virtual ~Simulator() {};
 
@@ -120,6 +120,18 @@ public:
     // returns the Euclidean distance from Position from to Position to.
     virtual double getDistance(const amod::Position &from, const amod::Position &to) = 0;
 
+    virtual void setVerbose(bool v) {
+        verbose_ = v;    
+    }
+    
+    virtual bool getVerbose() {
+        return verbose_;
+    }
+    
+    
+private:
+    bool verbose_;
+    
 };
 
 } /* namespace AMOD */

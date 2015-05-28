@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 // configuration
-boolean ismac = true;
+boolean ismac = false;
 boolean issimmob = false;
 boolean isfullsg = false;
 float flipy = 1;
@@ -14,6 +14,8 @@ boolean save_frame = false;
 float day_start_time = 6*60*60;
 int ncars = 0;
 String frame_filename;
+
+float prev_time = -1;
 // Event structure to load the data we load from the file
 class Event {
     public int id;
@@ -71,13 +73,13 @@ void setup() {
     frameRate(frame_rate);
 // load the data file
 
-    //String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrpLog.txt";
-    String filename = "/home/haroldsoh/Development/amodbase/mrpLog.txt";
+    String filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/amodbase/mrpLog.txt";
+    //String filename = "/home/haroldsoh/Development/amodbase/mrpLog.txt";
     
     frame_filename = "/media/haroldsoh/DataHD/SimmobDemandMidTerm/Results/img/mrpLog-########.png";
     if (ismac) {
         //filename = "/Users/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/mrLog.txt";
-    filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
+      filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
         filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
@@ -127,6 +129,10 @@ scale_y = w_height/(max_y - min_y);
 } 
 
 void readLogFile(float end_time, ArrayList events) {
+    if (end_time < prev_time) {
+      return; 
+    }
+  
     String line;
     ncars = 0;
     while (true) {
@@ -180,8 +186,11 @@ if (parseInt(cols[3]) < 4 && parseInt(cols[3]) > 0 ) { //based on event id in AM
 
 events.add(e);
 //println(e.id);
-if (e.t > end_time) break;
-};
+  if (e.t > end_time) {
+    prev_time = e.t;
+    break;
+  }
+  };
 }
 
 void draw() {
@@ -258,7 +267,8 @@ popMatrix();
 fill(#FFAF00);
 textSize(32);
 float sim_time = current_time + day_start_time;
-println(sim_time);
+//println(sim_time);
+println(current_time);
 Calendar calendar = Calendar.getInstance();
 calendar.set(2000, 1, 1, 0, 0, 0);
 //calendar.setTimeInMillis((int) sim_time*1000);

@@ -56,16 +56,7 @@ namespace amod {
         next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
         return amod::SUCCESS;
     }
-    
-    amod::ReturnCode ManagerMatchRebalance::setOutputFile(std::string filename, bool output_move_events) {
-    	fout_.open(filename.c_str());
-        if (!fout_.is_open()) {
-            return amod::FAILED;
-        }
-        output_move_events_ = output_move_events;
-        return amod::SUCCESS;
-    }
-
+   
     amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
         Simulator *sim = Manager::getSimulator();
         if (!sim) {
@@ -81,56 +72,17 @@ namespace amod {
         if (fout_.is_open()) fout_.precision(10);
         // respond to events
         for (auto e:events) {
-            
-
-        	if (fout_.is_open()) {
-                if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-                    fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
-                    for (auto ent: e.entity_ids) {
-                        fout_ << ent << ",";
-                    }
-                    fout_ << " ";
-                }
-        	}
-            
-            if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL || e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
+            if (e.type == EVENT_ARRIVAL ||  e.type == EVENT_DROPOFF) {
                 amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
                 
-                
-                if (fout_.is_open()) {
-                    if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-                        fout_ << veh.getPosition().x << " " << veh.getPosition().y << " " << veh.getStatus();
-                    }
-                }
-
                 // make this vehicle available again
                 if (veh.getStatus() == VehicleStatus::FREE || veh.getStatus() == VehicleStatus::PARKED) {
                 	available_vehs_.insert(e.entity_ids[0]);
                 }
 
-            }
-            
-            // teleportation event
-            if (e.type == EVENT_TELEPORT || e.type == EVENT_TELEPORT_ARRIVAL) {
-                amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
-                if (fout_.is_open()) fout_ << cust.getPosition().x << " " << cust.getPosition().y << " " << cust.getStatus();
-            }
-
-            // output the location sizes
-            if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
-            		e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
-                amod::Location * ploc = world_state->getLocationPtr(e.entity_ids[0]);
-                int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
-                if (fout_.is_open()) fout_ << ploc->getPosition().x << " " << ploc->getPosition().y << " " << curr_size;
-            }
-            
-            if ((output_move_events_ && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-                if (fout_.is_open()) fout_ << std::endl;
-            }
-
+            } 
         }
-        // clear events
-        world_state->clearEvents();
+
         
         // dispatch bookings by solving the matching problem
         bookings_itr_ = bookings_.begin();
@@ -185,11 +137,11 @@ namespace amod {
         if (next_matching_time_ <= world_state->getCurrentTime()) {
         	// perform matching and increase next matching time
         	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
-            //std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
-        	//std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+            //if (verbose_) std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
+        	//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
         	amod::ReturnCode rc = solveMatching(world_state);
-        	//std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
-        	//std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+        	//if (verbose_) std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
+        	//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
             
             // return if we encounter a failure
             if (rc != amod::SUCCESS) {
@@ -223,7 +175,7 @@ namespace amod {
     amod::ReturnCode ManagerMatchRebalance::loadBookingsFromFile(const std::string filename) {
         std::ifstream in(filename.c_str());
         if (!in.good()) {
-            std::cout << "Cannot read: " << filename << std::endl;
+            if (verbose_) std::cout << "Cannot read: " << filename << std::endl;
             return amod::ERROR_READING_BOOKINGS_FILE;
         }
         
@@ -236,7 +188,7 @@ namespace amod {
         /*
         for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
             auto &b = itr->second;
-            std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
+            if (verbose_) std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
         }
         */
         
@@ -347,159 +299,7 @@ namespace amod {
     }
     
 
-#ifdef USE_GUROBI
-    amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) {
 
-    	if (!world_state) {
-    		throw std::runtime_error("solveMatching: world_state is nullptr!");
-    	}
-
-    	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
-    	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
-
-    	// set up the optimization algorithm (with Gurobi)
-    	//GRBEnv* env = 0;
-    	GRBVar** matching_var = 0;
-
-    	try {
-    		// Model
-    		GRBModel matching_model = GRBModel(*gurobi_env_);
-    		matching_model.set(GRB_StringAttr_ModelName, "matching");
-
-    		// optimization function
-    		GRBLinExpr obj;
-
-    		// Create decision variables
-    		matching_var = new GRBVar* [available_vehs_.size()];
-
-    		int i, j;
-    		i = j = 0;
-    		std::unordered_map<int, int> index_to_booking_id;
-    		std::unordered_map<int, int> index_to_vehicle_id;
-    		auto vitr = available_vehs_.begin();
-    		for (i=0, vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr, ++i){
-    			index_to_vehicle_id[i] = *vitr;
-    			matching_var[i] = matching_model.addVars(bookings_queue_.size(), GRB_BINARY);
-    			matching_model.update();
-
-    			// loop through bookings to get bookings that can be served by this vehicle
-    			auto bitr = bookings_queue_.begin();
-    			for (j=0, bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr, ++j) {
-    				// store this index so we can find it easily again
-    				index_to_booking_id[j] = bitr->first;
-
-					// get cost
-    				Vehicle *veh = world_state->getVehiclePtr(*vitr);
-    				Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
-
-    				double total_invert_cost = 0;
-					double dist_cost = distance_cost_factor_*(sim_->getDrivingDistance(veh->getPosition(), cust->getPosition()));
-					if (dist_cost < 0) {
-						// this vehicle cannot service this booking
-						total_invert_cost = -1.0;
-					} else {
-						double time_cost = waiting_time_cost_factor_*(std::max(0.0, world_state->getCurrentTime() - bitr->second.booking_time));
-						total_invert_cost = 1.0/(1.0 + dist_cost + time_cost);
-					}
-
-					// add this variable to the solve
-					std::stringstream vname;
-					vname << "match" << *vitr << " " << bitr->first; // vehicle to booking
-					//matching_var[i][j].set(GRB_DoubleAttr_Obj, total_invert_cost);
-					//if (total_invert_cost > 0)
-					obj += total_invert_cost*matching_var[i][j]; // set optimization function
-					matching_var[i][j].set(GRB_StringAttr_VarName, vname.str());
-
-    			}
-    		}
-
-    		// Update model to integrate new variables
-    		matching_model.update();
-
-    		// Add constraints
-			// sum xij over j <= 1, i belongs to vehicles
-
-    		for (i=0; i < available_vehs_.size();++i){
-    			GRBLinExpr sum_elems_i = 0;
-    			for (j=0; j<bookings_queue_.size();++j) {
-    				sum_elems_i += matching_var[i][j];
-    			}
-    			std::ostringstream cname;
-    			cname << "1customer_for_each_vehicle" << i;
-    			matching_model.addConstr(sum_elems_i <= 1, cname.str());
-    		}
-
-    		// Add constraints
-    		// sum xij over i <= 1, j belongs to customers
-    		for (j=0; j<bookings_queue_.size();++j){
-    			GRBLinExpr sum_elems_j = 0;
-    			for (i=0; i < available_vehs_.size();++i) {
-    				sum_elems_j += matching_var[i][j];
-    			}
-    			std::ostringstream cname;
-    			cname << "1vehicle_for_each_customer" << j;
-    			matching_model.addConstr(sum_elems_j <= 1, cname.str());
-    		}
-
-    		//matching_model.update();
-
-
-    		// Maximize the inverted costs
-    		matching_model.setObjective(obj, GRB_MAXIMIZE); //
-
-			// Solve
-			matching_model.optimize();
-
-
-	    	// perform dispatches
-			std::cout << "\nOBJECTIVE: " << matching_model.get(GRB_DoubleAttr_ObjVal) << std::endl;
-			std::cout << "SOLUTION:" << std::endl;
-
-			int nbookings = bookings_queue_.size();
-			int nvehs = available_vehs_.size();
-			for (j=0; j < nbookings ;++j) {
-				for (i=0; i < nvehs;++i){
-					double opt_x = matching_var[i][j].get(GRB_DoubleAttr_X);
-
-					if(opt_x > 0){
-
-						// vehicle is assigned to this booking
-						int bid = index_to_booking_id[j];
-						int veh_id = index_to_vehicle_id[i];
-
-						bookings_queue_[bid].veh_id = veh_id;
-						amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
-						if (rc!= amod::SUCCESS) {
-							std::cout << amod::kErrorStrings[rc] << std::endl;
-						}
-
-						// mark the car as no longer available
-						available_vehs_.erase(veh_id);
-
-						// erase the booking
-						bookings_queue_.erase(bid);
-					}
-				}
-			}
-
-
-    	} catch(GRBException& e) {
-    		std::cout << "Error code = " << e.getErrorCode() << std::endl;
-    		std::cout << e.getMessage() << std::endl;
-    	} catch(std::exception &e) {
-    		std::cout << "Exception during optimization" << e.what() << std::endl;
-    	}
-
-		// deletes
-		for (int i=0; i<available_vehs_.size(); ++i) {
-			delete matching_var[i];
-		}
-		delete [] matching_var;
-
-
-    	return amod::SUCCESS;
-    }
-#else
     // use glpk to solve
     amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) {
 
@@ -604,14 +404,14 @@ namespace amod {
 			}
 		}
 
-		// std::cout << k << " " << ncons << std::endl;
+		// if (verbose_) std::cout << k << " " << ncons << std::endl;
 
 		// load the matrix
-		// std::cout << "Loading the matrix" << std::endl;
+		// if (verbose_) std::cout << "Loading the matrix" << std::endl;
 		glp_load_matrix(lp, k-1, ia, ja, ar);
 
 		// solve the problem
-		// std::cout << "Solving the problem" << std::endl;
+		// if (verbose_) std::cout << "Solving the problem" << std::endl;
 
 		// integer program
 		/*
@@ -626,7 +426,7 @@ namespace amod {
 
 		// print out the objective value
 		//double z = glp_mip_obj_val(lp);
-		//std::cout << z << std::endl;
+		//if (verbose_) std::cout << z << std::endl;
 
 		// dispatch the vehicles
 		for (int k=1; k<=nvars; ++k) {
@@ -642,9 +442,9 @@ namespace amod {
 				bookings_queue_[bid].veh_id = veh_id;
 				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
 				if (rc!= amod::SUCCESS) {
-					std::cout << amod::kErrorStrings[rc] << std::endl;
+					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
 				} else {
-					std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
+					if (verbose_) std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
 					// mark the car as no longer available
 					available_vehs_.erase(veh_id);
 
@@ -717,9 +517,9 @@ namespace amod {
                 bookings_queue_[bid].veh_id = veh_id;
                 amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
                 if (rc!= amod::SUCCESS) {
-                    std::cout << amod::kErrorStrings[rc] << std::endl;
+                    if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
                 } else {
-                    std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
+                    if (verbose_) std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
                     // mark the car as no longer available
                     available_vehs_.erase(veh_id);
                     
@@ -816,10 +616,10 @@ namespace amod {
 					(double) dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first,
 					(double) sitr->second.getNumCustomers()));
 			*/
-            std::cout << "Mean prediction: " << mean_pred;
+            if (verbose_) std::cout << "Mean prediction: " << mean_pred;
 			int cexi = mean_pred - sitr->second.getNumVehicles();
-            std::cout << "cexi: " << cexi;
-            std::cout << "vehs: " << sitr->second.getNumVehicles();
+            if (verbose_) std::cout << "cexi: " << cexi;
+            if (verbose_) std::cout << "vehs: " << sitr->second.getNumVehicles();
             
 			cex[sitr->first] = cexi; // excess customers at this station
             cex_total += cexi; // total number of excess customers
@@ -828,7 +628,7 @@ namespace amod {
                 nstations_underserved++;
             }
             
-            std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
+            if (verbose_) std::cout << "cex[" << sitr->first << "]: " << cex[sitr->first] << std::endl;
             
 		}
         
@@ -893,7 +693,7 @@ namespace amod {
                 const std::string& tmp = ss.str();
                 const char* cstr = tmp.c_str();
                 glp_set_row_name(lp, i, cstr);
-                //std::cout << "vi[" << sitr->first << "]: " <<  vi[sitr->second.getId()].size() << std::endl;
+                //if (verbose_) std::cout << "vi[" << sitr->first << "]: " <<  vi[sitr->second.getId()].size() << std::endl;
                 glp_set_row_bnds(lp, i, GLP_UP, 0.0, vi[sitr->second.getId()].size());
                 
                 for (auto sitr2 = stations_.begin(); sitr2 != stations_.end(); ++sitr2) {
@@ -926,7 +726,7 @@ namespace amod {
             int k = 1;
             int i = 1;
             
-            // std::cout << "Even distribution: " <<  floor(vi_total/nstations_underserved) << std::endl;
+            // if (verbose_) std::cout << "Even distribution: " <<  floor(vi_total/nstations_underserved) << std::endl;
             // constraint for net flow to match (or exceed) excess customers
             for (auto sitr = stations_.begin(); sitr!= stations_.end(); ++sitr) {
                 std::stringstream ss;
@@ -1010,7 +810,7 @@ namespace amod {
         }
         
         // solve the lp
-        // glp_term_out(GLP_OFF); // suppress terminal output
+        if (!verbose_) glp_term_out(GLP_OFF); // suppress terminal output
         glp_simplex(lp, nullptr);
         
         
@@ -1018,7 +818,7 @@ namespace amod {
         for (int k=1; k<=nvars; k++) {
             // get the value
             int to_dispatch = floor(glp_get_col_prim(lp,k));
-            //std::cout << k << ": " << to_dispatch << std::endl;
+            //if (verbose_) std::cout << k << ": " << to_dispatch << std::endl;
             if (to_dispatch > 0) {
                 int st_source = index_to_ids[k].first;
                 int st_dest = index_to_ids[k].second;
@@ -1026,7 +826,7 @@ namespace amod {
                 // dispatch to_dispatch vehicles form station st_source to st_dest
                 amod::ReturnCode rc = interStationDispatch(st_source, st_dest, to_dispatch, world_state, vi);
                 if (rc != amod::SUCCESS) {
-                    std::cout << amod::kErrorStrings[rc] << std::endl;
+                    if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
                     
                     // be stringent and throw an exception: this shouldn't happen
                     throw std::runtime_error("solveRebalancing: interStationDispatch failed.");
@@ -1045,8 +845,6 @@ namespace amod {
     	return amod::SUCCESS;
     }
 
-
-#endif
 
     amod::ReturnCode ManagerMatchRebalance::interStationDispatch(int st_source, int st_dest,
                                                                  int to_dispatch,
@@ -1070,7 +868,7 @@ namespace amod {
             int veh_id = *itr;
             
             // send it to station st_dest
-            std::cout << "Rebalancing " << veh_id << " from " << st_source << " to " << st_dest << std::endl;
+            if (verbose_) std::cout << "Rebalancing " << veh_id << " from " << st_source << " to " << st_dest << std::endl;
             auto rc = sim_->dispatchVehicle(world_state, veh_id , itr_dest->second.getPosition(),
                                             VehicleStatus::MOVING_TO_REBALANCE, VehicleStatus::FREE);
             

@@ -58,7 +58,8 @@ void basicTest(void) {
     // create the simulator
     double resolution = 0.1;
     bool verbose = true;
-    amod::SimulatorBasic sim(resolution, verbose);
+    amod::SimulatorBasic sim(resolution);
+    sim.setVerbose(verbose);
     
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
@@ -199,8 +200,8 @@ void rebalanceTest() {
     // create the simulator
     double resolution = 0.1;
     bool verbose = true;
-    amod::SimulatorBasic sim(resolution, verbose);
-    
+    amod::SimulatorBasic sim(resolution);
+    sim.setVerbose(verbose);
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
     sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 30.0); // in m/s
@@ -339,12 +340,13 @@ void starNetworkTest(ManagerType mgr_type) {
 
     // create the simulator
     double resolution = 1;
-    bool verbose = true;
-    amod::SimulatorBasic sim(resolution, verbose);
-
+    bool verbose = false;
+    amod::SimulatorBasic sim(resolution);
+    sim.setVerbose(verbose);
+    
     // set simulator parameters
     // all parameters are truncated normal parameters: mean, sd, min, max
-    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 20.0); // in m/s
+    sim.setVehicleSpeedParams(25.0, 5.0, 20.0, 25.0); // in m/s
     sim.setPickupDistributionParams(20.0, 10.0, 20.0, 20.0); // in seconds
     sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 20.0); // in seconds
     sim.setTeleportDistributionParams(10.0, 2.0, 20.0, 20.0); // in seconds
@@ -375,21 +377,26 @@ void starNetworkTest(ManagerType mgr_type) {
     match_manager.loadStations(stations, world_state);
     match_manager.loadBookingsFromFile(books_filename); // load the bookings
     match_manager.setMatchingInterval(5);
+    match_manager.setVerbose(verbose);
 
+    // setup out logger
+    amod::Logger logger;
+    
 	// set the manager we want to use
     amod::Manager* manager = nullptr;
     bool output_move_events = true;
     std::string demand_filename, demand_hist_filename, demand_pred_hist_filename;
     switch (mgr_type) {
     case SIMPLE_MANAGER:
-    	simple_manager.setOutputFile("spLog.txt", output_move_events);
+    	logger.openLogFile("spLog.txt");
+
     	manager = &simple_manager;
     	break;
     case MATCH_MANAGER:
         demand_filename = "data/starnetwork_all_demands.txt";
         sde.loadDemandFromFile(demand_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
-    	match_manager.setOutputFile("maLog.txt", output_move_events);
+    	logger.openLogFile("maLog.txt");
     	match_manager.setRebalancingInterval(1e10); //effectively never
     	manager = &match_manager;
     	break;
@@ -398,7 +405,7 @@ void starNetworkTest(ManagerType mgr_type) {
         demand_hist_filename = "data/starnetwork_all_demands_hist.txt";
         sde.loadDemandHistFromFile(demand_hist_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
-    	match_manager.setOutputFile("mrLog.txt", output_move_events);
+    	logger.openLogFile("mrLog.txt");
         match_manager.setRebalancingInterval(1*60*60); //every hour
     	manager = &match_manager;
     	break;
@@ -406,7 +413,7 @@ void starNetworkTest(ManagerType mgr_type) {
         demand_pred_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
         sde.loadDemandHistFromFile(demand_pred_hist_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
-    	match_manager.setOutputFile("mrpLog.txt", output_move_events);
+    	logger.openLogFile("mrpLog.txt");
         match_manager.setRebalancingInterval(1*60*60); //every hour
     	manager = &match_manager;
         break;
@@ -420,10 +427,12 @@ void starNetworkTest(ManagerType mgr_type) {
         if (rc != amod::SUCCESS) {
             std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
         }
+        logger.logEvents(&world_state);
     }
-
+    logger.closeLogFile();
+    
     std::cout << "Simulation Ended" << std::endl;
-
+   
 }
 
 
@@ -589,137 +598,7 @@ void loadSingaporeMidTermData(std::string activities_filename,
 }
 
 void singaporeMidTermTest(ManagerType mgr_type) {
-	// set parameters
-	double max_time = 24*60*60;
-	int nvehicles = 20000;
 
-	// load data
-	std::string activities_filename("data/SingaporeDemandMidTerm/sg_midterm_activities.txt");
-	std::string locs_filename("data/SingaporeDemandMidTerm/sg_midterm_locations.txt");
-	std::string stations_filename("data/SingaporeDemandMidTerm/sg_midterm_stations.txt");
-
-	std::vector<amod::Customer> customers;
-	std::vector<amod::Vehicle> vehicles;
-	std::vector<amod::Location> locations;
-	std::vector<amod::Location> stations;
-	std::vector<amod::Booking> bookings;
-
-	// load data
-	loadSingaporeMidTermData(activities_filename,
-			locs_filename,
-			stations_filename,
-			nvehicles,
-			&customers,
-			&vehicles,
-			&locations,
-			&stations,
-			&bookings);
-
-
-	// setup world
-    amod::World world_state;
-    world_state.setCurrentTime(0);
-    world_state.populate(locations, vehicles, customers);
-
-    // create the simulator
-    double resolution = 1;
-    bool verbose = true;
-    amod::SimulatorBasic sim(resolution, verbose);
-
-    // set simulator parameters
-    // all parameters are truncated normal parameters: mean, sd, min, max
-    sim.setVehicleSpeedParams(20.0, 5.0, 20.0, 20.0); // in m/s
-    sim.setPickupDistributionParams(20.0, 10.0, 20.0, 20.0); // in seconds
-    sim.setDropoffDistributionParams(10.0, 1.0, 20.0, 20.0); // in seconds
-    sim.setTeleportDistributionParams(10.0, 2.0, 20.0, 20.0); // in seconds
-
-    // initialize the simulator with the world state
-    std::cout << "Initializing world state" << std::endl;
-    sim.init(&world_state);
-
-	// setup manager
-    // setup our manager
-    amod::ManagerBasic simple_manager;
-    simple_manager.init(&world_state); // initialize
-    simple_manager.setSimulator(&sim); // set simulator
-    simple_manager.loadBookings(bookings); // load the bookings
-
-    // setup our demand estimator
-    amod::SimpleDemandEstimator sde;
-    sde.loadLocations(stations);
-
-    // setup our manager
-    amod::ManagerMatchRebalance match_manager;
-    double distance_cost_factor = 1.0;
-    double waiting_cost_factor = 1.0;
-    match_manager.setCostFactors(distance_cost_factor, waiting_cost_factor);
-
-    match_manager.init(&world_state); // initialize
-    match_manager.setSimulator(&sim); // set simulator
-    match_manager.loadStations(stations, world_state);
-    match_manager.loadBookings(bookings); // load the bookings
-    match_manager.setMatchingInterval(5);
-
-	// set the manager we want to use
-    amod::Manager* manager = nullptr;
-    bool output_move_events = true;
-    std::string demand_filename;
-    switch (mgr_type) {
-    case SIMPLE_MANAGER:
-    	simple_manager.setOutputFile("smt_spLog.txt", output_move_events);
-    	manager = &simple_manager;
-    	break;
-    case MATCH_MANAGER:
-        demand_filename = "data/starnetwork_all_demands.txt";
-        sde.loadDemandFromFile(demand_filename);
-        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
-    	match_manager.setOutputFile("smt_maLog.txt", output_move_events);
-    	match_manager.setRebalancingInterval(1e10); //effectively never
-    	manager = &match_manager;
-    	break;
-
-    case MATCH_REBALANCE_MANAGER:
-        demand_filename = "data/starnetwork_all_demands.txt";
-        sde.loadDemandFromFile(demand_filename);
-        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
-    	match_manager.setOutputFile("smt_mrLog.txt", output_move_events);
-        match_manager.setRebalancingInterval(1*60*60); //every hour
-    	manager = &match_manager;
-    	break;
-
-    case MATCH_REBALANCE_PREDICT_MANAGER:
-
-        std::string demand_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
-        sde.loadDemandHistFromFile(demand_hist_filename);
-        match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
-    	match_manager.setOutputFile("smt_mrpLog.txt", output_move_events);
-        match_manager.setRebalancingInterval(1*60*60); //every hour
-    	manager = &match_manager;
-        break;
-    }
-
-    // loop until some future time
-    std::cout << "Starting Simulation" << std::endl;
-    while (world_state.getCurrentTime() < max_time) {
-
-    	std::cout << world_state.getCurrentTime() << std::endl;
-    	std::cout << "Updating simulator: ";
-    	std::clock_t start = std::clock();
-    	sim.update(&world_state); // update the simulator
-        double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-        std::cout << duration << "s\n";
-
-        std::cout << "Updating manager :";
-        start = std::clock();
-        amod::ReturnCode rc = manager->update(&world_state); // update the manager
-        duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-                std::cout << duration << "s\n";
-        if (rc != amod::SUCCESS) {
-            std::cout << "ERROR: " << world_state.getCurrentTime() << ": " << amod::kErrorStrings[rc] << std::endl;
-        }
-    }
-
-    std::cout << "Simulation Ended" << std::endl;
 }
 
 int main(int argc, char **argv) {

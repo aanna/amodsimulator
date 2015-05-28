@@ -129,7 +129,7 @@ public:
     }
     
     
-private:
+protected:
     bool verbose_;
     
 };

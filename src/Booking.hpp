@@ -18,12 +18,14 @@ namespace amod {
     	enum Mode {TELEPORT, AMODTRAVEL};
 
         Booking(int booking_id = 0, int vehicle_id = 0, int customer_id = 0,
+                Position source_position = Position(),
         		Position dest_position = Position(),
         		double booking_time_s = 0.0,
         		amod::Booking::Mode trav_mode = amod::Booking::Mode::AMODTRAVEL):
         			id(booking_id),
         			veh_id(vehicle_id),
         			cust_id(customer_id),
+        			source(source_position),
         			destination(dest_position),
         			booking_time(booking_time_s),
         			travel_mode(trav_mode),
@@ -34,6 +36,7 @@ namespace amod {
         int veh_id;     // veh_id (valid veh_ids > 0)
         int cust_id;    // cust_id (valid cust_ids > 0)
 
+        Position source;
         Position destination;   // destination position
         double booking_time;    // booking time (in seconds)
 

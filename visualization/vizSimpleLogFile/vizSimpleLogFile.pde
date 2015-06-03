@@ -1,3 +1,6 @@
+// this visualization is mainly to help debugging purposes and to quickly check that things are
+// proceeding in the right direction
+
 import java.util.Map;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -5,7 +8,7 @@ import java.util.Calendar;
 
 // configuration
 boolean ismac = false;
-boolean issimmob = false;
+boolean issimmob = true;
 boolean isfullsg = false;
 float flipy = 1;
 float time_window = 30; // 1 second
@@ -83,10 +86,10 @@ void setup() {
     }
     if (issimmob) {
         filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
-        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
+        //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
         mult_x = 1.0;
         mult_y = 1.0;
-        flipy = -1.0;
+        flipy = 1.0;
       min_x = 365000*mult_x; //365558.56;
       max_x = 377000*mult_x; //376789.19;
       min_y = 140000*mult_y;//140278.73;
@@ -117,6 +120,10 @@ day_start_time = 10800;
 reader = createReader(filename);
 
 float w_width = 500;
+if (issimmob) {
+  w_width = 1000;  
+}
+
 float w_height = (range_y/range_x)*w_width;
 size((int) w_width, (int) w_height);
 stroke(255);
@@ -166,9 +173,9 @@ if (parseInt(cols[3]) < 4 && parseInt(cols[3]) > 0 ) { //based on event id in AM
     e.id = parseInt(cols[2]);
     e.type = parseInt(cols[3]);
     e.t = parseFloat(cols[0]);
-    e.x = parseFloat(cols[8])*mult_x;
-    e.y = flipy*parseFloat(cols[9])*mult_y;
-    e.s = parseFloat(cols[7]);
+    e.x = parseFloat(cols[7])*mult_x;
+    e.y = flipy*parseFloat(cols[8])*mult_y;
+    e.s = parseFloat(cols[9]);
     int locid;
 
 
@@ -201,11 +208,11 @@ void draw() {
     rect(0, 0, width, height);
 
 float sc_factor = 10; //30
-float loc_s_factor = 0.1; //1.0
+float loc_s_factor = 10; //1.0
 
 if (issimmob) {
     sc_factor = 10;
-    loc_s_factor = 0.00001;  
+    loc_s_factor = 0.000001;  
 }
 
 if (isfullsg) {
@@ -231,7 +238,7 @@ fill(100,100,100,100);
 for (Map.Entry me : locs.entrySet()) {
 //println(me.getKey());
     Location l = (Location) me.getValue();
-    ellipse(l.x, l.y, l.s*l.s*loc_s_factor, l.s*l.s*loc_s_factor);
+    ellipse(l.x, l.y, l.s*loc_s_factor, l.s*loc_s_factor);
 }
 noStroke();
 for (int i=0; i<events.size (); i++) {

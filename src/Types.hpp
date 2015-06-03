@@ -31,6 +31,7 @@ namespace  amod {
         INVALID_STATION_ID,
         ERROR_READING_DEMAND_HIST_FILE,
         CANNOT_OPEN_LOGFILE,
+        CUSTOMER_NOT_AT_SOURCE,
     };
     
     const std::vector<std::string> kErrorStrings = {
@@ -50,7 +51,8 @@ namespace  amod {
         "No path to destination",
         "Invalid station id",
         "Error Reading Demand Histogram file",
-        "Cannot open logfile"
+        "Cannot open logfile",
+        "Customer is not at the source node specified by booking"
     };
     
     

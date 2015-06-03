@@ -77,6 +77,11 @@ amod::ReturnCode Logger::logEvents(amod::World *world_state, bool output_move_ev
             if (fout_.is_open()) fout_ << ploc->getPosition().x << " " << ploc->getPosition().y << " " << curr_size;
         }
         
+        if (e.type == EVENT_DISPATCH) {
+             amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
+            if (fout_.is_open()) fout_ << veh.getStatus();
+        }
+        
         if ((output_move_events && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
             if (fout_.is_open()) fout_ << std::endl;
         }

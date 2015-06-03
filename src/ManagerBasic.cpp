@@ -210,7 +210,7 @@ namespace amod {
         
         while (in.good()) {
             Booking b;
-            in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y >> b.travel_mode;
+            in >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
             if (b.id && in.good()) bookings_.emplace_back( b); //only positive booking ids allowed
         }
         /*

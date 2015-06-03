@@ -385,7 +385,7 @@ void starNetworkTest(ManagerType mgr_type) {
 	// set the manager we want to use
     amod::Manager* manager = nullptr;
     bool output_move_events = true;
-    std::string demand_filename, demand_hist_filename, demand_pred_hist_filename;
+    std::string bookings_hist_filename, bookings_pred_hist_filename;
     switch (mgr_type) {
     case SIMPLE_MANAGER:
     	logger.openLogFile("spLog.txt");
@@ -393,8 +393,8 @@ void starNetworkTest(ManagerType mgr_type) {
     	manager = &simple_manager;
     	break;
     case MATCH_MANAGER:
-        demand_filename = "data/starnetwork_all_demands.txt";
-        sde.loadDemandFromFile(demand_filename);
+
+        sde.loadBookingsFromFile(books_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	logger.openLogFile("maLog.txt");
     	match_manager.setRebalancingInterval(1e10); //effectively never
@@ -402,16 +402,16 @@ void starNetworkTest(ManagerType mgr_type) {
     	break;
 
     case MATCH_REBALANCE_MANAGER:
-        demand_hist_filename = "data/starnetwork_all_demands_hist.txt";
-        sde.loadDemandHistFromFile(demand_hist_filename);
+        bookings_hist_filename = "data/starnetwork_all_demands_hist.txt";
+        sde.loadBookingsHistFromFile(bookings_hist_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	logger.openLogFile("mrLog.txt");
         match_manager.setRebalancingInterval(1*60*60); //every hour
     	manager = &match_manager;
     	break;
     case MATCH_REBALANCE_PREDICT_MANAGER:
-        demand_pred_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
-        sde.loadDemandHistFromFile(demand_pred_hist_filename);
+        bookings_pred_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
+        sde.loadBookingsHistFromFile(bookings_pred_hist_filename);
         match_manager.setDemandEstimator(&sde); // set the demand estimator (for rebalancing)
     	logger.openLogFile("mrpLog.txt");
         match_manager.setRebalancingInterval(1*60*60); //every hour
@@ -445,35 +445,6 @@ void starNetworkTest(ManagerType mgr_type) {
 
 
 
-
-void simpleDemandEstimatorTest() {
-    amod::SimpleDemandEstimator sde(3600); //hourly bins
-    
-    // load stations
-    std::string stns_filename = "data/starnetwork_stns.txt";
-    std::vector<amod::Location> stations;
-    loadEntities(stns_filename, &stations);
-    sde.loadLocations(stations); // we only need estimated demand at stations
-    
-    //std::string demand_filename = "data/starnetwork_demands.txt";
-    //sde.loadDemandFromFile(demand_filename);
-    std::string demand_hist_filename = "data/starnetwork_all_pred_demands_hist.txt";
-    sde.loadDemandHistFromFile(demand_hist_filename);
-    // create an empty world state
-    amod::World world;
-    
-    // simple output to disk
-    std::ofstream fout("demandEstimatorTestResults.txt");
-    for (auto s : stations) {
-        for (double t = 0; t < 3*24*60*60; t += 3600) {
-            auto pred = sde.predict(s.getId(), world, t);
-            fout << s.getId() << " " << t << " " << pred.first << " " << pred.second << std::endl;
-            std::cout << s.getId() << " " << t << " " << pred.first << " " << pred.second << std::endl;
-        }
-    }
-    fout.close();
-    
-}
 
 // ********************************************************************
 // Test Using Singapore Mid Term Data

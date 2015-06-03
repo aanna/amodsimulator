@@ -21,22 +21,13 @@ namespace amod {
 		matching_interval_ = 60; //every 60 seconds
 		next_matching_time_ = matching_interval_;
         event_id_ = 0;
-        #ifdef USE_GUROBI
-        gurobi_env_ = new GRBEnv();
-        #else
-        
-        #endif
+
         return;
     }
     
     ManagerMatchRebalance::~ManagerMatchRebalance() {
         if (fout_.is_open()) fout_.close();
         
-        #ifdef USE_GUROBI
-        delete gurobi_env_;
-        #else
-        
-        #endif
 
         return;
     }
@@ -108,6 +99,7 @@ namespace amod {
 				if (cust->getStatus() == CustomerStatus::FREE ||
 					cust->getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT) {
                     
+                    
                     // check for teleportation
                     if (bookings_itr_->second.travel_mode == amod::Booking::TELEPORT) {
                         sim_->teleportCustomer(world_state, bookings_itr_->second.cust_id, bookings_itr_->second.destination);
@@ -128,7 +120,9 @@ namespace amod {
                     }
 				} else {
                     // issue a booking discarded event
-                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, "BookingDiscarded", world_state->getCurrentTime(), {bookings_itr_->second.id, -1});
+                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, 
+                             "BookingDiscarded", world_state->getCurrentTime(), 
+                             {bookings_itr_->second.id, CUSTOMER_NOT_FREE});
                     world_state->addEvent(ev);    
                 }
 
@@ -189,7 +183,7 @@ namespace amod {
         
         while (in.good()) {
             Booking b;
-            in >> b.id >> b.booking_time >> b.cust_id >> b.destination.x >> b.destination.y >> b.travel_mode;
+            in >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
             if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
         }
         
@@ -451,7 +445,7 @@ namespace amod {
 				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
 				if (rc!= amod::SUCCESS) {
 					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
-                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, "BookingDiscarded", world_state->getCurrentTime(), {bid, -2});
+                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, "BookingDiscarded", world_state->getCurrentTime(), {bid, SERVICE_BOOKING_FAILURE});
                     world_state->addEvent(ev);   
 				} else {
 					if (verbose_) std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
@@ -570,10 +564,14 @@ namespace amod {
     		throw std::runtime_error("solveMatching: world_state is nullptr!");
     	}
 
-    	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to rebalance
-
-        if (stations_.size() == 0) return amod::SUCCESS; // nothing to rebalance
-        
+    	if (available_vehs_.size() == 0) {
+            if (verbose_) std::cout << "No available vehicles to rebalance." << std::endl;
+            return amod::SUCCESS; // no vehicles to rebalance
+        }
+        if (stations_.size() == 0) {
+            if (verbose_) std::cout << "No stations loaded." << std::endl;
+            return amod::SUCCESS; // nothing to rebalance
+        }
     	// create variables for solving lp
     	int nvehs = available_vehs_.size();
     	int nstations = stations_.size();
@@ -608,6 +606,11 @@ namespace amod {
 				// get cost
 				double cost = sim_->getDrivingDistance(sitr->second.getPosition(),
 						sitr2->second.getPosition() );
+                
+                if (cost == -1) {
+                    // no route possible
+                    cost = 1e10; //some large number
+                };
 
 				// add this variable to the solver
 				std::stringstream ss;
@@ -629,7 +632,10 @@ namespace amod {
 			// int cexi = sitr->second.getNumCustomers() - sitr->second.getNumVehicles();
 
 			// use predicted demand
-			int mean_pred = ceil(dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first);
+			int stid =  sitr->second.getId();
+            auto curr_time = world_state->getCurrentTime();
+            auto pred = dem_est_->predict(stid, *world_state, curr_time);
+			int mean_pred = ceil(pred.first);
 			/*int mean_pred = ceil(std::max(
 					(double) dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first,
 					(double) sitr->second.getNumCustomers()));
@@ -843,6 +849,12 @@ namespace amod {
                 
                 // dispatch to_dispatch vehicles form station st_source to st_dest
                 amod::ReturnCode rc = interStationDispatch(st_source, st_dest, to_dispatch, world_state, vi);
+                
+                Event ev(amod::EVENT_REBALANCE, --event_id_, 
+                      "Rebalancing", world_state->getCurrentTime(), 
+                       {st_source, st_dest, to_dispatch});
+                world_state->addEvent(ev);
+                
                 if (rc != amod::SUCCESS) {
                     if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
                     

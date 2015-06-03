@@ -112,7 +112,7 @@ all_travel_times = [morn_travel_times; aftn_travel_times; even_travel_times];
 all_travel_modes = [morn_travel_modes; aftn_travel_modes; even_travel_modes];
 
 cust_ids = [1:num_custs]';
-bookings = [all_travel_times repmat(cust_ids, 3, 1) [cust_work_pos; nearby_pos; cust_home_pos] all_travel_modes];
+bookings = [all_travel_times repmat(cust_ids, 3, 1) [cust_home_pos; cust_work_pos; nearby_pos] [cust_work_pos; nearby_pos; cust_home_pos] all_travel_modes];
 
 demands = [morn_travel_times(morn_travel_modes,:) cust_home_pos(morn_travel_modes,:) cust_work_pos(morn_travel_modes,:);
             aftn_travel_times(aftn_travel_modes,:) cust_work_pos(aftn_travel_modes,:) nearby_pos(aftn_travel_modes,:);

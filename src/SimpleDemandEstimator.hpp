@@ -41,11 +41,15 @@ namespace amod {
         virtual std::pair<double, double> predict(int loc_id, const amod::World &world_state, double t);
         
         
-        // loadDemandFromFile
-        // loads demand from a file specified by filename that the manager should respond to.
+        // loadBookingsFromFile
+        // loads bookings from a file specified by filename that the manager should respond to.
         // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
         // one of the amod::ReturnCode error codes.
-        virtual amod::ReturnCode loadDemandFromFile(const std::string filename);
+        virtual amod::ReturnCode loadBookingsFromFile(const std::string filename);
+        
+        // loadBookings
+        // loads the bookings from a vector of bookings and creates the histogram for prediction
+        virtual amod::ReturnCode loadBookings(const std::vector<amod::Booking> &bookings);
         
         // loadStations
         // loads the locations which the predictions will be based on
@@ -55,23 +59,14 @@ namespace amod {
         // loads demand histogram from a file specified by filename that the manager should respond to.
         // if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
         // one of the amod::ReturnCode error codes.
-        virtual amod::ReturnCode loadDemandHistFromFile(const std::string filename);
+        virtual amod::ReturnCode loadBookingsHistFromFile(const std::string filename);
 
         
     private:
-        
-        struct Demand {
-            int id;
-            double t;
-            int from_id;
-            int to_id;
-            Position from_pos;
-            Position to_pos;
-        };
-    
+
         const double kSecondsInDay = 86400;
         double bin_width_;
-        std::unordered_map<int, std::unordered_map<int, double>> demands_hist_;
+        std::unordered_map<int, std::unordered_map<int, double>> bookings_hist_;
         std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>> day_counts_;
         
         kdt::KDTree<amod::Location> locs_tree_; //for fast NN lookup
@@ -82,7 +77,7 @@ namespace amod {
         
         // makeBookingsHist
         // creates the booking histogram (overwrites any existing histogram)
-        virtual void makeDemandHist(const std::vector<Demand> &demands);
+        virtual void makeBookingsHist(const std::vector<amod::Booking> &bookings);
     };
 }
 

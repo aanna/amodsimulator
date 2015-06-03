@@ -34,7 +34,10 @@ namespace amod {
     public:
         
         enum MatchMethod { ASSIGNMENT, GREEDY};
-        
+        enum BOOKING_DISCARD_REASONS { CUSTOMER_NOT_AT_LOCATION,
+            CUSTOMER_NOT_FREE,
+            SERVICE_BOOKING_FAILURE,
+        };
         
         ManagerMatchRebalance();
         virtual ~ManagerMatchRebalance();

@@ -25,8 +25,8 @@ namespace amod {
         double mean = daily_mean_;
         double var = daily_var_;
         
-        auto itr = demands_hist_.find(loc_id);
-        if (itr != demands_hist_.end()) {
+        auto itr = bookings_hist_.find(loc_id);
+        if (itr != bookings_hist_.end()) {
             int bin = round(fmod(t, kSecondsInDay)/bin_width_);
             auto titr = itr->second.find(bin);
             if (titr != itr->second.end()) {
@@ -39,9 +39,9 @@ namespace amod {
     
     
     
-    amod::ReturnCode SimpleDemandEstimator::loadDemandFromFile(const std::string filename) {
+    amod::ReturnCode SimpleDemandEstimator::loadBookingsFromFile(const std::string filename) {
         if (locs_tree_.size() == 0) {
-            throw std::runtime_error("SimpleDemandEstimator needs locations before loading demand.");
+            throw std::runtime_error("SimpleDemandEstimator needs locations before loading bookings.");
         }
         
         std::ifstream in(filename.c_str());
@@ -50,30 +50,35 @@ namespace amod {
             return amod::ERROR_READING_BOOKINGS_FILE;
         }
         
-        std::vector<Demand> demands;
+        std::vector<Booking> bookings;
         
         while (in.good()) {
-            Demand d; 
-            in >> d.id >> d.t >>  d.from_pos.x >> d.from_pos.y >> d.to_pos.x >> d.to_pos.y;
-            //std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
-            if (d.id && in.good()) {
-                demands.emplace_back(d); //only positive booking ids allowed
-            }
+            Booking b;
+            in >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
+            if (b.id && in.good()) bookings.emplace_back(b); 
         }
         
-        makeDemandHist(demands);
+        makeBookingsHist(bookings);
         
         // its silly but we need to the following or it doesn't work properly in the clang compiler
         // TODO: further testing required.
-        for (auto itr = demands.begin(); itr != demands.end(); itr++) {
-            auto &d = *itr;
-            std::cout << d.id << ": " << d.t << " " << d.from_pos.x << " " << d.from_pos.y << std::endl;
+        for (auto itr = bookings.begin(); itr != bookings.end(); itr++) {
+            auto &b = *itr;
+            std::cout << b.id << std::endl;
         }
         
         return amod::SUCCESS;
     }
     
-    amod::ReturnCode SimpleDemandEstimator::loadDemandHistFromFile(const std::string filename) {
+    amod::ReturnCode SimpleDemandEstimator::loadBookings(const std::vector<Booking> &bookings) {
+
+        makeBookingsHist(bookings);
+
+        return amod::SUCCESS;
+    }
+    
+    
+    amod::ReturnCode SimpleDemandEstimator::loadBookingsHistFromFile(const std::string filename) {
     	if (locs_tree_.size() == 0) {
 			throw std::runtime_error("SimpleDemandEstimator needs locations before loading demand.");
 		}
@@ -84,14 +89,14 @@ namespace amod {
 			return amod::ERROR_READING_DEMAND_HIST_FILE;
 		}
 
-		demands_hist_.clear();
+		bookings_hist_.clear();
 		int nstations;
 		in >> nstations >> bin_width_;
 		int nbins = kSecondsInDay/bin_width_;
 
 		if (nstations != locs_tree_.size()) {
 			std::cout << nstations << " " << bin_width_ << std::endl;
-			throw std::runtime_error("SimpleDemandEstimator: locations tree size does not match number of stations in demands histogram file");
+			throw std::runtime_error("SimpleDemandEstimator: locations tree size does not match number of stations in bookings histogram file");
 		}
 
 		// read in just the mean predictions for now
@@ -102,11 +107,11 @@ namespace amod {
 			in >> station_id;
 			for (int bin=0; bin<nbins; bin++) {
 				in >> bin_data;
-	            auto itr = demands_hist_[station_id].find(bin);
-	            if (itr != demands_hist_[station_id].end()) {
+	            auto itr = bookings_hist_[station_id].find(bin);
+	            if (itr != bookings_hist_[station_id].end()) {
 	                itr->second = bin_data;
 	            } else {
-	                demands_hist_[station_id][bin] = bin_data;
+	                bookings_hist_[station_id][bin] = bin_data;
 	            }
 			}
 		}
@@ -125,52 +130,48 @@ namespace amod {
         
         // set up for histogram maps
         for (auto l : locations) {
-            demands_hist_[l.getId()] = {};
+            bookings_hist_[l.getId()] = {};
             day_counts_[l.getId()] = {};
         }
     
         return;
     }
     
-    void SimpleDemandEstimator::makeDemandHist(const std::vector<Demand> &demands) {
+    void SimpleDemandEstimator::makeBookingsHist(const std::vector<Booking> &bookings) {
         day_counts_.clear();
-        demands_hist_.clear();
+        bookings_hist_.clear();
         
 
-        for (auto d : demands) {
+        for (auto b : bookings) {
             
             // get the source location id
-            if (d.from_id == 0) {
-                d.from_id = locs_tree_.findNN({d.from_pos.x, d.from_pos.y}).getId();
-            }
-            //std::cout << d.from_id << std::endl;
-            
-            
+            int from_id = locs_tree_.findNN({b.source.x,  b.source.y}).getId();
+
             // update day counts
-            int day = floor(d.t/kSecondsInDay);
-            int bin = floor(fmod(d.t, kSecondsInDay)/bin_width_);
+            int day = floor(b.booking_time/kSecondsInDay);
+            int bin = floor(fmod(b.booking_time, kSecondsInDay)/bin_width_);
             
-            auto ditr = day_counts_[d.from_id].find(bin);
-            if (ditr != day_counts_[d.from_id].end()) {
+            auto ditr = day_counts_[from_id].find(bin);
+            if (ditr != day_counts_[from_id].end()) {
                 ditr->second.insert(day);
             } else {
-                day_counts_[d.from_id][bin] = {day};
+                day_counts_[from_id][bin] = {day};
             }
             
             // update bin counts
-            auto itr = demands_hist_[d.from_id].find(bin);
-            if (itr != demands_hist_[d.from_id].end()) {
+            auto itr = bookings_hist_[from_id].find(bin);
+            if (itr != bookings_hist_[from_id].end()) {
                 itr->second += 1;
             } else {
-                demands_hist_[d.from_id][bin] = 1.0;
+                bookings_hist_[from_id][bin] = 1.0;
             }
             
         }
         
         // divide bin counts by day to get average for each bin
-        for (auto itr=demands_hist_.begin(); itr != demands_hist_.end(); ++itr) {
+        for (auto itr=bookings_hist_.begin(); itr != bookings_hist_.end(); ++itr) {
             int loc_id = itr->first;
-            for (auto ditr=demands_hist_[loc_id].begin(); ditr != demands_hist_[loc_id].end(); ++ditr) {
+            for (auto ditr=bookings_hist_[loc_id].begin(); ditr != bookings_hist_[loc_id].end(); ++ditr) {
                 ditr->second /= day_counts_[loc_id][ditr->first].size();
                 //std::cout << ditr->second << std::endl;
             }

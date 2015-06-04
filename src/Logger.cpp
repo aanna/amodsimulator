@@ -11,6 +11,8 @@ namespace amod {
 
 Logger::Logger() {
 	// TODO Auto-generated constructor stub
+    move_event_interval_ = 0;
+    next_move_event_log_time_ = 0;
 }
 
 Logger::Logger(std::string filename) {
@@ -41,6 +43,15 @@ amod::ReturnCode Logger::logEvents(amod::World *world_state, bool output_move_ev
     // future version would streamline this
     std::vector<Event> events;
     world_state->getEvents(&events);
+    
+    // check if we output move events now
+    if (output_move_events) {
+        output_move_events = output_move_events && (world_state->getCurrentTime() > next_move_event_log_time_);
+        if (output_move_events) {
+            next_move_event_log_time_ = world_state->getCurrentTime() + move_event_interval_;
+        }
+    }
+    
     // respond to events
     for (auto e:events) {
         if (fout_.is_open()) {

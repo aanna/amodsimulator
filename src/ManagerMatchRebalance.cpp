@@ -505,19 +505,57 @@ namespace amod {
         for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
             double min_dist_cost = std::numeric_limits<int>::max();
             Vehicle *closest_veh = nullptr;
+            Location *closest_loc = nullptr;
+            Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
             
-            for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
-                // get cost
-                Vehicle *veh = world_state->getVehiclePtr(*vitr);
-                Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
-
-                double dist_cost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
-                if (min_dist_cost > dist_cost) {
-                    closest_veh = veh;
-                    min_dist_cost = dist_cost;
+            // either go through available vehicles or node locations (whichever is smaller)
+            if (available_vehs_.size() < world_state->getNumLocations()) {
+            
+                for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
+                    // get cost
+                    Vehicle *veh = world_state->getVehiclePtr(*vitr);
+                    double dist_cost = 0;
+                    if (veh->getLocationId() && cust->getLocationId()) {
+                        dist_cost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
+                    } else {
+                        dist_cost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+                    }
+                    if (dist_cost >= 0 && min_dist_cost > dist_cost) {
+                        closest_veh = veh;
+                        min_dist_cost = dist_cost;
+                    }
+                }
+            } else { 
+                // check for other locations
+                std::unordered_map<int, Location>::const_iterator lbitr, leitr;
+                world_state->getLocations(&lbitr, &leitr); 
+                for (auto itr = lbitr; itr != leitr; ++itr) {
+                    auto *l = &(itr->second);
+                    if (l->getNumVehicles() > 0) {
+                        
+                        double dist_cost = 0;
+                        if (cust->getLocationId()) {
+                            dist_cost = sim_->getDrivingDistance(l->getId(), cust->getLocationId());
+                        } else {
+                            dist_cost = sim_->getDrivingDistance(l->getPosition(), cust->getPosition());
+                        }
+                            
+                        if (dist_cost >=0 && min_dist_cost > dist_cost) {
+                            closest_loc = world_state->getLocationPtr(l->getId());
+                            min_dist_cost = dist_cost;
+                        }                   
+                    }
+                }
+                
+                if (closest_loc != nullptr) {
+                    //get a vehicle
+                    std::unordered_set<int>::const_iterator vbitr, veitr;
+                    closest_loc->getVehicleIds(&vbitr, &veitr);
+                    if (vbitr != veitr) {
+                        closest_veh = world_state->getVehiclePtr(*vbitr);
+                    }
                 }
             }
-            
             if (closest_veh != nullptr) {
                 // assign vehicle to booking
                 int veh_id = closest_veh->getId();

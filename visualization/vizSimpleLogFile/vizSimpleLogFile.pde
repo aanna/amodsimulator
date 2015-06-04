@@ -8,7 +8,7 @@ import java.util.Calendar;
 
 // configuration
 boolean ismac = false;
-boolean issimmob = true;
+boolean issimmob = false;
 boolean isfullsg = false;
 float flipy = 1;
 float time_window = 30; // 1 second
@@ -85,7 +85,7 @@ void setup() {
       filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
-        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
+        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/profiling/mrSimLog.txt";
         //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
         mult_x = 1.0;
         mult_y = 1.0;
@@ -250,12 +250,12 @@ for (int i=0; i<events.size (); i++) {
     if (e.type == 1) {
       if (e.status == 8) {
          fill(#FFAF00);
-      }
-      else {
+      } else {
         fill(#00B0FF);
       }
       ellipse(e.x, e.y, 5*sc_factor, 5*sc_factor);  // move event
-    } else if (e.type == 2) {
+      //println("", e.x, " " , e.y);
+    } /* else if (e.type == 2) {
         fill(#FFAF00); 
         ellipse(e.x, e.y, 8*sc_factor, 8*sc_factor);
     } else if (e.type == 3) {
@@ -264,7 +264,7 @@ for (int i=0; i<events.size (); i++) {
     } else if (e.type == 4) {
         fill(#FF00E6); 
         ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
-    }
+    }*/
     //println("Test:", e.x, e.y);
 }
 

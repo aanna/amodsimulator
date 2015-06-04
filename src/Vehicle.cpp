@@ -11,7 +11,7 @@ namespace amod {
     
 typedef Vehicle::Status VehicleStatus;
 
-    Vehicle::Vehicle(int id) : status_(UNKNOWN), capacity_(1), speed_(0), customer_id_(0) {
+    Vehicle::Vehicle(int id) : status_(UNKNOWN), capacity_(1), speed_(0), customer_id_(0), location_id_(0) {
         // TODO Auto-generated constructor stub
         Entity::setId(id);
     }
@@ -69,6 +69,14 @@ typedef Vehicle::Status VehicleStatus;
     
     void Vehicle::getWaypoints(std::list<Position> *waypoints) {
         *waypoints = waypoints_;
+    }
+    
+    int Vehicle::getLocationId() {
+        return location_id_;
+    }
+    
+    void Vehicle::setLocationId(int loc_id) {
+        location_id_ = loc_id;
     }
     
     

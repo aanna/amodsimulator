@@ -124,6 +124,7 @@ public:
     // returns the driving distance from Position from to Position to. This may not be the Euclidean
     // distance on a road network.
     virtual double getDrivingDistance(const amod::Position &from, const amod::Position &to);
+    virtual double getDrivingDistance(int from_loc_id, int to_loc_id);
     
     // getDistance
     // returns the Euclidean distance from Position from to Position to.

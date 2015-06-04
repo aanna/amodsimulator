@@ -37,6 +37,7 @@ namespace amod {
         		Customer * pcust = world_state->getCustomerPtr(itr->first);
         		Location loc = loc_tree_.findNN({pcust->getPosition().x, pcust->getPosition().y});
         		pcust->setPosition(loc.getPosition());
+                pcust->setLocationId(loc.getId());
 
         		// add this customer to the location
         		Location *ploc = world_state->getLocationPtr(loc.getId());
@@ -51,6 +52,7 @@ namespace amod {
         		Vehicle * pveh = world_state->getVehiclePtr(itr->first);
         		Location loc = loc_tree_.findNN({pveh->getPosition().x, pveh->getPosition().y});
         		pveh->setPosition(loc.getPosition());
+                pveh->setLocationId(loc.getId());
 
         		// add this vehicle to the location
         		Location *ploc = world_state->getLocationPtr(loc.getId());
@@ -197,6 +199,9 @@ namespace amod {
         if (using_locations_) {
         	Location * ploc = world_state->getLocationPtr(dp.from_loc_id);
         	ploc->removeVehicleId(veh.getId());
+            veh.setLocationId(0);
+            world_state->setVehicle(veh);
+            
         	// trigger event
             Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
             		"LocationVehSizeChange", state_.getCurrentTime(),
@@ -207,11 +212,14 @@ namespace amod {
 
             if (cust.isInVehicle()) {
                 ploc->removeCustomerId(cust.getId());
+                cust.setLocationId(0);
+                world_state->setCustomer(cust);
                 // trigger event
                 Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
                         "LocationCustSizeChange", state_.getCurrentTime(),
                         {dp.from_loc_id});
                 world_state->addEvent(ev);
+                
             }
         	
             
@@ -369,6 +377,7 @@ namespace amod {
 
 		// sets the status of the vehicle
 		cust->setStatus(cust_start_status);
+        cust->setLocationId(0);
 
 		// create a teleportation event
 		std::vector<int> entity_ids = {cust_id, from_loc_id};
@@ -429,9 +438,9 @@ namespace amod {
 				rc = amod::NO_PATH_TO_DESTINATION;
 			} else {
 
-			// dispatch the vehicle
-			rc = dispatchVehicle(world_state, booking.veh_id, cust_pos,
-					amod::VehicleStatus::MOVING_TO_PICKUP, amod::VehicleStatus::HIRED, booking.id);
+                // dispatch the vehicle
+                rc = dispatchVehicle(world_state, booking.veh_id, cust_pos,
+                        amod::VehicleStatus::MOVING_TO_PICKUP, amod::VehicleStatus::HIRED, booking.id);
 			}
         }
 
@@ -447,6 +456,12 @@ namespace amod {
     
     double SimulatorBasic::getDrivingDistance(const amod::Position &from, const amod::Position &to) {
         return getDistance(from, to);
+    }
+    
+    double SimulatorBasic::getDrivingDistance(int from_loc_id, int to_loc_id) {
+        if (from_loc_id && to_loc_id) {
+            return getDistance(state_.getLocation(from_loc_id).getPosition(), state_.getLocation(to_loc_id).getPosition());
+        }
     }
     
     double SimulatorBasic::getDistance(const amod::Position &from, const amod::Position &to) {
@@ -471,7 +486,8 @@ namespace amod {
 
             // set associated customer id and update
             int cust_id = veh.getCustomerId();
-            Customer cust = world_state->getCustomer(cust_id);
+            Customer cust = Customer();
+            if (cust_id) cust = world_state->getCustomer(cust_id);
             if (cust_id && cust.isInVehicle()) {
                 cust.setPosition(it->second.curr);
             }
@@ -508,20 +524,13 @@ namespace amod {
                 // set the vehicle status
                 veh.setStatus(it->second.veh_end_status);
                 
-                // update the world state
-                world_state->setVehicle(veh); //update the vehicle in the world state
-                state_.setVehicle(veh); // update the internal state
-                
-                world_state->setCustomer(cust);
-                state_.setCustomer(cust);
-                
-
 
                 // update the location to indicate the vehicle ishere.
                 if (using_locations_) {
                 	int loc_id = it->second.to_loc_id;
                 	Location *ploc = world_state->getLocationPtr(it->second.to_loc_id);
                 	ploc->addVehicleId(veh.getId());
+                    veh.setLocationId(loc_id);
                     Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
                     		"LocationVehSizeChange", state_.getCurrentTime(),
                     		{loc_id});
@@ -533,13 +542,19 @@ namespace amod {
                     int loc_id = it->second.to_loc_id;
                     Location *ploc = world_state->getLocationPtr(it->second.to_loc_id);
                     ploc->addCustomerId(cust_id);
+                    cust.setLocationId(loc_id);
                     Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
                             "LocationCustSizeChange", state_.getCurrentTime(),
                             {loc_id});
                     world_state->addEvent(ev);
                 }
                 
+                // update the world state
+                world_state->setVehicle(veh); //update the vehicle in the world state
+                state_.setVehicle(veh); // update the internal state
                 
+                world_state->setCustomer(cust);
+                state_.setCustomer(cust);
 
                 dispatches_.erase(it++);
                 
@@ -619,7 +634,7 @@ namespace amod {
                 Customer cust = world_state->getCustomer(it->second.cust_id);
                 cust.setAssignedVehicleId(it->second.veh_id);
                 cust.setInVehicle();
-                
+                cust.setLocationId(0);
                 
                 // sets vehicle state
                 veh.setStatus(it->second.veh_end_status);
@@ -674,6 +689,7 @@ namespace amod {
                 Customer cust = world_state->getCustomer(it->second.cust_id);
                 cust.clearAssignedVehicleId();
                 cust.setStatus(CustomerStatus::FREE);
+                cust.setLocationId(it->second.loc_id);
                 
                 // if is part of a booking, clear it since the vehicle has fropped off the custmer
                 if (bid) {
@@ -711,10 +727,7 @@ namespace amod {
     			cust.setStatus(it->second.cust_end_status);
     			cust.setPosition(world_state->getLocationPtr(it->second.loc_id)->getPosition());
 
-    			// update the external world and internal state
-    			world_state->setCustomer(cust);
-    			state_.setCustomer(cust);
-                
+
                 // update the customer and trigger event if necessary
                 if (using_locations_) {
                     int loc_id = it->second.loc_id;
@@ -728,8 +741,13 @@ namespace amod {
                     // update internal state
                     ploc = state_.getLocationPtr(loc_id);
                     ploc->addCustomerId(it->second.cust_id);
-
+                    
+                    cust.setLocationId(loc_id);
                 }
+                // update the external world and internal state
+                world_state->setCustomer(cust);
+                state_.setCustomer(cust);
+                
     			// erase item
     			teleports_.erase(it);
     			it = teleports_.begin();

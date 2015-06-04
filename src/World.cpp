@@ -125,8 +125,9 @@ Customer World::getCustomer(int cust_id) {
     auto it = customers_.find(cust_id);
     if (it != customers_.end()) {
         return it->second;
+    } else {
+        throw std::runtime_error("No such customer found");
     }
-    return Customer();
 }
 
 Customer * World::getCustomerPtr(int cust_id) {

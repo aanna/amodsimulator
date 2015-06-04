@@ -14,8 +14,8 @@ Customer::~Customer() {
 	return;
 }
 
-Customer::Customer(int id, std::string name, amod::Position pos, int assigned_vehicle, bool in_vehicle, Customer::Status status) :
-		Entity(id, name, pos), veh_id_(assigned_vehicle), status_(status) {
+Customer::Customer(int id, std::string name, amod::Position pos, int loc_id, int assigned_vehicle, bool in_vehicle, Customer::Status status) :
+		Entity(id, name, pos), veh_id_(assigned_vehicle), status_(status), location_id_(loc_id) {
 	return;
 }
 
@@ -45,6 +45,14 @@ void Customer::clearAssignedVehicleId() {
 
 int Customer::getAssignedVehicleId() {
 	return veh_id_;
+}
+
+int Customer::getLocationId() {
+    return location_id_;
+}
+
+void Customer::setLocationId(int loc_id) {
+    location_id_ = loc_id;
 }
 
 } /* namespace AMODBase */

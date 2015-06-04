@@ -13,6 +13,7 @@
 
 #include <unordered_set>
 #include <list>
+#include <boost/graph/graph_concepts.hpp>
 
 namespace amod {
 
@@ -52,6 +53,9 @@ public:
 	virtual void setWaypoints(std::list<Position> &waypoints);
 	virtual void getWaypoints(std::list<Position> *waypoints);
 
+    virtual int getLocationId(); 
+    virtual void setLocationId(int loc_id);
+    
 
 private:
 	Vehicle::Status status_;
@@ -61,6 +65,8 @@ private:
 	int customer_id_;
 	std::list<Position> waypoints_;
 
+    int location_id_;
+    
 };
 
 typedef Vehicle::Status VehicleStatus;

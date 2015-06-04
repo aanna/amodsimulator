@@ -141,7 +141,14 @@ namespace amod {
         	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
             //if (verbose_) std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
         	//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
-        	amod::ReturnCode rc = solveMatching(world_state);
+            amod::ReturnCode rc = amod::FAILED;
+            if (match_method == GREEDY) {
+                rc = solveMatchingGreedy(world_state);
+            } else if (match_method == ASSIGNMENT) {
+                rc = solveMatching(world_state);
+            } else {
+                throw std::runtime_error("No such matching method");
+            }
         	//if (verbose_) std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
         	//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
             
@@ -341,7 +348,14 @@ namespace amod {
 				Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
 
 				double total_invert_cost = 0;
-				double dist_cost = distance_cost_factor_*(sim_->getDrivingDistance(veh->getPosition(), cust->getPosition()));
+                double dist = 0;
+                if (veh->getLocationId() && cust->getLocationId()) {
+                    dist = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
+                } else {
+                    dist = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+                }
+            
+				double dist_cost = distance_cost_factor_*(dist);
 				if (dist_cost < 0) {
 					// this vehicle cannot service this booking
 					total_invert_cost = -1.0;
@@ -423,7 +437,7 @@ namespace amod {
 		glp_intopt(lp, &parm);
 		*/
 		// linear program
-        glp_term_out(GLP_OFF); // suppress terminal output
+        if (!verbose_) glp_term_out(GLP_OFF); // suppress terminal output
 		glp_simplex(lp, nullptr);
 
 		// print out the objective value
@@ -535,8 +549,10 @@ namespace amod {
                         
                         double dist_cost = 0;
                         if (cust->getLocationId()) {
+                            
                             dist_cost = sim_->getDrivingDistance(l->getId(), cust->getLocationId());
                         } else {
+                            
                             dist_cost = sim_->getDrivingDistance(l->getPosition(), cust->getPosition());
                         }
                             

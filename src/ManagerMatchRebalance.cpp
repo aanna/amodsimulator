@@ -17,7 +17,8 @@ namespace amod {
         waiting_time_cost_factor_ = 1;
         output_move_events_ = true;
         bookings_itr_ = bookings_.begin();
-    
+        use_bookings_file_ = false;
+        
 		matching_interval_ = 60; //every 60 seconds
 		next_matching_time_ = matching_interval_;
         event_id_ = 0;
@@ -76,6 +77,7 @@ namespace amod {
 
         
         // dispatch bookings by solving the matching problem
+        updateBookingsFromFile(current_time); // load bookings from file (will do nothing if not using file)
         bookings_itr_ = bookings_.begin();
         while (bookings_itr_ != bookings_.end()) {
         	// check if the time is less
@@ -182,24 +184,52 @@ namespace amod {
     }
     
     amod::ReturnCode ManagerMatchRebalance::loadBookingsFromFile(const std::string filename) {
-        std::ifstream in(filename.c_str());
-        if (!in.good()) {
+        bfin_.open(filename.c_str());
+        if (!bfin_.good()) {
             if (verbose_) std::cout << "Cannot read: " << filename << std::endl;
             return amod::ERROR_READING_BOOKINGS_FILE;
         }
         
-        while (in.good()) {
-            Booking b;
-            in >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
-            if (b.id && in.good()) bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
-        }
-        
+        use_bookings_file_ = true;
         /*
         for (auto itr = bookings_.begin(); itr != bookings_.end(); itr++) {
             auto &b = itr->second;
             if (verbose_) std::cout << b.id << ": " << b.booking_time << " " << b.cust_id << " " << b.travel_mode << std::endl;
         }
         */
+        
+        return amod::SUCCESS;
+    }
+    
+    amod::ReturnCode ManagerMatchRebalance::updateBookingsFromFile(double curr_time) {
+        if (!use_bookings_file_) return amod::SUCCESS;
+        
+        if (!bfin_.is_open()) {
+            return amod::ERROR_READING_BOOKINGS_FILE;
+        }
+        
+        // add the last thing we read because this wouldn't have been added the last time
+        if (last_booking_read_.id != 0 && last_booking_read_.booking_time <= curr_time) {
+            bookings_.emplace(last_booking_read_.booking_time, last_booking_read_);
+            last_booking_read_ = Booking();
+        } else if (last_booking_read_.id != 0) {
+            // have not reached the necessary time
+            return amod::SUCCESS;
+        }
+                
+        while (bfin_.good()) {
+            Booking b;
+            bfin_ >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
+            if (b.id && bfin_.good()) {
+                if (b.booking_time <= curr_time) {
+                    bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
+                } else {
+                    // don't emplace it just yet
+                    last_booking_read_ = b;
+                }
+            }
+            if (b.booking_time > curr_time) break; //assumes bookings file orders bookings by time
+        }       
         
         return amod::SUCCESS;
     }

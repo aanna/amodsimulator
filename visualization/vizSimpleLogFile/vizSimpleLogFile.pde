@@ -8,7 +8,7 @@ import java.util.Calendar;
 
 // configuration
 boolean ismac = false;
-boolean issimmob = false;
+boolean issimmob = true;
 boolean isfullsg = false;
 float flipy = 1;
 float time_window = 30; // 1 second
@@ -85,7 +85,7 @@ void setup() {
       filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
-        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/profiling/mrSimLog.txt";
+        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
         //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
         mult_x = 1.0;
         mult_y = 1.0;

@@ -107,6 +107,11 @@ namespace amod {
         std::multimap<double, Booking> bookings_;
         std::multimap<double, Booking>::iterator bookings_itr_;
         
+        std::ifstream bfin_;
+        bool use_bookings_file_;
+        Booking last_booking_read_;
+        
+        
         int event_id_;
         std::ofstream fout_; //output file stream for logging
         bool output_move_events_;
@@ -154,7 +159,12 @@ namespace amod {
                                                       int to_dispatch,
                                                       amod::World *world_state,
                                                       std::unordered_map<int, std::set<int>> &vi);
-
+        
+        
+        // updateBookingsFromFile
+        // gets bookings that occured during the time period and place it into the bookings_ structure
+        // from the last update until the current time
+        virtual amod::ReturnCode updateBookingsFromFile(double curr_time);
     };
 }
 

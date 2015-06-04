@@ -39,7 +39,7 @@ namespace amod {
         Position source;
         Position destination;   // destination position
         double booking_time;    // booking time (in seconds)
-
+        
         Mode travel_mode;	// travel mode for this booking
 
         // the following are mainly for logging purposes (optional)
@@ -47,6 +47,7 @@ namespace amod {
         double pickup_time;     // pickup time (in seconds)
         double dropoff_time;    // dropoff time (in seconds)
 
+        
         bool operator<(const Booking &rhs) const {
         	return booking_time < rhs.booking_time;
         }

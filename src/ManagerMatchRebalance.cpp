@@ -516,6 +516,7 @@ namespace amod {
         long nvehs = available_vehs_.size();
         
         // for each booking, find closest vehicle
+        std::vector<int> to_erase;
         for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
             double min_dist_cost = std::numeric_limits<int>::max();
             Vehicle *closest_veh = nullptr;
@@ -603,12 +604,16 @@ namespace amod {
                 Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
                 world_state->addEvent(ev);   
                 
-                // erase the booking
-                bookings_queue_.erase(bid);
+                // mark booking to be erased
+                to_erase.emplace_back(bid);
             }
             
         }
         
+        
+        for (auto itr=to_erase.begin(); itr!= to_erase.end(); ++itr) {
+            bookings_queue_.erase(*itr);
+        }
         
         return amod::SUCCESS;
     }

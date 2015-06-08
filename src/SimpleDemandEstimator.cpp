@@ -55,7 +55,7 @@ namespace amod {
         while (in.good()) {
             Booking b;
             in >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
-            if (b.id && in.good()) bookings.emplace_back(b); 
+            if (b.id && (b.travel_mode == amod::Booking::AMODTRAVEL) && in.good()) bookings.emplace_back(b); 
         }
         
         makeBookingsHist(bookings);

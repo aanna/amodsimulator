@@ -69,6 +69,7 @@ namespace amod {
                 
                 // make this vehicle available again
                 if (veh.getStatus() == VehicleStatus::FREE || veh.getStatus() == VehicleStatus::PARKED) {
+                    if (verbose_) std::cout << "Making vehicle " << veh.getId() << " available for redispatch." << std::endl;
                 	available_vehs_.insert(e.entity_ids[0]);
                 }
 
@@ -77,6 +78,7 @@ namespace amod {
 
         
         // dispatch bookings by solving the matching problem
+        //if (verbose_) std::cout << "Manager Current time: " << current_time << std::endl;
         updateBookingsFromFile(current_time); // load bookings from file (will do nothing if not using file)
         bookings_itr_ = bookings_.begin();
         while (bookings_itr_ != bookings_.end()) {
@@ -204,7 +206,8 @@ namespace amod {
     amod::ReturnCode ManagerMatchRebalance::updateBookingsFromFile(double curr_time) {
         if (!use_bookings_file_) return amod::SUCCESS;
         
-        if (!bfin_.is_open()) {
+        if (!bfin_.good()) {
+            if (verbose_) std::cout << "Error reading Bookings file!" << std::endl;
             return amod::ERROR_READING_BOOKINGS_FILE;
         }
         
@@ -215,11 +218,12 @@ namespace amod {
         } else if (last_booking_read_.id != 0) {
             // have not reached the necessary time
             return amod::SUCCESS;
-        }
+        } 
                 
         while (bfin_.good()) {
             Booking b;
             bfin_ >> b.id >> b.booking_time >> b.cust_id >> b.source.x >> b.source.y >> b.destination.x >> b.destination.y >> b.travel_mode;
+            //if (verbose_) std::cout << b.id << " " << b.booking_time << std::endl;
             if (b.id && bfin_.good()) {
                 if (b.booking_time <= curr_time) {
                     bookings_.emplace(b.booking_time, b); //only positive booking ids allowed
@@ -228,8 +232,14 @@ namespace amod {
                     last_booking_read_ = b;
                 }
             }
-            if (b.booking_time > curr_time) break; //assumes bookings file orders bookings by time
+            if (b.booking_time > curr_time) {
+                break; //assumes bookings file orders bookings by time
+            }
         }       
+        
+        //if (verbose_) std::cout << "Loaded " << bookings_.size() << " Bookings" << 
+        //    "; last time: " << last_booking_read_.booking_time << ", " << last_booking_read_.id << std::endl;
+        
         
         return amod::SUCCESS;
     }
@@ -555,11 +565,11 @@ namespace amod {
             
             // either go through available vehicles or node locations (whichever is smaller)
             if (available_vehs_.size() < world_state->getNumLocations()) {
-            
+                if (verbose_) std::cout << "Looping through vehicles" << std::endl;
                 for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
                     // get cost
                     Vehicle *veh = world_state->getVehiclePtr(*vitr);
-                    double dist_cost = 0;
+                    double dist_cost = -1;
                     if (veh->getLocationId() && cust->getLocationId()) {
                         dist_cost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
                     } else {
@@ -571,6 +581,7 @@ namespace amod {
                     }
                 }
             } else { 
+                if (verbose_) std::cout << "Looping through locations" << std::endl;
                 // check for other locations
                 std::unordered_map<int, Location>::const_iterator lbitr, leitr;
                 world_state->getLocations(&lbitr, &leitr); 
@@ -578,12 +589,10 @@ namespace amod {
                     auto *l = &(itr->second);
                     if (l->getNumVehicles() > 0) {
                         
-                        double dist_cost = 0;
+                        double dist_cost = -1;
                         if (cust->getLocationId()) {
-                            
                             dist_cost = sim_->getDrivingDistance(l->getId(), cust->getLocationId());
                         } else {
-                            
                             dist_cost = sim_->getDrivingDistance(l->getPosition(), cust->getPosition());
                         }
                             
@@ -600,6 +609,10 @@ namespace amod {
                     closest_loc->getVehicleIds(&vbitr, &veitr);
                     if (vbitr != veitr) {
                         closest_veh = world_state->getVehiclePtr(*vbitr);
+//                         if (verbose_) {
+//                             std::cout << closest_veh->getPosition().x << " " << closest_veh->getPosition().y << " : " <<
+//                             closest_loc->getPosition().x << " " << closest_loc->getPosition().y << std::endl;
+//                         }
                     }
                 }
             }

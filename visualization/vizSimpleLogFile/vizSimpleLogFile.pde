@@ -11,7 +11,7 @@ boolean ismac = false;
 boolean issimmob = true;
 boolean isfullsg = false;
 float flipy = 1;
-float time_window = 30; // 1 second
+float time_window = 5; // 1 second
 int frame_rate = 50;
 boolean save_frame = false;
 float day_start_time = 6*60*60;
@@ -85,7 +85,7 @@ void setup() {
       filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
-        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/mrSimLog.txt";
+        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/ecbd_log.txt";
         //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
         mult_x = 1.0;
         mult_y = 1.0;
@@ -255,7 +255,7 @@ for (int i=0; i<events.size (); i++) {
       }
       ellipse(e.x, e.y, 5*sc_factor, 5*sc_factor);  // move event
       //println("", e.x, " " , e.y);
-    } /* else if (e.type == 2) {
+    } else if (e.type == 2) {
         fill(#FFAF00); 
         ellipse(e.x, e.y, 8*sc_factor, 8*sc_factor);
     } else if (e.type == 3) {
@@ -264,7 +264,7 @@ for (int i=0; i<events.size (); i++) {
     } else if (e.type == 4) {
         fill(#FF00E6); 
         ellipse(e.x, e.y, 12*sc_factor, 12*sc_factor);
-    }*/
+    }
     //println("Test:", e.x, e.y);
 }
 

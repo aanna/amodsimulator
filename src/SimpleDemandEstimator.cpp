@@ -62,10 +62,10 @@ namespace amod {
         
         // its silly but we need to the following or it doesn't work properly in the clang compiler
         // TODO: further testing required.
-        for (auto itr = bookings.begin(); itr != bookings.end(); itr++) {
+        /*for (auto itr = bookings.begin(); itr != bookings.end(); itr++) {
             auto &b = *itr;
             std::cout << b.id << std::endl;
-        }
+        }*/
         
         return amod::SUCCESS;
     }

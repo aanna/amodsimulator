@@ -14,7 +14,7 @@ float flipy = 1;
 float time_window = 5; // 1 second
 int frame_rate = 50;
 boolean save_frame = false;
-float day_start_time = 6*60*60;
+float day_start_time = 3*60*60;
 int ncars = 0;
 String frame_filename;
 
@@ -93,7 +93,7 @@ void setup() {
       min_x = 365000*mult_x; //365558.56;
       max_x = 377000*mult_x; //376789.19;
       min_y = 140000*mult_y;//140278.73;
-      max_y = 144000*mult_y;//142433.66;
+      max_y = 148000*mult_y;//142433.66;
       range_x = max_x - min_x;
       range_y = max_y - min_y;
       

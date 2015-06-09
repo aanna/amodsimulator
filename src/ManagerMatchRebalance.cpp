@@ -22,6 +22,9 @@ namespace amod {
 		matching_interval_ = 60; //every 60 seconds
 		next_matching_time_ = matching_interval_;
         event_id_ = 0;
+        
+        rebalancing_interval_ = 0;
+        next_rebalancing_time_ = 0;
 
         return;
     }
@@ -261,6 +264,7 @@ namespace amod {
 
     void ManagerMatchRebalance::setRebalancingInterval(double rebalancing_interval) {
     	rebalancing_interval_ = rebalancing_interval;
+        next_rebalancing_time_ = rebalancing_interval_;
     }
 
     double ManagerMatchRebalance::getRebalancingInterval() const {
@@ -711,7 +715,7 @@ namespace amod {
                 
                 if (cost == -1) {
                     // no route possible
-                    cost = 1e10; //some large number
+                    cost = 1e11; //some large number
                 };
 
 				// add this variable to the solver
@@ -960,6 +964,15 @@ namespace amod {
                 if (rc != amod::SUCCESS) {
                     if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
                     
+                    // housekeeping 
+                    glp_delete_prob(lp);
+                    glp_free_env();
+                    
+                    delete [] ia;
+                    delete [] ja;
+                    delete [] ar;
+
+                    
                     // be stringent and throw an exception: this shouldn't happen
                     throw std::runtime_error("solveRebalancing: interStationDispatch failed.");
                 }
@@ -1005,7 +1018,9 @@ namespace amod {
                                             VehicleStatus::MOVING_TO_REBALANCE, VehicleStatus::FREE);
             
             // if dispatch is success
-            if (rc != amod::SUCCESS) return rc; // return with error code
+            if (rc != amod::SUCCESS) {
+                if (verbose_) std::cout << kErrorStrings[rc] << std::endl;
+            }; // return with error code
             
             // change station ownership of vehicle
             stations_[st_source].removeVehicleId(veh_id);

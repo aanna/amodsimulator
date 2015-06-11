@@ -67,6 +67,10 @@ private:
 
     int location_id_;
     
+    // FOR DEBUGGING
+    // TO REMOVE
+public:
+    int stationary_count;
 };
 
 typedef Vehicle::Status VehicleStatus;

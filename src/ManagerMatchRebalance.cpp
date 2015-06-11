@@ -569,7 +569,7 @@ namespace amod {
             
             // either go through available vehicles or node locations (whichever is smaller)
             if (available_vehs_.size() < world_state->getNumLocations()) {
-                if (verbose_) std::cout << "Looping through vehicles" << std::endl;
+                //if (verbose_) std::cout << "Looping through vehicles" << std::endl;
                 for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
                     // get cost
                     Vehicle *veh = world_state->getVehiclePtr(*vitr);
@@ -585,7 +585,7 @@ namespace amod {
                     }
                 }
             } else { 
-                if (verbose_) std::cout << "Looping through locations" << std::endl;
+                //if (verbose_) std::cout << "Looping through locations" << std::endl;
                 // check for other locations
                 std::unordered_map<int, Location>::const_iterator lbitr, leitr;
                 world_state->getLocations(&lbitr, &leitr); 

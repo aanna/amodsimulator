@@ -52,6 +52,41 @@ namespace amod {
         return amod::SUCCESS;
     }
    
+    bool ManagerMatchRebalance::isBookingValid(amod::World *world, const amod::Booking &bk) {
+        // checks if there is a path from the source to the destination
+        if (sim_->getDrivingDistance(bk.source, bk.destination) < 0) {
+            return false;
+        }
+
+        // checks that the source is reacheable from all stations
+        if (stations_.size() > 0) {
+            // assumption is that we are using stations and that vehicles are all 
+            // initially located at the stations.
+            amod::Customer *cust = world->getCustomerPtr(bk.cust_id);
+            bool path_found = false;
+            for (auto itr = stations_.begin(); itr !=  stations_.end(); ++itr) {
+                auto *l = &(itr->second);
+
+                double dist_cost = -1;
+                if (cust->getLocationId()) {
+                    dist_cost = sim_->getDrivingDistance(l->getId(), cust->getLocationId());
+                } else {
+                    dist_cost = sim_->getDrivingDistance(l->getPosition(), cust->getPosition());
+                }
+                
+                if (dist_cost >= 0) {
+                    path_found = true;
+                    break;
+                }
+            }        
+            
+            if (!path_found) return false; //no path from any station to this point. 
+        }
+        
+        
+        return true;
+    }
+   
     amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
         Simulator *sim = Manager::getSimulator();
         if (!sim) {
@@ -98,9 +133,27 @@ namespace amod {
 				}
 				
 				// issue a booking received event
-				Event ev(amod::EVENT_BOOKING_RECEIVED, --event_id_, "BookingReceived", world_state->getCurrentTime(), {bookings_itr_->second.id, bookings_itr_->second.cust_id});
+				Event ev(amod::EVENT_BOOKING_RECEIVED, --event_id_, 
+                         "BookingReceived", world_state->getCurrentTime(), 
+                         {bookings_itr_->second.id, bookings_itr_->second.cust_id});
                 world_state->addEvent(ev);
 
+                
+                // check that booking is valid 
+                if (!isBookingValid(world_state, bookings_itr_->second)) {
+                    // issue a booking discarded event
+                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, 
+                             "BookingDiscarded", world_state->getCurrentTime(), 
+                             {bookings_itr_->second.id, NO_SUITABLE_PATH});
+                    world_state->addEvent(ev);  
+                    
+                    // erase and set to earliest booking
+                    bookings_.erase(bookings_itr_);
+                    bookings_itr_ = bookings_.begin();
+                    continue;
+                }
+                
+                
 				// ensure that the customer is available (if not, we discard the booking)
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
 				if (cust->getStatus() == CustomerStatus::FREE ||
@@ -657,14 +710,14 @@ namespace amod {
             
         }
         
-        //std::cout << "Before: " << bookings_queue_.size() << " ";
+        if (verbose_) std::cout << "Before: " << bookings_queue_.size() << " ";
         
         
         for (auto itr=to_erase.begin(); itr!= to_erase.end(); ++itr) {
             bookings_queue_.erase(*itr);
         }
         
-        //std::cout << "After: " << bookings_queue_.size() << std::endl;
+        if (verbose_) std::cout << "After: " << bookings_queue_.size() << std::endl;
         
         return amod::SUCCESS;
     }

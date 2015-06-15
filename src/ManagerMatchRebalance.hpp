@@ -37,6 +37,7 @@ namespace amod {
         enum BOOKING_DISCARD_REASONS { CUSTOMER_NOT_AT_LOCATION,
             CUSTOMER_NOT_FREE,
             SERVICE_BOOKING_FAILURE,
+            NO_SUITABLE_PATH,
         };
         
         ManagerMatchRebalance();
@@ -165,6 +166,10 @@ namespace amod {
         // gets bookings that occured during the time period and place it into the bookings_ structure
         // from the last update until the current time
         virtual amod::ReturnCode updateBookingsFromFile(double curr_time);
+        
+        // isBookingValid
+        // performs preliminary checks to ensure the booking is valid
+        virtual bool isBookingValid(amod::World *world, const amod::Booking &bk);
     };
 }
 

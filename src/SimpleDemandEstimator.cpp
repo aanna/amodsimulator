@@ -96,6 +96,7 @@ namespace amod {
 
 		if (nstations != locs_tree_.size()) {
 			std::cout << nstations << " " << bin_width_ << std::endl;
+            std::cout << "Locations tree size: " << locs_tree_.size() << std::endl;
 			throw std::runtime_error("SimpleDemandEstimator: locations tree size does not match number of stations in bookings histogram file");
 		}
 

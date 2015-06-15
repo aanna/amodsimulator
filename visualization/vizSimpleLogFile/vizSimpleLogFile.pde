@@ -85,7 +85,7 @@ void setup() {
       filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
-        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/ecbd_log.txt";
+        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/ecbd_log.txt"; //results/ecbd_log_reb1800.txt";
         //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
         mult_x = 1.0;
         mult_y = 1.0;

@@ -19,7 +19,7 @@ namespace amod {
         bookings_itr_ = bookings_.begin();
         use_bookings_file_ = false;
         
-		matching_interval_ = 60; //every 60 seconds
+		matching_interval_ = 5; //every 5 seconds
 		next_matching_time_ = matching_interval_;
         event_id_ = 0;
         
@@ -105,8 +105,7 @@ namespace amod {
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
 				if (cust->getStatus() == CustomerStatus::FREE ||
 					cust->getStatus() == CustomerStatus::WAITING_FOR_ASSIGNMENT) {
-                    
-                    
+
                     // check for teleportation
                     if (bookings_itr_->second.travel_mode == amod::Booking::TELEPORT) {
                         sim_->teleportCustomer(world_state, bookings_itr_->second.cust_id, bookings_itr_->second.destination);
@@ -146,6 +145,7 @@ namespace amod {
         if (next_matching_time_ <= world_state->getCurrentTime()) {
         	// perform matching and increase next matching time
         	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
+            //std::cout << next_matching_time_ << std::endl;
             //if (verbose_) std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
         	//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
             amod::ReturnCode rc = amod::FAILED;
@@ -264,7 +264,7 @@ namespace amod {
 
     void ManagerMatchRebalance::setRebalancingInterval(double rebalancing_interval) {
     	rebalancing_interval_ = rebalancing_interval;
-        next_rebalancing_time_ = rebalancing_interval_;
+        next_rebalancing_time_ = 0.0;
     }
 
     double ManagerMatchRebalance::getRebalancingInterval() const {
@@ -657,10 +657,14 @@ namespace amod {
             
         }
         
+        //std::cout << "Before: " << bookings_queue_.size() << " ";
+        
         
         for (auto itr=to_erase.begin(); itr!= to_erase.end(); ++itr) {
             bookings_queue_.erase(*itr);
         }
+        
+        //std::cout << "After: " << bookings_queue_.size() << std::endl;
         
         return amod::SUCCESS;
     }

@@ -208,25 +208,27 @@ namespace amod {
             		{dp.from_loc_id});
             world_state->addEvent(ev);
 
-            Customer cust = world_state->getCustomer(bookings_[booking_id].cust_id);
-
-            if (cust.isInVehicle()) {
-                ploc->removeCustomerId(cust.getId());
-                cust.setLocationId(0);
-                world_state->setCustomer(cust);
-                // trigger event
-                Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
-                        "LocationCustSizeChange", state_.getCurrentTime(),
-                        {dp.from_loc_id});
-                world_state->addEvent(ev);
-                
+            Customer cust;
+            if (booking_id) {
+                cust = world_state->getCustomer(bookings_[booking_id].cust_id);
+            
+                if (cust.isInVehicle()) {
+                    ploc->removeCustomerId(cust.getId());
+                    cust.setLocationId(0);
+                    world_state->setCustomer(cust);
+                    // trigger event
+                    Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                            "LocationCustSizeChange", state_.getCurrentTime(),
+                            {dp.from_loc_id});
+                    world_state->addEvent(ev);
+                    
+                }
             }
-        	
             
             // update internal state
             ploc = state_.getLocationPtr(dp.from_loc_id);
             ploc->removeVehicleId(veh.getId());
-            if (cust.isInVehicle()) {
+            if (booking_id && cust.isInVehicle()) {
             	ploc->removeCustomerId(cust.getId());
             }
         }
@@ -525,28 +527,36 @@ namespace amod {
                 veh.setStatus(it->second.veh_end_status);
                 
 
-                // update the location to indicate the vehicle ishere.
-                if (using_locations_) {
-                	int loc_id = it->second.to_loc_id;
-                	Location *ploc = world_state->getLocationPtr(it->second.to_loc_id);
-                	ploc->addVehicleId(veh.getId());
+                // update the location to indicate the vehicle is here.
+                if (!bid && ((veh.getStatus() == amod::Vehicle::FREE) ||
+                    (veh.getStatus() == amod::Vehicle::PARKED))
+                ) { //only if the vehicle is free
+                    int veh_id = veh.getId();
+                    Dispatch dp = dispatches_[veh_id];
+                    int loc_id = dp.to_loc_id;
+                    amod::Location *ploc = world_state->getLocationPtr(loc_id);
+                    if (ploc == nullptr) {
+                        if (verbose_) std::cout << "Location " << loc_id << " is nullptr!" << std::endl;
+                        throw std::runtime_error("AMODSimulatorSimMobility: Location Pointer is nullptr");
+                    }
+                    
+                    ploc->addVehicleId(veh_id);
                     veh.setLocationId(loc_id);
-                    Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
-                    		"LocationVehSizeChange", state_.getCurrentTime(),
-                    		{loc_id});
-                    world_state->addEvent(ev);
-                }
-                
-                // update the customer and trigger event if necessary
-                if (using_locations_ && cust.isInVehicle()) {
-                    int loc_id = it->second.to_loc_id;
-                    Location *ploc = world_state->getLocationPtr(it->second.to_loc_id);
-                    ploc->addCustomerId(cust_id);
-                    cust.setLocationId(loc_id);
-                    Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
-                            "LocationCustSizeChange", state_.getCurrentTime(),
+                    amod::Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
+                            "LocationVehSizeChange", state_.getCurrentTime(),
                             {loc_id});
                     world_state->addEvent(ev);
+
+                    // update the customer and trigger event if necessary
+                    if (cust.getId() && cust.isInVehicle()) {
+                        amod::Location *ploc = world_state->getLocationPtr(loc_id);
+                        ploc->addCustomerId(cust_id);
+                        cust.setLocationId(loc_id);
+                        amod::Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                                "LocationCustSizeChange", state_.getCurrentTime(),
+                                {loc_id});
+                        world_state->addEvent(ev);
+                    }
                 }
                 
                 // update the world state
@@ -672,39 +682,61 @@ namespace amod {
         while (it != dropoffs_.end()) {
             if (it->first <= state_.getCurrentTime()) {
                 // create dropoff event
-                if (getVerbose()) std::cout << it->second.veh_id << " has dropped off " << it->second.cust_id << " at time " << it->first << std::endl;
-                int bid = it->second.booking_id;
+                      if (verbose_) if (verbose_) std::cout  << it->second.veh_id << " has dropped off " << it->second.cust_id << " at time " << it->first << std::endl;
+                      int loc_id = it->second.loc_id;
+                      int bid = it->second.booking_id;
+                      std::vector<int> entity_ids = {it->second.veh_id, it->second.cust_id};
+                      if (bid) entity_ids.push_back(bid);
+                      amod::Event ev(amod::EVENT_DROPOFF, ++event_id_, "CustomerDropoff", it->first, entity_ids);
+                      world_state->addEvent(ev);
 
-                std::vector<int> entity_ids = {it->second.veh_id, it->second.cust_id};
-                if (bid) {
-                	entity_ids.push_back(bid);
-                }
-                Event ev(amod::EVENT_DROPOFF, ++event_id_, "CustomerDropoff", it->first, entity_ids);
-                world_state->addEvent(ev);
+                      amod::Vehicle *veh = world_state->getVehiclePtr(it->second.veh_id);
+                      veh->clearCustomerId();
+                      veh->setStatus(it->second.veh_end_status);
+                      veh->setLocationId(it->second.loc_id);
+                      
+                      amod::Customer *cust = world_state->getCustomerPtr(it->second.cust_id);
+                      cust->clearAssignedVehicleId();
+                      cust->setStatus(amod::CustomerStatus::FREE);
+                      cust->setLocationId(it->second.loc_id);
+
+                      // if is part of a booking, clear it since the vehicle has fropped off the custmer
+
+                      if (bid) {
+                          bookings_.erase(bid);
+                      }
+
+                      // erase item
+                      dropoffs_.erase(it);
+                      it = dropoffs_.begin();
+                      
+                      // update locations
+                      // update the location to indicate the vehicle is here.
+                        {
+                            
+                            amod::Location *ploc = world_state->getLocationPtr(loc_id);
+                            ploc->addVehicleId(veh->getId());
+                            veh->setLocationId(loc_id);
+                            amod::Event ev(amod::EVENT_LOCATION_VEHS_SIZE_CHANGE, ++event_id_,
+                                "LocationVehSizeChange", state_.getCurrentTime(),
+                                {loc_id});
+                            world_state->addEvent(ev);
+
+                            // update the customer and trigger event if necessary
+                            if (cust && cust->isInVehicle()) {
+                                amod::Location *ploc = world_state->getLocationPtr(loc_id);
+                                ploc->addCustomerId(cust->getId());
+                                cust->setLocationId(loc_id);
+                                amod::Event ev(amod::EVENT_LOCATION_CUSTS_SIZE_CHANGE, ++event_id_,
+                                    "LocationCustSizeChange", state_.getCurrentTime(),
+                                    {loc_id});
+                                world_state->addEvent(ev);
+                            }
+                        }
+                      
                 
-                Vehicle veh = world_state->getVehicle(it->second.veh_id);
-                veh.clearCustomerId();
-                veh.setStatus(it->second.veh_end_status);
                 
-                Customer cust = world_state->getCustomer(it->second.cust_id);
-                cust.clearAssignedVehicleId();
-                cust.setStatus(CustomerStatus::FREE);
-                cust.setLocationId(it->second.loc_id);
                 
-                // if is part of a booking, clear it since the vehicle has fropped off the custmer
-                if (bid) {
-                    bookings_.erase(bid);
-                }
-                
-                // update the external world and internal state
-                world_state->setCustomer(cust);
-                world_state->setVehicle(veh);
-                state_.setCustomer(cust);
-                state_.setVehicle(veh);
-                
-                // erase item
-                dropoffs_.erase(it);
-                it = dropoffs_.begin();
             } else {
                 break;
             }

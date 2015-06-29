@@ -62,7 +62,9 @@ namespace amod {
         if (stations_.size() > 0) {
             // assumption is that we are using stations and that vehicles are all 
             // initially located at the stations.
+            
             amod::Customer *cust = world->getCustomerPtr(bk.cust_id);
+            if (cust == nullptr) return false;
             bool path_found = false;
             for (auto itr = stations_.begin(); itr !=  stations_.end(); ++itr) {
                 auto *l = &(itr->second);

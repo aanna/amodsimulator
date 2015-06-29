@@ -1,0 +1,66 @@
+<amod>
+	<verbose>false</> 
+	<num_vehicles>5000</> <!-- how many autonomous vehicles -->
+	<customer_cfg_filename>ecbd_customers.txt</>
+	<location_cfg_filename>ecbd_nodes.txt</>
+	<station_cfg_filename>ecbd_stations.txt</>
+	<bookings_filename>ecbd_sorted_bookings.txt</>
+
+	<!-- Simulator params -->
+	<simulator_params> 
+		<start_time>0</start_time> <!-- start time from 12 midnight in seconds -->
+		<max_time>90000</max_time> <!-- max simulation time from 12 midnight in seconds -->
+		<resolution>5.0</resolution>
+
+		<pickup_distribution>
+			<mean>60.0</mean>
+			<std>20.0</std>
+			<min>10.0</min>
+			<max>180.0</max>
+		</pickup_distribution>
+
+		<teleport_distribution>
+			<mean>60.0</mean>
+			<std>20.0</std>
+			<min>0.0</min>
+			<max>0.0</max>
+		</teleport_distribution>
+
+		<dropoff_distribution>
+			<mean>60.0</mean>
+			<std>20.0</std>
+			<min>10.0</min>
+			<max>60.0</max>
+		</dropoff_distribution>
+
+		<speed_distribution>
+			<mean>20.0</mean>
+			<std>1.0</std>
+			<min>17.0</min>
+			<max>22.0</max>
+		</speed_distribution>
+
+	</simulator_params>
+
+
+	<!-- Matching params -->
+	<matching_algorithm>greedy</> <!-- Can be greedy or assignment -->
+	
+	<assignment_params> <!-- only used with assignment algorithm-->
+		<distance_cost_factor>1.0</>
+		<waiting_cost_factor>1.0</>
+		<matching_interval>1.0</> <!--matching interval in seconds-->
+	</assignment_params>
+
+	<!-- Rebalancing params -->
+	<rebalancing_params>
+		<demand_estimation_method>file</> <!-- oracle or file -->
+		<rebalancing_interval>3600</> <!-- how often to rebalance in seconds -->
+		<demand_estimation_file>ecbd_pred_demand_3600.txt</> <!-- where is the demand estimation data if using predictive -->
+	</rebalancing_params>
+
+	<!-- Logging params -->	
+	<log_filename>basic_ecbd_log.txt</> <!-- where to log the events to? -->
+	<move_event_log_interval>10000000.0</> <!-- how often to log move events in seconds -->
+
+</amod>

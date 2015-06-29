@@ -11,7 +11,7 @@ boolean ismac = false;
 boolean issimmob = true;
 boolean isfullsg = false;
 float flipy = 1;
-float time_window = 20; // 1 second
+float time_window = 30; // 1 second
 int frame_rate = 50;
 boolean save_frame = false;
 float day_start_time = 3*60*60;
@@ -85,7 +85,9 @@ void setup() {
       filename = "/Users/haroldsoh/Development/amodbase/mrpLog.txt";
     }
     if (issimmob) {
-        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/ecbd_log.txt"; //results/ecbd_log_reb1800.txt";
+        filename = "/home/haroldsoh/Development/simmobility/dev/Basic/cbd_log.txt"; 
+        //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/amodbase/basic_ecbd_log.txt";
+        
         //filename = "/home/haroldsoh/Development/simmobility/dev/Basic/shared/entities/amodController/AMODBase/smt_spLog.txt";
         mult_x = 1.0;
         mult_y = 1.0;

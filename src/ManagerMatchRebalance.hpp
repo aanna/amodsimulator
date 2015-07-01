@@ -104,6 +104,15 @@ namespace amod {
         virtual void setDemandEstimator(amod::DemandEstimator *sde);
        
 
+        // useCurrentQueueForEstimation
+        virtual void useCurrentQueueForEstimation(bool use_queue=true) {
+            use_current_queue_ = use_queue;
+        }
+        
+        virtual bool isUseCurrentQueueForEstimation() {
+            return use_current_queue_;
+        }
+        
     private:
         std::multimap<double, Booking> bookings_;
         std::multimap<double, Booking>::iterator bookings_itr_;
@@ -131,6 +140,7 @@ namespace amod {
         std::map<int, amod::Location> stations_; //needs to be a map to ensure ordered lookup
         std::unordered_map<int, int> veh_id_to_station_id_;
         kdt::KDTree<amod::Location> stations_tree_; //for fast NN lookup
+        bool use_current_queue_;
 
         double rebalancing_interval_;
         double next_rebalancing_time_;

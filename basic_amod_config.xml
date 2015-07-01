@@ -9,7 +9,7 @@
 	<!-- Simulator params -->
 	<simulator_params> 
 		<start_time>0</start_time> <!-- start time from 12 midnight in seconds -->
-		<max_time>90000</max_time> <!-- max simulation time from 12 midnight in seconds -->
+		<max_time>20000</max_time> <!-- max simulation time from 12 midnight in seconds -->
 		<resolution>5.0</resolution>
 
 		<pickup_distribution>
@@ -54,7 +54,7 @@
 
 	<!-- Rebalancing params -->
 	<rebalancing_params>
-		<demand_estimation_method>file</> <!-- oracle or file -->
+		<demand_estimation_method>queue</> <!-- oracle or file or queue -->
 		<rebalancing_interval>3600</> <!-- how often to rebalance in seconds -->
 		<demand_estimation_file>ecbd_pred_demand_3600.txt</> <!-- where is the demand estimation data if using predictive -->
 	</rebalancing_params>

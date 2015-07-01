@@ -25,7 +25,7 @@ namespace amod {
         
         rebalancing_interval_ = 0;
         next_rebalancing_time_ = 0;
-
+        use_current_queue_ = false;
         return;
     }
     
@@ -800,12 +800,23 @@ namespace amod {
 			int stid =  sitr->second.getId();
             auto curr_time = world_state->getCurrentTime();
             auto pred = dem_est_->predict(stid, *world_state, curr_time);
-			int mean_pred = ceil(pred.first);
+			
+            
+            int mean_pred;
+            
+            if (use_current_queue_) {
+                mean_pred = sitr->second.getNumCustomers();
+            } else {
+                mean_pred = ceil(pred.first);
+            }
 			/*int mean_pred = ceil(std::max(
 					(double) dem_est_->predict(sitr->second.getId(), *world_state, world_state->getCurrentTime()).first,
 					(double) sitr->second.getNumCustomers()));
 			*/
             if (verbose_) std::cout << "Mean prediction: " << mean_pred;
+            
+           
+            
 			int cexi = mean_pred - sitr->second.getNumVehicles();
             if (verbose_) std::cout << "cexi: " << cexi;
             if (verbose_) std::cout << "vehs: " << sitr->second.getNumVehicles();

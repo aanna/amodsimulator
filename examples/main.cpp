@@ -159,12 +159,17 @@ public:
         std::transform(demand_est_method_str.begin(), demand_est_method_str.end(), demand_est_method_str.begin(), ::toupper);
         if (demand_est_method_str == "ORACLE") {
             std::cout << "Demand Oracle is Loading Bookings from " << bookings_filename << std::endl;
+            match_manager->useCurrentQueueForEstimation(false);
             sde->loadBookingsFromFile(bookings_filename); 
         } else if (demand_est_method_str == "FILE") {
             std::string demand_hist_filename = acfg_.get("amod.rebalancing_params.demand_estimation_file", default_string);
             std::cout << "Demand Prediction is loading bookings histogram from " << demand_hist_filename << " ... ";
             sde->loadBookingsHistFromFile(demand_hist_filename);
+            match_manager->useCurrentQueueForEstimation(false);
             std::cout << "Done!" << std::endl;
+        } else if (demand_est_method_str == "QUEUE") {
+            std::cout << "Rebalancing using current queue only" << std::endl;
+            match_manager->useCurrentQueueForEstimation(true);
         } else {
             std::cout << "No such demand estimation method" << std::endl;
             throw std::runtime_error("No such assignment method supported! Check your amod_config xml file");

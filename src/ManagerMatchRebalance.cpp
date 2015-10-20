@@ -600,6 +600,196 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+    amod::ReturnCode ManagerMatchRebalance::solveMatchingMinimizing(amod::World *world_state) {
+    	if (!world_state) {
+    		throw std::runtime_error("solveMatching: world_state is nullptr!");
+    	}
+
+    	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
+    	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
+
+
+    	// create variables for solving lp
+    	long nbookings = bookings_queue_.size();
+    	long nvehs = available_vehs_.size();
+    	int nvars = nbookings*nvehs;
+
+
+    	// set up the problem
+        glp_prob *lp;
+        lp = glp_create_prob();
+        glp_set_prob_name(lp, "matching");
+        glp_set_obj_dir(lp, GLP_MAX);
+        glp_add_cols(lp, nvars);
+
+        // add the structural variables (decision variables)
+		std::unordered_map<int, std::pair<int,int>> index_to_ids;
+
+		int k = 1;
+		for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
+			// loop through bookings to get bookings that can be served by this vehicle
+			for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
+				// store the indices so we can find them again
+				index_to_ids[k] = {bitr->first, *vitr};
+
+				// get cost
+				Vehicle *veh = world_state->getVehiclePtr(*vitr);
+				Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
+
+				double total_invert_cost = 0;
+                double dist = 0;
+                if (veh->getLocationId() && cust->getLocationId()) {
+                    dist = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
+                } else {
+                    dist = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+                }
+
+				double dist_cost = distance_cost_factor_*(dist);
+				if (dist_cost < 0) {
+					// this vehicle cannot service this booking
+					total_invert_cost = -1.0;
+				} else {
+					double time_cost = waiting_time_cost_factor_*(std::max(0.0, world_state->getCurrentTime() - bitr->second.booking_time));
+					total_invert_cost = 1.0/(1.0 + dist_cost + time_cost);
+				}
+
+				// add this variable to the solver
+				std::stringstream ss;
+				ss << "x " << bitr->first << " " << *vitr;
+				const std::string& tmp = ss.str();
+				const char* cstr = tmp.c_str();
+				glp_set_col_name(lp, k, cstr);
+				//glp_set_col_kind(lp, k, GLP_BV); // use this if you want to run this as a MIP
+				glp_set_col_bnds(lp, k, GLP_DB, 0.0, 1.0);
+				glp_set_obj_coef(lp, k, total_invert_cost);
+
+				// increment index
+				++k;
+			}
+		}
+		// setup the constraints
+		k = 1;
+		int ncons = nbookings + nvehs;
+		int nelems = nbookings*nvehs*2;
+        int *ia = new int[nelems + 1];
+        int  *ja = new int[nelems + 1]; // +1 because glpk starts indexing at 1 (why? I don't know)
+        double *ar = new double[nelems + 1];
+
+
+		glp_add_rows(lp, ncons);
+		for (int i=1; i<=nvehs; ++i) {
+			std::stringstream ss;
+			ss << "veh " << i;
+			const std::string& tmp = ss.str();
+			const char* cstr = tmp.c_str();
+			glp_set_row_name(lp, i, cstr);
+			glp_set_row_bnds(lp, i, GLP_DB, 0.0, 1.0);
+
+			for (int j=1; j<=nbookings; ++j) {
+				ia[k] = i;
+				ja[k] = (i-1)*nbookings + j;
+				ar[k] = 1.0;
+				++k;
+			}
+		}
+
+		for (int j=1; j<=nbookings; ++j) {
+			std::stringstream ss;
+			ss << "booking " << j;
+			const std::string& tmp = ss.str();
+			const char* cstr = tmp.c_str();
+			glp_set_row_name(lp, nvehs+j, cstr);
+			glp_set_row_bnds(lp, nvehs+j, GLP_DB, 0.0, 1.0);
+
+			for (int i=1; i<=nvehs; ++i) {
+				ia[k] = nvehs+j;
+				ja[k] = (i-1)*nbookings + j;
+				ar[k] = 1.0;
+				++k;
+			}
+		}
+
+		// if (verbose_) std::cout << k << " " << ncons << std::endl;
+
+		// load the matrix
+		// if (verbose_) std::cout << "Loading the matrix" << std::endl;
+		glp_load_matrix(lp, k-1, ia, ja, ar);
+
+		// solve the problem
+		// if (verbose_) std::cout << "Solving the problem" << std::endl;
+
+		// integer program
+		/*
+		glp_iocp parm;
+		glp_init_iocp(&parm);
+		parm.presolve = GLP_ON;
+		glp_intopt(lp, &parm);
+		*/
+		// linear program
+        if (!verbose_) glp_term_out(GLP_OFF); // suppress terminal output
+		glp_simplex(lp, nullptr);
+
+		// print out the objective value
+		//double z = glp_mip_obj_val(lp);
+		//if (verbose_) std::cout << z << std::endl;
+
+		// dispatch the vehicles
+		for (int k=1; k<=nvars; ++k) {
+			//int opt_x = glp_mip_col_val(lp, k); //to get result for integer program
+			int opt_x = glp_get_col_prim(lp,k);
+			if(opt_x > 0){
+
+				// vehicle is assigned to this booking
+				auto ids = index_to_ids[k];
+				int bid = ids.first;
+				int veh_id = ids.second;
+
+				bookings_queue_[bid].veh_id = veh_id;
+				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
+				if (rc!= amod::SUCCESS) {
+					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
+                    Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, --event_id_, "BookingDiscarded", world_state->getCurrentTime(), {bid, SERVICE_BOOKING_FAILURE});
+                    world_state->addEvent(ev);
+				} else {
+					if (verbose_) std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
+					// mark the car as no longer available
+					available_vehs_.erase(veh_id);
+
+					// change station ownership of vehicle
+                    if (stations_.size() > 0) {
+                        int st_id = veh_id_to_station_id_[veh_id]; //old station
+                        stations_[st_id].removeVehicleId(veh_id);
+                        int new_st_id = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
+                        stations_[new_st_id].addVehicleId(veh_id);
+                        veh_id_to_station_id_[veh_id] = new_st_id;
+
+                        // remove this customer from the station queue
+                        stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
+                    }
+
+                    // issue a booking serviced event
+                    Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
+                    world_state->addEvent(ev);
+
+				}
+
+				// erase the booking
+				bookings_queue_.erase(bid);
+			}
+		}
+
+		//double x1 = glp_mip_col_val(mip, 1);
+        // housekeeping; clear up all the dynamically allocated memory
+        glp_delete_prob(lp);
+        glp_free_env();
+
+        delete [] ia;
+        delete [] ja;
+        delete [] ar;
+
+    	return amod::SUCCESS;
+    }
+
     amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_state) {
         
         if (!world_state) {

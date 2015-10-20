@@ -156,6 +156,7 @@ namespace amod {
         // solveMatching
         // solves the assignment problem and dispatches vehicles to serve bookings
         virtual amod::ReturnCode solveMatching(amod::World *world_state);
+        virtual amod::ReturnCode solveMatchingMinimizing(amod::World *world_state);
         
         // solves the assignment problem in a greedy FIFO manner
         virtual amod::ReturnCode solveMatchingGreedy(amod::World *world_state);

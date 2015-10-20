@@ -3,7 +3,7 @@
 	<num_vehicles>5000</> <!-- how many autonomous vehicles -->
 	<customer_cfg_filename>ecbd_customers.txt</>
 	<location_cfg_filename>ecbd_nodes.txt</>
-	<station_cfg_filename>ecbd_stations.txt</>
+	<station_cfg_filename>stations_cbd10.txt</>
 	<bookings_filename>ecbd_sorted_bookings.txt</>
 
 	<!-- Simulator params -->

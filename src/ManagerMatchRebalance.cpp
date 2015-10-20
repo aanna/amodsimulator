@@ -600,6 +600,12 @@ namespace amod {
         return amod::SUCCESS;
     }
     
+    amod::ReturnCode ManagerMatchRebalance::solveMatchingMinimizing(amod::World *world_state) {
+
+
+    	return amod::SUCCESS;
+    }
+
     amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_state) {
         
         if (!world_state) {

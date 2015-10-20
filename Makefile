@@ -1,5 +1,5 @@
 CC:=g++
-CC_FLAGS:=-O2 -std=c++11 -Isrc/ 
+CC_FLAGS:=-g -std=c++11 -Isrc/ 
 LD_FLAGS:=
 #-L/opt/gurobi602/linux64/lib/ 
 CPP_FILES := $(wildcard src/*.cpp)

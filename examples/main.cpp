@@ -6,11 +6,11 @@
 #include <unordered_map>
 
 
-#include "Amod.hpp"
-#include "SimulatorBasic.hpp"
-#include "ManagerBasic.hpp"
-#include "ManagerMatchRebalance.hpp"
-#include "SimpleDemandEstimator.hpp"
+#include "../src/Amod.hpp"
+#include "../src/SimulatorBasic.hpp"
+#include "../src/ManagerBasic.hpp"
+#include "../src/ManagerMatchRebalance.hpp"
+#include "../src/SimpleDemandEstimator.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>

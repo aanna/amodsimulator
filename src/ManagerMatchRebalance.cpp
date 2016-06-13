@@ -11,6 +11,17 @@
 //#define USE_GUROBI
 
 namespace amod {
+
+double ONE_KM = 1000.0;
+
+	amod::box getQueryBox(const amod::Position& vehPos, double offset) {
+	amod::point lowerLeft(vehPos.x - offset, vehPos.y - offset);
+	amod::point upperRight(vehPos.x + offset, vehPos.y + offset);
+
+	return amod::box(lowerLeft, upperRight);
+}
+
+
 ManagerMatchRebalance::ManagerMatchRebalance() {
 	match_method = ASSIGNMENT;
 	distance_cost_factor_ = 1;
@@ -850,102 +861,113 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 	long nbookings = bookings_queue_.size();
 	long nvehs = available_vehs_.size();
 
+
+	std::vector<std::pair<box, int>> vehsToBeAdded;
+
+	for(auto itr : available_vehs_)
+	{
+		Vehicle* veh = world_state->getVehiclePtr(itr);
+
+		amod::point location(veh->getPosition().x, veh->getPosition().y);
+		amod::box vehPos(location, location);
+		vehsToBeAdded.push_back(std::make_pair(vehPos, itr));
+	}
+
+	bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree(vehsToBeAdded.begin(), vehsToBeAdded.end());
+
+	std::set<int> usedVehicles;
 	// for each booking, find closest vehicle
 	std::vector<int> to_erase;
+
 	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
 		double min_dist_cost = std::numeric_limits<int>::max();
 		Vehicle *closest_veh = nullptr;
 		Location *closest_loc = nullptr;
 		Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
 
-		// either go through available vehicles or node locations (whichever is smaller)
-		if (available_vehs_.size() < world_state->getNumLocations()) {
-			//if (verbose_) std::cout << "Looping through vehicles" << std::endl;
-			for (auto vitr = available_vehs_.begin(); vitr != available_vehs_.end(); ++vitr){
+		double offset = ONE_KM * 1.5;
+		int iterCount = 0;
+
+		while(iterCount++ < 3)
+		{
+			std::vector<std::pair<box, int> > result;
+
+			amod::box queryBox = getQueryBox(cust->getPosition(), offset);
+
+			vehTree.query(bgi::intersects(queryBox), std::back_inserter(result));
+
+			std::vector<int> availableVehsInRect;
+
+			for(auto item : result)
+			{
+				availableVehsInRect.push_back(item.second);
+			}
+
+			//if (availableVehsInRect.size() < worldState->getNumLocations()) {
+			// go through available vehicles in rectangle
+			//if (verbose) std::cout << "Looping through vehicles" << std::endl;
+			for (auto vitr = availableVehsInRect.begin(); vitr != availableVehsInRect.end(); ++vitr){
+
+				// check if the vehicle was assigned to the previous booking.
+				// if yes, then skip it. This is cheaper operation than updating the tree.
+				if(usedVehicles.find(*vitr) != usedVehicles.end())
+				{
+					continue;
+				}
+
 				// get cost
 				Vehicle *veh = world_state->getVehiclePtr(*vitr);
-				double dist_cost = -1;
+				double distCost = -1;
 				if (veh->getLocationId() && cust->getLocationId()) {
-					dist_cost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
+					distCost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
 				} else {
-					dist_cost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+					distCost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
 				}
-				if (dist_cost >= 0 && min_dist_cost > dist_cost) {
+				if (distCost >= 0 && min_dist_cost > distCost) {
 					closest_veh = veh;
-					min_dist_cost = dist_cost;
+					min_dist_cost = distCost;
 				}
 			}
-		} else {
-			//if (verbose_) std::cout << "Looping through locations" << std::endl;
-			// check for other locations
-			std::unordered_map<int, Location>::const_iterator lbitr, leitr;
-			world_state->getLocations(&lbitr, &leitr);
-			for (auto itr = lbitr; itr != leitr; ++itr) {
-				auto *l = &(itr->second);
-				if (l->getNumVehicles() > 0) {
 
-					double dist_cost = -1;
-					if (cust->getLocationId()) {
-						dist_cost = sim_->getDrivingDistance(l->getId(), cust->getLocationId());
-					} else {
-						dist_cost = sim_->getDrivingDistance(l->getPosition(), cust->getPosition());
+			if (closest_veh != nullptr) {
+				// assign vehicle to booking
+				int vehId = closest_veh->getId();
+				int bid = bitr->second.id;
+				bookings_queue_[bid].veh_id = vehId;
+				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
+				if (rc!= amod::SUCCESS) {
+					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
+				} else {
+					if (verbose_) std::cout << "Assigned " << vehId << " to booking " << bid << std::endl;
+					// mark the car as no longer available
+					available_vehs_.erase(vehId);
+					usedVehicles.insert(vehId);
+
+					// change station ownership of vehicle
+					if (stations_.size() > 0) {
+						int stId = veh_id_to_station_id_[vehId]; //old station
+						stations_[stId].removeVehicleId(vehId);
+						int netStId = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
+						stations_[netStId].addVehicleId(vehId);
+						veh_id_to_station_id_[vehId] = netStId;
+
+						// remove this customer from the station queue
+						stations_[stId].removeCustomerId(bookings_queue_[bid].cust_id);
 					}
 
-					if (dist_cost >=0 && min_dist_cost > dist_cost) {
-						closest_loc = world_state->getLocationPtr(l->getId());
-						min_dist_cost = dist_cost;
-					}
 				}
-			}
 
-			if (closest_loc != nullptr) {
-				//get a vehicle
-				std::unordered_set<int>::const_iterator vbitr, veitr;
-				closest_loc->getVehicleIds(&vbitr, &veitr);
-				if (vbitr != veitr) {
-					closest_veh = world_state->getVehiclePtr(*vbitr);
-					//                         if (verbose_) {
-					//                             std::cout << closest_veh->getPosition().x << " " << closest_veh->getPosition().y << " : " <<
-					//                             closest_loc->getPosition().x << " " << closest_loc->getPosition().y << std::endl;
-					//                         }
-				}
+				// issue a booking serviced event
+				Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
+				world_state->addEvent(ev);
+
+				// mark booking to be erased
+				to_erase.emplace_back(bid);
+
+				break;
 			}
+			offset += ONE_KM;
 		}
-		if (closest_veh != nullptr) {
-			// assign vehicle to booking
-			int veh_id = closest_veh->getId();
-			int bid = bitr->second.id;
-			bookings_queue_[bid].veh_id = veh_id;
-			amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
-			if (rc!= amod::SUCCESS) {
-				if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
-			} else {
-				if (verbose_) std::cout << "Assigned " << veh_id << " to booking " << bid << std::endl;
-				// mark the car as no longer available
-				available_vehs_.erase(veh_id);
-
-				// change station ownership of vehicle
-				if (stations_.size() > 0) {
-					int st_id = veh_id_to_station_id_[veh_id]; //old station
-					stations_[st_id].removeVehicleId(veh_id);
-					int new_st_id = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
-					stations_[new_st_id].addVehicleId(veh_id);
-					veh_id_to_station_id_[veh_id] = new_st_id;
-
-					// remove this customer from the station queue
-					stations_[st_id].removeCustomerId(bookings_queue_[bid].cust_id);
-				}
-
-			}
-
-			// issue a booking serviced event
-			Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
-			world_state->addEvent(ev);
-
-			// mark booking to be erased
-			to_erase.emplace_back(bid);
-		}
-
 	}
 
 	if (verbose_) std::cout << "Before: " << bookings_queue_.size() << " ";

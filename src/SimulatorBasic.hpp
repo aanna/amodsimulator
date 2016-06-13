@@ -15,6 +15,7 @@
 #include "KDTree.hpp"
 
 #include <cmath>
+#include <mutex>
 #include <unordered_map>
 #include <random>
 #include <iostream>
@@ -155,6 +156,10 @@ private:
     // KDTree to store locations
     kdt::KDTree<amod::Location> loc_tree_;
     bool using_locations_;
+
+	/// arrivals vector to store arrivals and time of arrival
+	std::mutex arrivalsMtx;
+	std::vector<std::pair<int, double>> arrivals;
 
     // objects for random number generation
     std::default_random_engine eng;

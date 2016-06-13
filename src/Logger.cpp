@@ -2,7 +2,7 @@
  * Logger.cpp
  *
  *  Created on: Mar 23, 2015
- *      Author: haroldsoh
+ *      Author: Kasia
  */
 
 #include "Logger.hpp"
@@ -11,8 +11,8 @@ namespace amod {
 
 Logger::Logger() {
 	// TODO Auto-generated constructor stub
-    move_event_interval_ = 0;
-    next_move_event_log_time_ = 0;
+	moveEvntInterval = 0;
+	nextMoveEvntLogTime = 0;
 }
 
 Logger::Logger(std::string filename) {
@@ -20,86 +20,86 @@ Logger::Logger(std::string filename) {
 }
 
 Logger::~Logger() {
-    if (fout_.is_open()) {
-        fout_.close();
+    if (logFile.is_open()) {
+    	logFile.close();
     }
 }
 
 amod::ReturnCode Logger::openLogFile(std::string filename) {
-    fout_.open(filename.c_str());
-    if (!fout_) return amod::CANNOT_OPEN_LOGFILE;
-    fout_.precision(10);
+	logFile.open(filename.c_str());
+    if (!logFile) return amod::CANNOT_OPEN_LOGFILE;
+    logFile.precision(10);
     return amod::SUCCESS;
 }
 
 amod::ReturnCode Logger::closeLogFile() {
-    fout_.close();
+	logFile.close();
     return amod::SUCCESS;
 }
 
-amod::ReturnCode Logger::logEvents(amod::World *world_state, bool output_move_events, bool clear_events) {
+amod::ReturnCode Logger::logEvents(amod::World *worldState, bool outMoveEvnts, bool clear_events) {
     
     // first version, log events differently depending on type of events
     // future version would streamline this
     std::vector<Event> events;
-    world_state->getEvents(&events);
+    worldState->getEvents(&events);
     
     // check if we output move events now
-    if (output_move_events) {
-        output_move_events = output_move_events && (world_state->getCurrentTime() > next_move_event_log_time_);
-        if (output_move_events) {
-            next_move_event_log_time_ = world_state->getCurrentTime() + move_event_interval_;
+    if (outMoveEvnts) {
+        outMoveEvnts = outMoveEvnts && (worldState->getCurrentTime() > nextMoveEvntLogTime);
+        if (outMoveEvnts) {
+            nextMoveEvntLogTime = worldState->getCurrentTime() + moveEvntInterval;
         }
     }
     
     // respond to events
     for (auto e:events) {
-        if (fout_.is_open()) {
-            if ((output_move_events && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-                fout_ << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
+        if (logFile.is_open()) {
+            if ((outMoveEvnts && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                logFile << e.t << " Event " << e.id << " " << e.type << " " << e.name << " Entities: ";
                 for (auto ent: e.entity_ids) {
-                    fout_ << ent << ",";
+                    logFile << ent << ",";
                 }
-                fout_ << " ";
+                logFile << " ";
             }
         }
         
         if (e.type == EVENT_MOVE || e.type == EVENT_ARRIVAL || e.type == EVENT_PICKUP || e.type == EVENT_DROPOFF) {
-            amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
+            amod::Vehicle veh = worldState->getVehicle(e.entity_ids[0]);
             
-            if (fout_.is_open()) {
-                if ((output_move_events && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-                    fout_ << veh.getPosition().x << " " << veh.getPosition().y << " " << veh.getStatus();
+            if (logFile.is_open()) {
+                if ((outMoveEvnts && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+                    logFile << veh.getPosition().x << " " << veh.getPosition().y << " " << veh.getStatus();
                 }
             }
         }
         
         // teleportation event
         if (e.type == EVENT_TELEPORT || e.type == EVENT_TELEPORT_ARRIVAL) {
-            amod::Customer cust = world_state->getCustomer(e.entity_ids[0]);
-            if (fout_.is_open()) fout_ << cust.getPosition().x << " " << cust.getPosition().y << " " << cust.getStatus();
+            amod::Customer cust = worldState->getCustomer(e.entity_ids[0]);
+            if (logFile.is_open()) logFile << cust.getPosition().x << " " << cust.getPosition().y << " " << cust.getStatus();
         }
 
         // output the location sizes
         if (e.type == EVENT_LOCATION_CUSTS_SIZE_CHANGE ||
                 e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE) {
-            amod::Location * ploc = world_state->getLocationPtr(e.entity_ids[0]);
+            amod::Location * ploc = worldState->getLocationPtr(e.entity_ids[0]);
             int curr_size = (e.type == EVENT_LOCATION_VEHS_SIZE_CHANGE)? ploc->getNumVehicles(): ploc->getNumCustomers();
-            if (fout_.is_open()) fout_ << ploc->getPosition().x << " " << ploc->getPosition().y << " " << curr_size;
+            if (logFile.is_open()) logFile << ploc->getPosition().x << " " << ploc->getPosition().y << " " << curr_size;
         }
         
         if (e.type == EVENT_DISPATCH) {
-             amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
-            if (fout_.is_open()) fout_ << veh.getStatus();
+             amod::Vehicle veh = worldState->getVehicle(e.entity_ids[0]);
+            if (logFile.is_open()) logFile << veh.getStatus();
         }
         
-        if ((output_move_events && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
-            if (fout_.is_open()) fout_ << std::endl;
+        if ((outMoveEvnts && e.type == EVENT_MOVE) || (e.type != EVENT_MOVE)) {
+            if (logFile.is_open()) logFile << std::endl;
         }
 
     }
     // clear events
-    if (clear_events) world_state->clearEvents();
+    if (clear_events) worldState->clearEvents();
     
     return amod::SUCCESS;
 }

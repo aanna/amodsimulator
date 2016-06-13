@@ -2,7 +2,7 @@
  * Logger.h
  *
  *  Created on: Mar 23, 2015
- *      Author: haroldsoh
+ *      Author: haroldsoh, Kasia
  */
 
 #ifndef Logger_H_
@@ -33,18 +33,23 @@ public:
     
     virtual void setMoveEventLogInterval(double interval) {
         if (interval >= 0) {
-            move_event_interval_ = interval;
+        	moveEvntInterval = interval;
         } else {
             throw std::runtime_error("Interval cannnot be negative");
         }
     }
     
-    virtual double getMoveEventLogInterval() { return move_event_interval_; };
+    virtual double getMoveEventLogInterval() { return moveEvntInterval; };
     
 private:
-    std::ofstream fout_;
-    double move_event_interval_;
-    double next_move_event_log_time_;
+    /// file where the logging is done
+    std::ofstream logFile;
+
+    /// move event interval
+    double moveEvntInterval;
+
+    /// next move event log time
+    double nextMoveEvntLogTime;
 };
 
 } /* namespace AMOD */

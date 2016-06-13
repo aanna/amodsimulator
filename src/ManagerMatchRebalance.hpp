@@ -15,7 +15,7 @@
 #include "Event.hpp"
 #include "KDTree.hpp"
 #include "SimpleDemandEstimator.hpp"
-//#include "EmptyTrip.hpp"
+#include "EmptyTrip.hpp"
 
 #include <map>
 #include <set>
@@ -96,6 +96,17 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	 */
     	virtual amod::ReturnCode loadRebalancingFromFile(const std::string& filename);
 
+    	/**
+    	 * updateRebalancingCounts
+    	 * gets rebalancing counts that occured during the time period and place it into the rebalancing_ structure
+    	 * from the last update until the current time
+    	 * @param currTime current time
+    	 * @return if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    	 * one of the amod::ReturnCode error codes.
+    	 */
+
+    	virtual amod::ReturnCode updateRebalancingCounts(double currTime);
+
         // setMatchingMethod
         // sets the matching method to use
         // either ManagerMatchRebalance::ASSIGNMENT or ManagerMatchRebalance::GREEDY
@@ -141,7 +152,12 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         
     private:
         std::multimap<double, Booking> bookings_;
+    	/// Container to store the rebalancing
+    	// the key is the rebalancing time in secs, the value is the EmptyTrip
+    	std::multimap<double, EmptyTrip> emptyTrips;
         std::multimap<double, Booking>::iterator bookings_itr_;
+    	/// Iterator to the rebalancing container
+    	std::multimap<double, EmptyTrip>::iterator reb_itr_;
         
         std::ifstream bfin_;
         bool use_bookings_file_;
@@ -198,6 +214,15 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         // solves the rebalancing problem as an LP and dispatches vehicles to other stations.
         virtual amod::ReturnCode solveRebalancing(amod::World *world_state);
         
+    	/**
+    	 * rebalanceOffline
+    	 * the rebalancing problem is solved offline and here we only read the number of counts.
+    	 * @param worldState Pointer to amod world
+    	 * @return if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    	 * one of the amod::ReturnCode error codes.
+    	 */
+    	virtual amod::ReturnCode rebalanceOffline(amod::World *worldState);
+
         // interStationDispatch
         // sends to_dispatch vehicles from st_source to st_dest
         virtual amod::ReturnCode interStationDispatch(int st_source, int st_dest,

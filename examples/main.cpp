@@ -77,6 +77,9 @@ public:
 		/// Locations are nodes (we leave this empty because the simulator
 		/// will populate the locations
 		std::vector<amod::Location> locations;
+		std::string location_cfg_filename = amodConfig.get("amod.location_cfg_filename", defaultString);
+		std::cout << "Initializing locations using: " << location_cfg_filename << std::endl;
+		loadLocationsFile(location_cfg_filename, &locations);
 
 		/// populate the world
 		world_.populate(locations, vehicles, customers);
@@ -125,93 +128,93 @@ public:
 
 
 		/// =============================================================
-			/// setup the matching manager
-			amod::ManagerMatchRebalance *matchManager= new amod::ManagerMatchRebalance();
+		/// setup the matching manager
+		amod::ManagerMatchRebalance *matchManager= new amod::ManagerMatchRebalance();
 
-			/// are we doing greedy or assignment matching?
-			std::string matchManagerStr = amodConfig.get("amod.matching_algorithm", defaultString);
-			std::transform(matchManagerStr.begin(), matchManagerStr.end(), matchManagerStr.begin(), ::toupper);
-			if (matchManagerStr == "GREEDY") {
-				std::cout << "Using Greedy Matching" << std::endl;
-				matchManager->setMatchMethod(amod::ManagerMatchRebalance::GREEDY);
-				double matchInterval = amodConfig.get("amod.assignment_params.matching_interval", 1.0);
-				matchManager->setMatchingInterval(matchInterval);
-			} else if (matchManagerStr == "ASSIGNMENT") {
-				std::cout << "Using Assignment Matching" << std::endl;
-				matchManager->setMatchMethod(amod::ManagerMatchRebalance::ASSIGNMENT);
-				double distanceCostFactor = amodConfig.get("amod.assignment_params.distance_cost_factor", 1.0);
-				double waitingCostFactor = amodConfig.get("amod.assignment_params.waiting_cost_factor", 1.0);
-				matchManager->setCostFactors(distanceCostFactor, waitingCostFactor);
-				double matchInterval = amodConfig.get("amod.assignment_params.matching_interval", 1.0);
-				matchManager->setMatchingInterval(matchInterval);
-			} else {
-				std::cout << "ERROR! No such matching" << std::endl;
-				throw std::runtime_error("No such assignment method supported! Check your amod_config xml file");
-			}
+		/// are we doing greedy or assignment matching?
+		std::string matchManagerStr = amodConfig.get("amod.matching_algorithm", defaultString);
+		std::transform(matchManagerStr.begin(), matchManagerStr.end(), matchManagerStr.begin(), ::toupper);
+		if (matchManagerStr == "GREEDY") {
+			std::cout << "Using Greedy Matching" << std::endl;
+			matchManager->setMatchMethod(amod::ManagerMatchRebalance::GREEDY);
+			double matchInterval = amodConfig.get("amod.assignment_params.matching_interval", 1.0);
+			matchManager->setMatchingInterval(matchInterval);
+		} else if (matchManagerStr == "ASSIGNMENT") {
+			std::cout << "Using Assignment Matching" << std::endl;
+			matchManager->setMatchMethod(amod::ManagerMatchRebalance::ASSIGNMENT);
+			double distanceCostFactor = amodConfig.get("amod.assignment_params.distance_cost_factor", 1.0);
+			double waitingCostFactor = amodConfig.get("amod.assignment_params.waiting_cost_factor", 1.0);
+			matchManager->setCostFactors(distanceCostFactor, waitingCostFactor);
+			double matchInterval = amodConfig.get("amod.assignment_params.matching_interval", 1.0);
+			matchManager->setMatchingInterval(matchInterval);
+		} else {
+			std::cout << "ERROR! No such matching" << std::endl;
+			throw std::runtime_error("No such assignment method supported! Check your amod_config xml file");
+		}
 
-			/// initialize the manager and load the bookings
-			matchManager->init(&world_);
-			matchManager->setSimulator(sim_); /// set simulator
-			std::string bookingsFileName = amodConfig.get("amod.bookings_filename", defaultString);
-			std::cout << "Loading Bookings from " << bookingsFileName << std::endl;
-			if (matchManager->loadBookingsFromFile(bookingsFileName) == amod::ERROR_READING_BOOKINGS_FILE) {
-				throw std::runtime_error("AMODController: Cannot read bookings file");
-			}
+		/// initialize the manager and load the bookings
+		matchManager->init(&world_);
+		matchManager->setSimulator(sim_); /// set simulator
+		std::string bookingsFileName = amodConfig.get("amod.bookings_filename", defaultString);
+		std::cout << "Loading Bookings from " << bookingsFileName << std::endl;
+		if (matchManager->loadBookingsFromFile(bookingsFileName) == amod::ERROR_READING_BOOKINGS_FILE) {
+			throw std::runtime_error("AMODController: Cannot read bookings file");
+		}
 
-			/// set the demand estimator for demand estimation (used for rebalancing)
-			amod::SimpleDemandEstimator *sde = new amod::SimpleDemandEstimator();
-			sde->loadLocations(stations);
+		/// set the demand estimator for demand estimation (used for rebalancing)
+		amod::SimpleDemandEstimator *sde = new amod::SimpleDemandEstimator();
+		sde->loadLocations(stations);
 
-			std::string demandEstMethodStr = amodConfig.get("amod.rebalancing_params.demand_estimation_method", defaultString);
-			std::transform(demandEstMethodStr.begin(), demandEstMethodStr.end(), demandEstMethodStr.begin(), ::toupper);
-			matchManager->useCurrentQueueForEstimation(false);
-			if (demandEstMethodStr == "ORACLE") {
-				std::cout << "Demand Oracle is Loading Bookings from " << bookingsFileName << std::endl;
-				sde->loadBookingsFromFile(bookingsFileName);
-			} else if (demandEstMethodStr == "PREDICTIVE") {
-				std::string demand_hist_filename = amodConfig.get("amod.rebalancing_params.demand_estimation_file", defaultString);
-				std::cout << "Demand Prediction is loading bookings histogram from " << demand_hist_filename << " ... ";
-				sde->loadBookingsHistFromFile(demand_hist_filename);
-				std::cout << "Done!" << std::endl;
-			} else if (demandEstMethodStr == "QUEUE") {
-				std::cout << "Rebalancing using current queue only" << std::endl;
-				matchManager->useCurrentQueueForEstimation(true);
-			}
-			else if (demandEstMethodStr == "FILE") {
-				std::cout << "Rebalancing using offline solution" << std::endl;
-				std::string rebalancing_f = amodConfig.get("amod.rebalancing_params.rebalancing_file", defaultString);
-				matchManager->loadRebalancingFromFile(rebalancing_f);
-			}
-			else {
-				std::cout << "No such demand estimation method" << std::endl;
-				throw std::runtime_error("No such rebalancing method supported! Check your amod_config xml file");
-			}
+		std::string demandEstMethodStr = amodConfig.get("amod.rebalancing_params.demand_estimation_method", defaultString);
+		std::transform(demandEstMethodStr.begin(), demandEstMethodStr.end(), demandEstMethodStr.begin(), ::toupper);
+		matchManager->useCurrentQueueForEstimation(false);
+		if (demandEstMethodStr == "ORACLE") {
+			std::cout << "Demand Oracle is Loading Bookings from " << bookingsFileName << std::endl;
+			sde->loadBookingsFromFile(bookingsFileName);
+		} else if (demandEstMethodStr == "PREDICTIVE") {
+			std::string demand_hist_filename = amodConfig.get("amod.rebalancing_params.demand_estimation_file", defaultString);
+			std::cout << "Demand Prediction is loading bookings histogram from " << demand_hist_filename << " ... ";
+			sde->loadBookingsHistFromFile(demand_hist_filename);
+			std::cout << "Done!" << std::endl;
+		} else if (demandEstMethodStr == "QUEUE") {
+			std::cout << "Rebalancing using current queue only" << std::endl;
+			matchManager->useCurrentQueueForEstimation(true);
+		}
+		else if (demandEstMethodStr == "FILE") {
+			std::cout << "Rebalancing using offline solution" << std::endl;
+			std::string rebalancing_f = amodConfig.get("amod.rebalancing_params.rebalancing_file", defaultString);
+			matchManager->loadRebalancingFromFile(rebalancing_f);
+		}
+		else {
+			std::cout << "No such demand estimation method" << std::endl;
+			throw std::runtime_error("No such rebalancing method supported! Check your amod_config xml file");
+		}
 
-			double rebalancingInterval = amodConfig.get("amod.rebalancing_params.rebalancing_interval", 1800.0);
-			std::cout << "Setting Rebalancing Interval: " << rebalancingInterval << std::endl;
-			matchManager->setDemandEstimator(sde); /// set the demand estimator (for rebalancing)
-			matchManager->loadStations(stations, world_);
-			matchManager->setRebalancingInterval(rebalancingInterval);
+		double rebalancingInterval = amodConfig.get("amod.rebalancing_params.rebalancing_interval", 1800.0);
+		std::cout << "Setting Rebalancing Interval: " << rebalancingInterval << std::endl;
+		matchManager->setDemandEstimator(sde); /// set the demand estimator (for rebalancing)
+		matchManager->loadStations(stations, world_);
+		matchManager->setRebalancingInterval(rebalancingInterval);
 
-			std::string verboseStr = amodConfig.get("amod.verbose", defaultString);
-			std::transform(verboseStr.begin(), verboseStr.end(), verboseStr.begin(), ::toupper);
-			if (verboseStr == "TRUE") {
-				std::cout << "Manager is VERBOSE" << std::endl;
-				matchManager->setVerbose(true);
+		std::string verboseStr = amodConfig.get("amod.verbose", defaultString);
+		std::transform(verboseStr.begin(), verboseStr.end(), verboseStr.begin(), ::toupper);
+		if (verboseStr == "TRUE") {
+			std::cout << "Manager is VERBOSE" << std::endl;
+			matchManager->setVerbose(true);
 
-				std::cout << "Simulator is VERBOSE" << std::endl;
-				sim_->setVerbose(true);
+			std::cout << "Simulator is VERBOSE" << std::endl;
+			sim_->setVerbose(true);
 
-			} else {
-				std::cout << "Manager is QUIET" << std::endl;
-				matchManager->setVerbose(false);
+		} else {
+			std::cout << "Manager is QUIET" << std::endl;
+			matchManager->setVerbose(false);
 
-				std::cout << "Simulator is QUIET" << std::endl;
-				sim_->setVerbose(false);
+			std::cout << "Simulator is QUIET" << std::endl;
+			sim_->setVerbose(false);
 
-			}
-			/// select which manager we want
-			manager_ = matchManager; //simple_manager
+		}
+		/// select which manager we want
+		manager_ = matchManager; //simple_manager
 
 		// =============================================================
 		// setup the logger

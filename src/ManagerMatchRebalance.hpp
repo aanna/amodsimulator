@@ -2,8 +2,7 @@
 //  ManagerMatchRebalance.h
 //  AMODBase
 //
-//  Created by Harold Soh on 29/3/15.
-//  Copyright (c) 2015 Harold Soh. All rights reserved.
+//  Authors: Harold, Kasia
 //
 
 #ifndef __AMODBase__ManagerMatchRebalance__
@@ -16,6 +15,7 @@
 #include "Event.hpp"
 #include "KDTree.hpp"
 #include "SimpleDemandEstimator.hpp"
+//#include "EmptyTrip.hpp"
 
 #include <map>
 #include <set>
@@ -24,11 +24,28 @@
 #include <algorithm>
 #include <sstream>
 #include <cstdlib>
+#include <unordered_map>
+
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point.hpp>
+#include <boost/geometry/geometries/box.hpp>
+#include <boost/geometry/index/rtree.hpp>
+
+namespace bg = boost::geometry;
+namespace bgi = boost::geometry::index;
+
+//#include "spatial_trees/packing_tree/PackingTreeAuraManager.hpp"
 
 #include "glpk.h"
 
 
 namespace amod {
+
+typedef bg::model::point<float, 2, bg::cs::cartesian> point;
+typedef bg::model::box<point> box;
+typedef std::pair<box, const Entity *> value;
+typedef bgi::rtree<value, bgi::linear<16> > RTree;
+
     
     class ManagerMatchRebalance : public Manager {
     public:
@@ -70,6 +87,15 @@ namespace amod {
         // one of the amod::ReturnCode error codes.
         virtual amod::ReturnCode loadBookingsFromFile(const std::string filename);
         
+    	/**
+    	 * loadRebalancingFromFile
+    	 * loads rebalancing counts from a file specified by filename that the manager should respond to.
+    	 * @param filename Rebalancing file name
+    	 * @return if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    	 * one of the amod::ReturnCode error codes.
+    	 */
+    	virtual amod::ReturnCode loadRebalancingFromFile(const std::string& filename);
+
         // setMatchingMethod
         // sets the matching method to use
         // either ManagerMatchRebalance::ASSIGNMENT or ManagerMatchRebalance::GREEDY
@@ -144,6 +170,13 @@ namespace amod {
 
         double rebalancing_interval_;
         double next_rebalancing_time_;
+
+    	// is the rebalancing method offline (from file=true) on online=false
+    	bool rebalancingFromFile;
+    	// if offline then the rebalancing counts should be read from the following file
+    	std::ifstream rebalancingFile;
+    	// id of rebalancing trips
+    	int reb_id;
 
         // demo function to show how to get information from
         // if loc_id is a valid location id, we the waiting customers from that location.

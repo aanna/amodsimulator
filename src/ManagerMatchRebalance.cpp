@@ -155,7 +155,6 @@ namespace amod {
                     continue;
                 }
                 
-                
 				// ensure that the customer is available (if not, we discard the booking)
 				Customer *cust = world_state->getCustomerPtr(bookings_itr_->second.cust_id);
 				if (cust->getStatus() == CustomerStatus::FREE ||
@@ -1246,6 +1245,19 @@ namespace amod {
         delete [] ia;
         delete [] ja;
         delete [] ar;
+
+    	return amod::SUCCESS;
+    }
+
+    amod::ReturnCode ManagerMatchRebalance::loadRebalancingFromFile(const std::string& filename) {
+    	rebalancingFile.open(filename.c_str());
+    	if (!rebalancingFile.good()) {
+    		if (verbose_) std::cout << "Cannot read rebalancing file: " << filename << std::endl;
+    		return amod::ERROR_READING_REBALANCING_FILE;
+    	}
+
+    	rebalancingFromFile = true;
+    	reb_id = 1;
 
     	return amod::SUCCESS;
     }

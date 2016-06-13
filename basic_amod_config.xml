@@ -9,7 +9,7 @@
 	<!-- Simulator params -->
 	<simulator_params> 
 		<start_time>0</start_time> <!-- start time from 12 midnight in seconds -->
-		<max_time>20000</max_time> <!-- max simulation time from 12 midnight in seconds -->
+		<max_time>86400</max_time> <!-- max simulation time from 12 midnight in seconds -->
 		<resolution>5.0</resolution>
 
 		<pickup_distribution>

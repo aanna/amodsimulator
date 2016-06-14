@@ -45,9 +45,8 @@ public:
 	virtual bool isInVehicle();
     
 private:
-	Status status_;
 	int veh_id_;
-    
+	Status status_;
     int location_id_;
 };
 

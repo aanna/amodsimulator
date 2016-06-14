@@ -58,8 +58,8 @@ public:
     
 
 private:
-	Vehicle::Status status_;
 	int capacity_;
+	Vehicle::Status status_;
 	double speed_;
 
 	int customer_id_;

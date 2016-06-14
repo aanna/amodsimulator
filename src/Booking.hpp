@@ -43,8 +43,8 @@ namespace amod {
         Mode travel_mode;	// travel mode for this booking
 
         // the following are mainly for logging purposes (optional)
-        double dispatch_time;   // dispatch time (in seconds)
         double pickup_time;     // pickup time (in seconds)
+        double dispatch_time;   // dispatch time (in seconds)
         double dropoff_time;    // dropoff time (in seconds)
 
         

@@ -176,6 +176,7 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         double next_matching_time_;
         double distance_cost_factor_;
         double waiting_time_cost_factor_;
+        bgi::rtree<std::pair<box, int>, bgi::linear<16> > locTree_;
 
         // rebalancing variables
         amod::DemandEstimator *dem_est_;
@@ -194,6 +195,9 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	// id of rebalancing trips
     	int reb_id;
 
+    	// to measure program running time
+    	clock_t t_1_,t_2_, t_3_;
+
         // demo function to show how to get information from
         // if loc_id is a valid location id, we the waiting customers from that location.
         // if loc_id == 0, then we get all the waiting customers
@@ -207,7 +211,7 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         virtual amod::ReturnCode solveMatching(amod::World *world_state);
         virtual amod::ReturnCode solveMatchingMinimizing(amod::World *world_state);
         
-        // solves the assignment problem in a greedy FIFO manner
+        // solves the assignment problem in a greedy FIFO manner, within a box
         virtual amod::ReturnCode solveMatchingGreedy(amod::World *world_state);
 
         // solveRebalancing

@@ -14,7 +14,7 @@ namespace amod {
 
 double ONE_KM = 1000.0;
 
-	amod::box getQueryBox(const amod::Position& vehPos, double offset) {
+amod::box getQueryBox(const amod::Position& vehPos, double offset) {
 	amod::point lowerLeft(vehPos.x - offset, vehPos.y - offset);
 	amod::point upperRight(vehPos.x + offset, vehPos.y + offset);
 
@@ -58,6 +58,23 @@ amod::ReturnCode ManagerMatchRebalance::init(World *world_state) {
 			available_vehs_.insert(vitr->second.getId());
 		}
 	}
+
+	// build location tree needed for fast matching with a box
+	std::vector<Location> locs;
+	world_state->getLocations(&locs);
+    std::vector<std::pair<box, int>> locationsToBeAdded;
+
+		for(auto itr : locs)
+		{
+			Location* loc = world_state->getLocationPtr(itr.getId());
+
+			amod::point location(loc->getPosition().x, loc->getPosition().y);
+			amod::box locPos(location, location);
+			locationsToBeAdded.push_back(std::make_pair(locPos, itr.getId()));
+		}
+
+		bgi::rtree<std::pair<box, int>, bgi::linear<16> > locTree(locationsToBeAdded.begin(), locationsToBeAdded.end());
+		locTree_ = locTree;
 
 	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
 	return amod::SUCCESS;
@@ -132,6 +149,7 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 	//if (verbose_) std::cout << "Manager Current time: " << current_time << std::endl;
 	updateBookingsFromFile(current_time); // load bookings from file (will do nothing if not using file)
 	bookings_itr_ = bookings_.begin();
+	amod::ReturnCode rc = amod::FAILED;
 	while (bookings_itr_ != bookings_.end()) {
 		// check if the time is less
 		if (bookings_itr_->first <= current_time) {
@@ -213,7 +231,7 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 		//std::cout << next_matching_time_ << std::endl;
 		//if (verbose_) std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
 		//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
-		amod::ReturnCode rc = amod::FAILED;
+		rc = amod::FAILED;
 		if (match_method == GREEDY) {
 			rc = solveMatchingGreedy(world_state);
 		} else if (match_method == ASSIGNMENT) {
@@ -232,7 +250,7 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 
 
 	if (next_rebalancing_time_ <= world_state->getCurrentTime() ) {
-		amod::ReturnCode rc;
+		amod::ReturnCode rc = amod::FAILED;
 		if(!rebalancingFromFile) {
 			// not from file, we have to solve it online
 			rc = solveRebalancing(world_state);
@@ -256,7 +274,7 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 	// we clear the container before we get another rebalancing solution
 	if(rebalancingFromFile) {
 		// dispatch vehicles for rebalancing trips
-		amod::ReturnCode rc = rebalanceOffline(world_state);
+		rc = rebalanceOffline(world_state);
 	}
 
 	return amod::SUCCESS;
@@ -856,12 +874,6 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
 	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
 
-
-	// create variables for solving lp
-	long nbookings = bookings_queue_.size();
-	long nvehs = available_vehs_.size();
-
-
 	std::vector<std::pair<box, int>> vehsToBeAdded;
 
 	for(auto itr : available_vehs_)
@@ -885,50 +897,87 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 		Location *closest_loc = nullptr;
 		Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
 
-		double offset = ONE_KM * 1.5;
+		double offset = ONE_KM * 1;
 		int iterCount = 0;
 
-		while(iterCount++ < 3)
-		{
-			std::vector<std::pair<box, int> > result;
+		/*t_1_ = clock();
+		std::cout << "Time before matching: " << t_1_ << std::endl;*/
+		while(iterCount++ < 3) {
+			std::vector<std::pair<box, int> > result_veh;
+			std::vector<std::pair<box, int> > result_loc;
 
 			amod::box queryBox = getQueryBox(cust->getPosition(), offset);
-
-			vehTree.query(bgi::intersects(queryBox), std::back_inserter(result));
-
+			vehTree.query(bgi::intersects(queryBox), std::back_inserter(result_veh));
+			locTree_.query(bgi::intersects(queryBox), std::back_inserter(result_loc));
 			std::vector<int> availableVehsInRect;
+			std::vector<int> availableLocsInRect;
 
-			for(auto item : result)
-			{
+			for(auto item : result_veh) {
 				availableVehsInRect.push_back(item.second);
 			}
+			for(auto item : result_loc) {
+							availableLocsInRect.push_back(item.second);
+						}
 
-			//if (availableVehsInRect.size() < worldState->getNumLocations()) {
-			// go through available vehicles in rectangle
-			//if (verbose) std::cout << "Looping through vehicles" << std::endl;
-			for (auto vitr = availableVehsInRect.begin(); vitr != availableVehsInRect.end(); ++vitr){
+			if (availableVehsInRect.size() < availableLocsInRect.size()) {
+				// go through available vehicles in rectangle
+				for (auto vitr = availableVehsInRect.begin(); vitr != availableVehsInRect.end(); ++vitr){
 
-				// check if the vehicle was assigned to the previous booking.
-				// if yes, then skip it. This is cheaper operation than updating the tree.
-				if(usedVehicles.find(*vitr) != usedVehicles.end())
-				{
-					continue;
+					// check if the vehicle was assigned to the previous booking.
+					// if yes, then skip it. This is cheaper operation than updating the tree.
+					if(usedVehicles.find(*vitr) != usedVehicles.end())
+					{
+						continue;
+					}
+
+					// get minimum cost vehicle
+					Vehicle *veh = world_state->getVehiclePtr(*vitr);
+					double distCost = -1;
+					if (veh->getLocationId() && cust->getLocationId()) {
+						distCost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
+					} else {
+						distCost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+					}
+					if (distCost >= 0 && min_dist_cost > distCost) {
+						closest_veh = veh;
+						min_dist_cost = distCost;
+					}
 				}
 
-				// get cost
-				Vehicle *veh = world_state->getVehiclePtr(*vitr);
-				double distCost = -1;
-				if (veh->getLocationId() && cust->getLocationId()) {
-					distCost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
-				} else {
-					distCost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
-				}
-				if (distCost >= 0 && min_dist_cost > distCost) {
-					closest_veh = veh;
-					min_dist_cost = distCost;
+			} else {
+				// go through locations in the box
+				for (auto litr = availableLocsInRect.begin(); litr != availableLocsInRect.end(); ++litr){
+
+					Location *loc = world_state->getLocationPtr(*litr);
+						if (loc->getNumVehicles() > 0) {
+
+							double dist_cost = -1;
+							if (cust->getLocationId()) {
+								dist_cost = sim_->getDrivingDistance(loc->getId(), cust->getLocationId());
+							} else {
+								dist_cost = sim_->getDrivingDistance(loc->getPosition(), cust->getPosition());
+							}
+
+							if (dist_cost >=0 && min_dist_cost > dist_cost) {
+								closest_loc = world_state->getLocationPtr(loc->getId());
+								min_dist_cost = dist_cost;
+							}
+						}
+
+					if (closest_loc != nullptr) {
+						//get a vehicle
+						std::unordered_set<int>::const_iterator vbitr, veitr;
+						closest_loc->getVehicleIds(&vbitr, &veitr);
+						if (vbitr != veitr) {
+							closest_veh = world_state->getVehiclePtr(*vbitr);
+							// if (verbose_) {
+							// 		std::cout << closest_veh->getPosition().x << " " << closest_veh->getPosition().y << " : " <<
+							// 		closest_loc->getPosition().x << " " << closest_loc->getPosition().y << std::endl;
+							// }
+						}
+					}
 				}
 			}
-
 			if (closest_veh != nullptr) {
 				// assign vehicle to booking
 				int vehId = closest_veh->getId();
@@ -954,7 +1003,6 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 						// remove this customer from the station queue
 						stations_[stId].removeCustomerId(bookings_queue_[bid].cust_id);
 					}
-
 				}
 
 				// issue a booking serviced event
@@ -964,6 +1012,11 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 				// mark booking to be erased
 				to_erase.emplace_back(bid);
 
+				// code profiling
+				/*t_2_ = clock();
+				float diff =  ((float)t_2_-(float)t_1_);
+				std::cout << "Time after matching: " <<
+						t_2_ << ", total time taken: " << diff/ CLOCKS_PER_SEC << std::endl;*/
 				break;
 			}
 			offset += ONE_KM;
@@ -996,7 +1049,6 @@ amod::ReturnCode ManagerMatchRebalance::solveRebalancing(amod::World *world_stat
 		return amod::SUCCESS; // nothing to rebalance
 	}
 	// create variables for solving lp
-	int nvehs = available_vehs_.size();
 	int nstations = stations_.size();
 	int nstations_underserved = 0;
 	int nvars = nstations*nstations; // how many to send from one station to another
@@ -1370,7 +1422,7 @@ amod::ReturnCode ManagerMatchRebalance::rebalanceOffline(amod::World *worldState
 
 			for(auto item : stations_)
 			{
-				if (verbose_) std::cout << "Num veh at: " << item.first << " = " << item.second.getNumVehicles() << std::endl;
+				// if (verbose_) std::cout << "Num veh at: " << item.first << " = " << item.second.getNumVehicles() << std::endl;
 
 			}
 
@@ -1403,11 +1455,11 @@ amod::ReturnCode ManagerMatchRebalance::rebalanceOffline(amod::World *worldState
 				int vehId = *itr;
 
 				if (vehId == 0) {
-					if (verbose_) std::cout << stSrc << std::endl;
+					// if (verbose_) std::cout << stSrc << std::endl;
 				}
 
 				// send it to station st_dest
-				if (verbose_) std::cout << "Rebalancing " << vehId << " from " << stSrc << " to " << stDest << std::endl;
+				// if (verbose_) std::cout << "Rebalancing " << vehId << " from " << stSrc << " to " << stDest << std::endl;
 				auto rc = sim_->dispatchVehicle(worldState, vehId , itrDest->second.getPosition(),
 						VehicleStatus::MOVING_TO_REBALANCE, VehicleStatus::FREE);
 

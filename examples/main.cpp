@@ -444,7 +444,7 @@ int main(int argc, char **argv) {
 		int curr_perc = (int) floor(current_time*100.0/max_time);
 		if (curr_perc > perc_done) {
 			perc_done = curr_perc;
-			//std::cout << "Percentage Done: [" << perc_done << "%]" << std::endl;
+			std::cout << "Percentage Done: [" << perc_done << "%]" << std::endl;
 		}
 	}
 

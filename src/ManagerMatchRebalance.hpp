@@ -96,6 +96,17 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	 */
     	virtual amod::ReturnCode loadRebalancingFromFile(const std::string& filename);
 
+
+    	/**
+    	 * isDemandManager
+    	 * loads rebalancing counts from a file specified by filename that the manager should respond to.
+    	 * @param filename Rebalancing file name
+    	 * @return if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
+    	 * one of the amod::ReturnCode error codes.
+    	 */
+    	virtual amod::ReturnCode isDemandManager(bool demand_manager);
+
+
     	/**
     	 * updateRebalancingCounts
     	 * gets rebalancing counts that occured during the time period and place it into the rebalancing_ structure
@@ -169,6 +180,9 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         bool output_move_events_;
         
         // matching variables
+        // if demand manager is turned on, then customers can accept/reject the trips
+        bool demand_manager;
+        // matching method in case of no demand management
         MatchMethod match_method;
         std::set<int> available_vehs_;
         std::map<int, Booking> bookings_queue_;

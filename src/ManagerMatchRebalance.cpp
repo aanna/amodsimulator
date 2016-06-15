@@ -145,6 +145,13 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 	}
 
 
+	if (!demand_manager) {
+		// dispatch bookings by solving the matching problem (old method)
+
+	} else {
+		// customers can accept/reject the offer and can pick up from the offer set
+
+	}
 	// dispatch bookings by solving the matching problem
 	//if (verbose_) std::cout << "Manager Current time: " << current_time << std::endl;
 	updateBookingsFromFile(current_time); // load bookings from file (will do nothing if not using file)
@@ -1379,6 +1386,13 @@ amod::ReturnCode ManagerMatchRebalance::loadRebalancingFromFile(const std::strin
 
 	rebalancingFromFile = true;
 	reb_id = 1;
+
+	return amod::SUCCESS;
+}
+
+amod::ReturnCode ManagerMatchRebalance::isDemandManager(bool demandManager) {
+
+	demand_manager = demandManager;
 
 	return amod::SUCCESS;
 }

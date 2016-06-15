@@ -131,6 +131,10 @@ public:
 		/// setup the matching manager
 		amod::ManagerMatchRebalance *matchManager= new amod::ManagerMatchRebalance();
 
+		/// are we doing demand management?
+		bool demandManagment = amodConfig.get("amod.demand_manager", false);
+		matchManager->isDemandManager(demandManagment);
+
 		/// are we doing greedy or assignment matching?
 		std::string matchManagerStr = amodConfig.get("amod.matching_algorithm", defaultString);
 		std::transform(matchManagerStr.begin(), matchManagerStr.end(), matchManagerStr.begin(), ::toupper);

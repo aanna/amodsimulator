@@ -2,8 +2,7 @@
 //  ManagerMatchRebalance.cpp
 //  AMODBase
 //
-//  Created by Harold Soh on 29/3/15.
-//  Copyright (c) 2015 Harold Soh. All rights reserved.
+//  Authors: Harold Soh, Kasia.
 //
 
 #include "ManagerMatchRebalance.hpp"
@@ -62,19 +61,19 @@ amod::ReturnCode ManagerMatchRebalance::init(World *world_state) {
 	// build location tree needed for fast matching with a box
 	std::vector<Location> locs;
 	world_state->getLocations(&locs);
-    std::vector<std::pair<box, int>> locationsToBeAdded;
+	std::vector<std::pair<box, int>> locationsToBeAdded;
 
-		for(auto itr : locs)
-		{
-			Location* loc = world_state->getLocationPtr(itr.getId());
+	for(auto itr : locs)
+	{
+		Location* loc = world_state->getLocationPtr(itr.getId());
 
-			amod::point location(loc->getPosition().x, loc->getPosition().y);
-			amod::box locPos(location, location);
-			locationsToBeAdded.push_back(std::make_pair(locPos, itr.getId()));
-		}
+		amod::point location(loc->getPosition().x, loc->getPosition().y);
+		amod::box locPos(location, location);
+		locationsToBeAdded.push_back(std::make_pair(locPos, itr.getId()));
+	}
 
-		bgi::rtree<std::pair<box, int>, bgi::linear<16> > locTree(locationsToBeAdded.begin(), locationsToBeAdded.end());
-		locTree_ = locTree;
+	bgi::rtree<std::pair<box, int>, bgi::linear<16> > locTree(locationsToBeAdded.begin(), locationsToBeAdded.end());
+	locTree_ = locTree;
 
 	next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
 	return amod::SUCCESS;
@@ -144,14 +143,6 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 		}
 	}
 
-
-	if (!demand_manager) {
-		// dispatch bookings by solving the matching problem (old method)
-
-	} else {
-		// customers can accept/reject the offer and can pick up from the offer set
-
-	}
 	// dispatch bookings by solving the matching problem
 	//if (verbose_) std::cout << "Manager Current time: " << current_time << std::endl;
 	updateBookingsFromFile(current_time); // load bookings from file (will do nothing if not using file)
@@ -232,30 +223,48 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 		}
 	}
 
-	if (next_matching_time_ <= world_state->getCurrentTime()) {
-		// perform matching and increase next matching time
-		next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
-		//std::cout << next_matching_time_ << std::endl;
-		//if (verbose_) std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
-		//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
-		rc = amod::FAILED;
-		if (match_method == GREEDY) {
-			rc = solveMatchingGreedy(world_state);
-		} else if (match_method == ASSIGNMENT) {
-			rc = solveMatching(world_state);
-		} else {
-			throw std::runtime_error("No such matching method");
-		}
-		//if (verbose_) std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
-		//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+	/**********************************************************
+	 * AMOD OR SHARED AMOD
+	 **********************************************************/
+	if (!demand_manager) {
+		// dispatch bookings by solving the matching problem (old method)
 
-		// return if we encounter a failure
-		if (rc != amod::SUCCESS) {
-			return rc;
+		if (next_matching_time_ <= world_state->getCurrentTime()) {
+			// perform matching and increase next matching time
+			next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
+			//std::cout << next_matching_time_ << std::endl;
+			//if (verbose_) std::cout << world_state->getCurrentTime() << ": Before Queue Size : " << bookings_queue_.size() << std::endl;
+			//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+			rc = amod::FAILED;
+			if (match_method == GREEDY) {
+				rc = solveMatchingGreedy(world_state);
+			} else if (match_method == ASSIGNMENT) {
+				rc = solveMatching(world_state);
+			} else {
+				throw std::runtime_error("No such matching method");
+			}
+			//if (verbose_) std::cout << world_state->getCurrentTime() << ": After Queue Size  : " << bookings_queue_.size() << std::endl;
+			//if (verbose_) std::cout << world_state->getCurrentTime() << ": Available Vehicles: " << available_vehs_.size() << std::endl;
+
+			// return if we encounter a failure
+			if (rc != amod::SUCCESS) {
+				return rc;
+			}
+		}
+	} else {
+		// we make a ridesharing offer to the customer
+		if (next_matching_time_ <= world_state->getCurrentTime()) {
+			// increase next matching time
+			next_matching_time_ = world_state->getCurrentTime() + matching_interval_;
+			rc = amod::FAILED;
+			rc = solveAssortment(world_state);
 		}
 	}
 
-
+	/**********************************************************
+	 * REBALANCING
+	 **********************************************************/
+	// standard rebalancing procedure
 	if (next_rebalancing_time_ <= world_state->getCurrentTime() ) {
 		amod::ReturnCode rc = amod::FAILED;
 		if(!rebalancingFromFile) {
@@ -923,8 +932,8 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 				availableVehsInRect.push_back(item.second);
 			}
 			for(auto item : result_loc) {
-							availableLocsInRect.push_back(item.second);
-						}
+				availableLocsInRect.push_back(item.second);
+			}
 
 			if (availableVehsInRect.size() < availableLocsInRect.size()) {
 				// go through available vehicles in rectangle
@@ -956,20 +965,20 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 				for (auto litr = availableLocsInRect.begin(); litr != availableLocsInRect.end(); ++litr){
 
 					Location *loc = world_state->getLocationPtr(*litr);
-						if (loc->getNumVehicles() > 0) {
+					if (loc->getNumVehicles() > 0) {
 
-							double dist_cost = -1;
-							if (cust->getLocationId()) {
-								dist_cost = sim_->getDrivingDistance(loc->getId(), cust->getLocationId());
-							} else {
-								dist_cost = sim_->getDrivingDistance(loc->getPosition(), cust->getPosition());
-							}
-
-							if (dist_cost >=0 && min_dist_cost > dist_cost) {
-								closest_loc = world_state->getLocationPtr(loc->getId());
-								min_dist_cost = dist_cost;
-							}
+						double dist_cost = -1;
+						if (cust->getLocationId()) {
+							dist_cost = sim_->getDrivingDistance(loc->getId(), cust->getLocationId());
+						} else {
+							dist_cost = sim_->getDrivingDistance(loc->getPosition(), cust->getPosition());
 						}
+
+						if (dist_cost >=0 && min_dist_cost > dist_cost) {
+							closest_loc = world_state->getLocationPtr(loc->getId());
+							min_dist_cost = dist_cost;
+						}
+					}
 
 					if (closest_loc != nullptr) {
 						//get a vehicle
@@ -1041,6 +1050,49 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 
 	return amod::SUCCESS;
 }
+
+
+amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state) {
+
+	if (!world_state) {
+		throw std::runtime_error("solveAssortment: world_state is nullptr!");
+	}
+
+	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
+
+	// check how long customers are waiting and if longer than 5 minutes then
+	// discard booking with ticket "discarded. Waiting time exceeded 5 mins"
+	amod::ReturnCode rc = discardTripsWithLongWaiting(world_state);
+
+
+	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
+
+	}
+
+
+	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
+
+
+	std::vector<std::pair<box, int>> vehsToBeAdded;
+
+	for(auto itr : available_vehs_)
+	{
+		Vehicle* veh = world_state->getVehiclePtr(itr);
+
+		amod::point location(veh->getPosition().x, veh->getPosition().y);
+		amod::box vehPos(location, location);
+		vehsToBeAdded.push_back(std::make_pair(vehPos, itr));
+	}
+
+	bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree(vehsToBeAdded.begin(), vehsToBeAdded.end());
+
+	std::set<int> usedVehicles;
+	// for each booking, find closest vehicle
+	std::vector<int> to_erase;
+
+	return amod::SUCCESS;
+}
+
 
 amod::ReturnCode ManagerMatchRebalance::solveRebalancing(amod::World *world_state) {
 	if (!world_state) {
@@ -1390,9 +1442,48 @@ amod::ReturnCode ManagerMatchRebalance::loadRebalancingFromFile(const std::strin
 	return amod::SUCCESS;
 }
 
+amod::ReturnCode ManagerMatchRebalance::discardTripsWithLongWaiting(amod::World *world_state) {
+
+	if (!world_state) {
+		throw std::runtime_error("discardTripsWithLongWaiting: world_state is nullptr!");
+	}
+
+	// iterate through bookings and check how long they are in the queue
+	// if longer than max_wait_time then discard
+	std::vector<int> to_erase;
+	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
+
+		double waitTime =  world_state->current_time_ -  bitr->second.booking_time;
+
+		if (waitTime > max_waiting_time) {
+
+			std::vector<int> entities = {bitr->second.id, bitr->second.cust_id};
+			amod::Event ev(amod::EVENT_CUSTOMER_WAIT_TIME_EXCEEDED_MAX, ++event_id_, "ExceededWaitTime", world_state->getCurrentTime(), entities);
+			world_state->addEvent(ev);
+
+			// mark booking to be erased
+			to_erase.emplace_back(bitr->second.id);
+		}
+	}
+
+	// remove booking from booking_queue
+	for (auto itr = to_erase.begin(); itr != to_erase.end(); ++itr) {
+		bookings_queue_.erase(*itr);
+	}
+
+	return amod::SUCCESS;
+}
+
 amod::ReturnCode ManagerMatchRebalance::isDemandManager(bool demandManager) {
 
 	demand_manager = demandManager;
+
+	return amod::SUCCESS;
+}
+
+amod::ReturnCode ManagerMatchRebalance::loadMaxWaitTime(int maxWaitTime) {
+
+	max_waiting_time = maxWaitTime;
 
 	return amod::SUCCESS;
 }

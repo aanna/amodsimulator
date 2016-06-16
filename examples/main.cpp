@@ -34,8 +34,7 @@ public:
 		delete de_;
 	}
 
-	bool init(std::string amod_config_filename)
-	{
+	bool init(std::string amod_config_filename) {
 		bool init_good = true;
 		// load configuration file
 		std::cout << "Using configuration file: " << amod_config_filename << std::endl;
@@ -59,6 +58,7 @@ public:
 		int nvehs =  amodConfig.get("amod.num_vehicles", 0);
 
 		if (veh_uniform_distr) {
+			// vehicles distributed evenly between stations
 			std::cout << "Initializing " << nvehs << " vehicles and distribute them evenly across stations."<< std::endl;
 			initVehicles(stations, &vehicles, nvehs);
 		} else {
@@ -134,6 +134,10 @@ public:
 		/// are we doing demand management?
 		bool demandManagment = amodConfig.get("amod.demand_manager", false);
 		matchManager->isDemandManager(demandManagment);
+
+		// what is the maximum waiting time customers accept?
+		int maxWaitingTime = amodConfig.get("amod.customer_param.max_wait_time", 60); // in seconds
+		matchManager->loadMaxWaitTime(maxWaitingTime);
 
 		/// are we doing greedy or assignment matching?
 		std::string matchManagerStr = amodConfig.get("amod.matching_algorithm", defaultString);

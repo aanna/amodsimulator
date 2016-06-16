@@ -16,6 +16,7 @@
 #include "KDTree.hpp"
 #include "SimpleDemandEstimator.hpp"
 #include "EmptyTrip.hpp"
+//#include "Assortment.hpp"
 
 #include <map>
 #include <set>
@@ -106,7 +107,8 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	 */
     	virtual amod::ReturnCode isDemandManager(bool demand_manager);
 
-
+    	// how long customers can wait
+    	virtual amod::ReturnCode loadMaxWaitTime(int maxWaitTime);
     	/**
     	 * updateRebalancingCounts
     	 * gets rebalancing counts that occured during the time period and place it into the rebalancing_ structure
@@ -169,6 +171,8 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         std::multimap<double, Booking>::iterator bookings_itr_;
     	/// Iterator to the rebalancing container
     	std::multimap<double, EmptyTrip>::iterator reb_itr_;
+    	// maximum waiting time for being serviced
+    	int max_waiting_time;
         
         std::ifstream bfin_;
         bool use_bookings_file_;
@@ -227,6 +231,13 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         
         // solves the assignment problem in a greedy FIFO manner, within a box
         virtual amod::ReturnCode solveMatchingGreedy(amod::World *world_state);
+
+        // based on current demand, give offers to customers, who can accept or reject
+        // two options given to customers are: (i) taxi ride, (ii) shared taxi ride
+        virtual amod::ReturnCode solveAssortment(amod::World *world_state);
+
+        // if a passenger is waiting for longer than 5 minutes, discard the trip
+        virtual amod::ReturnCode discardTripsWithLongWaiting(amod::World *world_state);
 
         // solveRebalancing
         // solves the rebalancing problem as an LP and dispatches vehicles to other stations.

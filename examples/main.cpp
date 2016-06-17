@@ -139,6 +139,10 @@ public:
 		int maxWaitingTime = amodConfig.get("amod.customer_param.max_wait_time", 60); // in seconds
 		matchManager->loadMaxWaitTime(maxWaitingTime);
 
+		// load dynamic pricing parameters
+		double highDemSurStart = amodConfig.get("amod.dynamic_pricing.availability_percent", 1.0);
+		matchManager->loadDynamicPriceAndAssortmentParam(highDemSurStart);
+
 		/// are we doing greedy or assignment matching?
 		std::string matchManagerStr = amodConfig.get("amod.matching_algorithm", defaultString);
 		std::transform(matchManagerStr.begin(), matchManagerStr.end(), matchManagerStr.begin(), ::toupper);

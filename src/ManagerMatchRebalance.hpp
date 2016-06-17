@@ -109,6 +109,9 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
 
     	// how long customers can wait
     	virtual amod::ReturnCode loadMaxWaitTime(int maxWaitTime);
+
+
+    	virtual amod::ReturnCode loadDynamicPriceAndAssortmentParam (double dynamicSurchage);
     	/**
     	 * updateRebalancingCounts
     	 * gets rebalancing counts that occured during the time period and place it into the rebalancing_ structure
@@ -173,6 +176,8 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	std::multimap<double, EmptyTrip>::iterator reb_itr_;
     	// maximum waiting time for being serviced
     	int max_waiting_time;
+    	// high demand surcharge for pricing the offers
+    	double availability_percent_;
         
         std::ifstream bfin_;
         bool use_bookings_file_;
@@ -236,11 +241,18 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         // two options given to customers are: (i) taxi ride, (ii) shared taxi ride
         virtual amod::ReturnCode solveAssortment(amod::World *world_state);
 
+        // based on the state of the current queue and based on the offer of a private trip
+        // provide an alternative offer to share ride (no assignment is done at this stage,
+        // it is only done to get a feedback from the customer if she/he is willing to share the ride.
+        // if yes, then later we perform a matching for shared and private rides, separately.
+        virtual amod::ReturnCode offerSharedRide(amod::World *world_state, const amod::Booking &bk,
+        		const amod::TripOffer to_);
+
         // if a passenger is waiting for longer than 5 minutes, discard the trip
         virtual amod::ReturnCode discardTripsWithLongWaiting(amod::World *world_state);
 
         // find the nearest taxi to provide a private ride option for a customer
-        virtual amod::ReturnCode findTheNearestTaxi(amod::World *world_state, const amod::Booking &bk,
+        virtual amod::ReturnCode findNearestTaxi(amod::World *world_state, const amod::Booking &bk,
         		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId);
 
         // solveRebalancing

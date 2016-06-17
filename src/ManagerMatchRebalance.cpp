@@ -1101,15 +1101,25 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		Booking bk = bitr->second;
 		int vehId = 0;
 		// 1) find the nearest taxi and set it as a first offer
-
-		rc = findTheNearestTaxi(world_state, bk, vehTree, vehId);
+		rc = findNearestTaxi(world_state, bk, vehTree, vehId);
 
 		Vehicle *veh = world_state->getVehiclePtr(vehId);
 		TripOffer to_;
+
+		// 1 (i) check for imposing the high demand surcharge
+		double surcharge = 1.0;
+		if (bookings_queue_.size() > availability_percent_ * available_vehs_.size()) {
+			// if we are here, we are at peak period and we are imposing a surcharge
+
+			// surcharge function (based on a design of rataining walls)
+
+		}
+
+		// 1 (ii) make the first offer
 		to_.mode = "privateAmod";
 		to_.vehId = vehId;
 		// price = dist in meters * price 0.22 cents per 400m
-		to_.price = (sim_->getDrivingDistance(bk.source, bk.destination))/400 * 0.22; // in dollars
+		to_.price = surcharge * (sim_->getDrivingDistance(bk.source, bk.destination))/400 * 0.22; // in dollars
 		// waiting time  = distance to pick up passenger * 1 / (ave speed (8.02 m/s))
 		to_.waitTime = 8.02 / sim_->getDrivingDistance(veh->getPosition(), bk.destination); //in seconds
 		// wait itme plus estimated travel time
@@ -1117,8 +1127,9 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 
 		options.push_back(to_);
 
-		// 2) find the nearest customer to share the ride
-		// rc = findTheNearestSharedTaxi(world_state, bk, vehTree, vehId);
+		// 2) offer a shared ride at a reduced price and with longer waiting and travel times
+		// this should be done based on the size of the booking queue and the first offer
+		rc = offerSharedRide(world_state, bk, to_);
 
 
 
@@ -1155,7 +1166,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 	//	// mark booking to be erased
 	//	to_erase.emplace_back(bid);
 
-	return amod::SUCCESS;
+	return rc;
 }
 
 
@@ -1553,6 +1564,13 @@ amod::ReturnCode ManagerMatchRebalance::loadMaxWaitTime(int maxWaitTime) {
 	return amod::SUCCESS;
 }
 
+amod::ReturnCode ManagerMatchRebalance::loadDynamicPriceAndAssortmentParam (double dynamicSurchageStart) {
+
+	high_demand_start = dynamicSurchageStart;
+
+	return amod::SUCCESS;
+}
+
 amod::ReturnCode ManagerMatchRebalance::rebalanceOffline(amod::World *worldState) {
 
 	if (!rebalancingFromFile) return amod::SUCCESS;
@@ -1704,7 +1722,7 @@ amod::ReturnCode ManagerMatchRebalance::interStationDispatch(int st_source, int 
 	return amod::SUCCESS;
 }
 
-amod::ReturnCode ManagerMatchRebalance::findTheNearestTaxi(amod::World *world_state, const amod::Booking &bk,
+amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state, const amod::Booking &bk,
 		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId) {
 
 	if (!world_state) {
@@ -1810,6 +1828,18 @@ amod::ReturnCode ManagerMatchRebalance::findTheNearestTaxi(amod::World *world_st
 
 		offset += ONE_KM;
 	}
+
+	return amod::SUCCESS;
+}
+
+amod::ReturnCode ManagerMatchRebalance::offerSharedRide(amod::World *world_state, const amod::Booking &bk,
+		const amod::TripOffer to_) {
+
+	if (!world_state) {
+		throw std::runtime_error("offerASharedRide: world_state is nullptr!");
+	}
+
+
 
 	return amod::SUCCESS;
 }

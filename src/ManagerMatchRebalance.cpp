@@ -509,6 +509,9 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
 	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
 
+	// check how long customers are waiting and if longer than 5 minutes then
+	// discard booking with ticket "discarded. Waiting time exceeded 5 mins"
+	amod::ReturnCode rc = discardTripsWithLongWaiting(world_state);
 
 	// create variables for solving lp
 	long nbookings = bookings_queue_.size();
@@ -890,6 +893,10 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
 	if (bookings_queue_.size() == 0) return amod::SUCCESS; // no bookings to service
 
+	// check how long customers are waiting and if longer than 5 minutes then
+	// discard booking with ticket "discarded. Waiting time exceeded 5 mins"
+	amod::ReturnCode rc = discardTripsWithLongWaiting(world_state);
+
 	std::vector<std::pair<box, int>> vehsToBeAdded;
 
 	for(auto itr : available_vehs_)
@@ -933,6 +940,11 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 			}
 			for(auto item : result_loc) {
 				availableLocsInRect.push_back(item.second);
+			}
+
+			// if there is no available vehicles in rectangle, then there is also no vehicles in locations in the same rect
+			if (availableVehsInRect.empty()) {
+				continue;
 			}
 
 			if (availableVehsInRect.size() < availableLocsInRect.size()) {
@@ -999,7 +1011,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 				int vehId = closest_veh->getId();
 				int bid = bitr->second.id;
 				bookings_queue_[bid].veh_id = vehId;
-				amod::ReturnCode rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
+				rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
 				if (rc!= amod::SUCCESS) {
 					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
 				} else {
@@ -1064,17 +1076,10 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 	// discard booking with ticket "discarded. Waiting time exceeded 5 mins"
 	amod::ReturnCode rc = discardTripsWithLongWaiting(world_state);
 
-
-	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
-
-	}
-
-
 	if (available_vehs_.size() == 0) return amod::SUCCESS; // no vehicles to distribute
 
-
+	// define a box with all available vehicles
 	std::vector<std::pair<box, int>> vehsToBeAdded;
-
 	for(auto itr : available_vehs_)
 	{
 		Vehicle* veh = world_state->getVehiclePtr(itr);
@@ -1089,6 +1094,66 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 	std::set<int> usedVehicles;
 	// for each booking, find closest vehicle
 	std::vector<int> to_erase;
+
+	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
+
+		std::vector<amod::TripOffer> options;
+		Booking bk = bitr->second;
+		int vehId = 0;
+		// 1) find the nearest taxi and set it as a first offer
+
+		rc = findTheNearestTaxi(world_state, bk, vehTree, vehId);
+
+		Vehicle *veh = world_state->getVehiclePtr(vehId);
+		TripOffer to_;
+		to_.mode = "privateAmod";
+		to_.vehId = vehId;
+		// price = dist in meters * price 0.22 cents per 400m
+		to_.price = (sim_->getDrivingDistance(bk.source, bk.destination))/400 * 0.22; // in dollars
+		// waiting time  = distance to pick up passenger * 1 / (ave speed (8.02 m/s))
+		to_.waitTime = 8.02 / sim_->getDrivingDistance(veh->getPosition(), bk.destination); //in seconds
+		// wait itme plus estimated travel time
+		to_.arrivalTime = to_.waitTime + (8.02 / sim_->getDrivingDistance(bk.source, bk.destination));
+
+		options.push_back(to_);
+
+		// 2) find the nearest customer to share the ride
+		// rc = findTheNearestSharedTaxi(world_state, bk, vehTree, vehId);
+
+
+
+		// 3) provide options to customers including price, waiting time and travel time
+		// 4) select options
+		// 5) dispatch vehicles to customers
+	}
+
+	//		bk.veh_id = vehId;
+	//		rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
+	//	}
+	//
+	//
+	//
+	//
+	//
+	//
+	//	// change station ownership of vehicle
+	//	if (stations_.size() > 0) {
+	//		int stId = veh_id_to_station_id_[vehId]; //old station
+	//		stations_[stId].removeVehicleId(vehId);
+	//		int netStId = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
+	//		stations_[netStId].addVehicleId(vehId);
+	//		veh_id_to_station_id_[vehId] = netStId;
+	//
+	//		// remove this customer from the station queue
+	//		stations_[stId].removeCustomerId(bookings_queue_[bid].cust_id);
+	//	}
+	//
+	//	// issue a booking serviced event
+	//	Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
+	//	world_state->addEvent(ev);
+	//
+	//	// mark booking to be erased
+	//	to_erase.emplace_back(bid);
 
 	return amod::SUCCESS;
 }
@@ -1453,7 +1518,7 @@ amod::ReturnCode ManagerMatchRebalance::discardTripsWithLongWaiting(amod::World 
 	std::vector<int> to_erase;
 	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
 
-		double waitTime =  world_state->current_time_ -  bitr->second.booking_time;
+		double waitTime =  world_state->getCurrentTime() -  bitr->second.booking_time;
 
 		if (waitTime > max_waiting_time) {
 
@@ -1634,6 +1699,116 @@ amod::ReturnCode ManagerMatchRebalance::interStationDispatch(int st_source, int 
 
 		// increment iterator
 		itr = vi[st_source].begin();
+	}
+
+	return amod::SUCCESS;
+}
+
+amod::ReturnCode ManagerMatchRebalance::findTheNearestTaxi(amod::World *world_state, const amod::Booking &bk,
+		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId) {
+
+	if (!world_state) {
+		throw std::runtime_error("findTheNearestTaxi: world_state is nullptr!");
+	}
+
+	Vehicle *closest_veh = nullptr;
+	Location *closest_loc = nullptr;
+	Customer *cust = world_state->getCustomerPtr(bk.cust_id);
+	double min_dist_cost = std::numeric_limits<int>::max();
+
+	double offset = ONE_KM * 1;
+	int iterCount = 0;
+
+	while(iterCount++ < 3) {
+		std::vector<std::pair<box, int> > result_veh;
+		std::vector<std::pair<box, int> > result_loc;
+
+		amod::box queryBox = getQueryBox(cust->getPosition(), offset);
+		vehTree.query(bgi::intersects(queryBox), std::back_inserter(result_veh));
+		locTree_.query(bgi::intersects(queryBox), std::back_inserter(result_loc));
+		std::vector<int> availableVehsInRect;
+		std::vector<int> availableLocsInRect;
+
+		for(auto item : result_veh) {
+			availableVehsInRect.push_back(item.second);
+		}
+		for(auto item : result_loc) {
+			availableLocsInRect.push_back(item.second);
+		}
+
+		// if there is no available vehicles in rectangle, then there is also no vehicles in locations in the same rect
+		if (availableVehsInRect.empty()) {
+			continue;
+		}
+
+		if (availableVehsInRect.size() > availableLocsInRect.size()) {
+
+			// go through locations in the box
+			for (auto litr = availableLocsInRect.begin(); litr != availableLocsInRect.end(); ++litr){
+
+				Location *loc = world_state->getLocationPtr(*litr);
+				if (loc->getNumVehicles() > 0) {
+
+					double dist_cost = -1;
+					if (cust->getLocationId()) {
+						dist_cost = sim_->getDrivingDistance(loc->getId(), cust->getLocationId());
+					} else {
+						dist_cost = sim_->getDrivingDistance(loc->getPosition(), cust->getPosition());
+					}
+
+					if (dist_cost >=0 && min_dist_cost > dist_cost) {
+						closest_loc = world_state->getLocationPtr(loc->getId());
+						min_dist_cost = dist_cost;
+					}
+				}
+
+				if (closest_loc != nullptr) {
+					//get a vehicle
+					std::unordered_set<int>::const_iterator vbitr, veitr;
+					closest_loc->getVehicleIds(&vbitr, &veitr);
+					if (vbitr != veitr) {
+						closest_veh = world_state->getVehiclePtr(*vbitr);
+					} else {
+						// there is no vehicles in this location, check other location
+
+					}
+				}
+			}
+		} else {
+			// go through available vehicles in rectangle
+			for (auto vitr = availableVehsInRect.begin(); vitr != availableVehsInRect.end(); ++vitr){
+
+				// get minimum cost vehicle
+				Vehicle *veh = world_state->getVehiclePtr(*vitr);
+				double distCost = -1;
+				if (veh->getLocationId() && cust->getLocationId()) {
+					distCost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
+				} else {
+					distCost = sim_->getDrivingDistance(veh->getPosition(), cust->getPosition());
+				}
+				if (distCost >= 0 && min_dist_cost > distCost) {
+					closest_veh = veh;
+					min_dist_cost = distCost;
+				}
+			}
+		}
+
+		if (closest_loc != nullptr) {
+			//get a vehicle
+			std::unordered_set<int>::const_iterator vbitr, veitr;
+			closest_loc->getVehicleIds(&vbitr, &veitr);
+			if (vbitr != veitr) {
+				closest_veh = world_state->getVehiclePtr(*vbitr);
+			}
+		}
+
+		if (closest_veh != nullptr) {
+			// assign vehicle to booking
+			vehId = closest_veh->getId();
+			break;
+		}
+
+		offset += ONE_KM;
 	}
 
 	return amod::SUCCESS;

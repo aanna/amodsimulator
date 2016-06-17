@@ -16,7 +16,7 @@
 #include "KDTree.hpp"
 #include "SimpleDemandEstimator.hpp"
 #include "EmptyTrip.hpp"
-//#include "Assortment.hpp"
+#include "TripOffer.hpp"
 
 #include <map>
 #include <set>
@@ -238,6 +238,10 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
 
         // if a passenger is waiting for longer than 5 minutes, discard the trip
         virtual amod::ReturnCode discardTripsWithLongWaiting(amod::World *world_state);
+
+        // find the nearest taxi to provide a private ride option for a customer
+        virtual amod::ReturnCode findTheNearestTaxi(amod::World *world_state, const amod::Booking &bk,
+        		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId);
 
         // solveRebalancing
         // solves the rebalancing problem as an LP and dispatches vehicles to other stations.

@@ -1111,30 +1111,55 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		if (bookings_queue_.size() > availability_percent_ * available_vehs_.size()) {
 			// if we are here, we are at peak period and we are imposing a surcharge
 
-			// surcharge function (based on a design of rataining walls)
-
+			// surcharge function (dynamic pricing problem)
 		}
 
-		// 1 (ii) make the first offer
-		to_.mode = "privateAmod";
+		// 1) provide the first offer
+		to_.mode = "privateAMOD";
+		to_.booking_id = bk.id;
 		to_.vehId = vehId;
 		// price = dist in meters * price 0.22 cents per 400m
 		to_.price = surcharge * (sim_->getDrivingDistance(bk.source, bk.destination))/400 * 0.22; // in dollars
 		// waiting time  = distance to pick up passenger * 1 / (ave speed (8.02 m/s))
 		to_.waitTime = 8.02 / sim_->getDrivingDistance(veh->getPosition(), bk.destination); //in seconds
-		// wait itme plus estimated travel time
+		// wait time plus estimated travel time
 		to_.arrivalTime = to_.waitTime + (8.02 / sim_->getDrivingDistance(bk.source, bk.destination));
 
 		options.push_back(to_);
 
 		// 2) offer a shared ride at a reduced price and with longer waiting and travel times
-		// this should be done based on the size of the booking queue and the first offer
-		rc = offerSharedRide(world_state, bk, to_);
+		// this should be done based on the size of the booking queue, available vehicles and the first offer
+
+		// shared trips offer
+		TripOffer sto_;
+		rc = alternativeOfferForSharedRide(world_state, bk, to_, sto_);
+
+		// 3) provide options to customer
+		std::vector <amod::TripOffer> offers;
+		amod::TripOffer selectedOffer;
+		selectedOffer.offer_id = -1;
+		rc = offerSelection(bk.cust_id, offers, selectedOffer);
+
+		std::vector<int> bookingsPrivateAmod;
+		std::vector<int> bookingsSharedAmod;
+		std::vector<int> bookingsToErase; // customers did not select any offer
+
+		if (selectedOffer.offer_id != -1) {
+			// customer selected an offer
+
+			// add bookings to matching queues
 
 
 
-		// 3) provide options to customers including price, waiting time and travel time
-		// 4) select options
+		} else {
+			// otherwise, set an event that customer rejected all offers and erase booking from booking queue
+
+			// add booking id to to_be_deleted
+		}
+
+		// 4) match selected trips
+
+
 		// 5) dispatch vehicles to customers
 	}
 
@@ -1147,24 +1172,6 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 	//
 	//
 	//
-	//	// change station ownership of vehicle
-	//	if (stations_.size() > 0) {
-	//		int stId = veh_id_to_station_id_[vehId]; //old station
-	//		stations_[stId].removeVehicleId(vehId);
-	//		int netStId = getClosestStationId( bookings_queue_[bid].destination ); //the station at the destination
-	//		stations_[netStId].addVehicleId(vehId);
-	//		veh_id_to_station_id_[vehId] = netStId;
-	//
-	//		// remove this customer from the station queue
-	//		stations_[stId].removeCustomerId(bookings_queue_[bid].cust_id);
-	//	}
-	//
-	//	// issue a booking serviced event
-	//	Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bid});
-	//	world_state->addEvent(ev);
-	//
-	//	// mark booking to be erased
-	//	to_erase.emplace_back(bid);
 
 	return rc;
 }
@@ -1564,9 +1571,13 @@ amod::ReturnCode ManagerMatchRebalance::loadMaxWaitTime(int maxWaitTime) {
 	return amod::SUCCESS;
 }
 
-amod::ReturnCode ManagerMatchRebalance::loadDynamicPriceAndAssortmentParam (double dynamicSurchageStart) {
+amod::ReturnCode ManagerMatchRebalance::loadDynamicPriceAndAssortmentParams (std::vector<double> dynamicFactors) {
 
-	high_demand_start = dynamicSurchageStart;
+	availability_percent_ = dynamicFactors[0];
+	shared_ride_discount_ = dynamicFactors[1];
+	shared_ride_wait_time_increase_ = dynamicFactors[2];
+	shared_ride_arrival_time_increase_ = dynamicFactors[3];
+	peak_hour_surcharge_ = dynamicFactors[4];
 
 	return amod::SUCCESS;
 }
@@ -1832,14 +1843,29 @@ amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state
 	return amod::SUCCESS;
 }
 
-amod::ReturnCode ManagerMatchRebalance::offerSharedRide(amod::World *world_state, const amod::Booking &bk,
-		const amod::TripOffer to_) {
+amod::ReturnCode ManagerMatchRebalance::alternativeOfferForSharedRide(amod::World *world_state, const amod::Booking &bk,
+		const amod::TripOffer &privateTO, amod::TripOffer &sharedTO) {
 
 	if (!world_state) {
-		throw std::runtime_error("offerASharedRide: world_state is nullptr!");
+		throw std::runtime_error("offerSharedRide: world_state is nullptr!");
 	}
 
+	sharedTO.mode = "sharedAMOD";
+	sharedTO.booking_id = privateTO.booking_id;
+	sharedTO.price = privateTO.price * 0.75;
+	sharedTO.waitTime = privateTO.waitTime * 1.3;
+	sharedTO.arrivalTime = privateTO.arrivalTime * 1.3;
 
+	return amod::SUCCESS;
+}
+
+amod::ReturnCode ManagerMatchRebalance::offerSelection(int customer_id, std::vector <amod::TripOffer> offers,
+       		amod::TripOffer &selectedOffer) {
+
+
+	// compare the offers and based on the cust preferences select one
+
+	selectedOffer = offers[1];
 
 	return amod::SUCCESS;
 }

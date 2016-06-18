@@ -140,8 +140,17 @@ public:
 		matchManager->loadMaxWaitTime(maxWaitingTime);
 
 		// load dynamic pricing parameters
+		std::vector<double> dynPriceFactors;
 		double highDemSurStart = amodConfig.get("amod.dynamic_pricing.availability_percent", 1.0);
-		matchManager->loadDynamicPriceAndAssortmentParam(highDemSurStart);
+		dynPriceFactors.push_back(highDemSurStart);
+		double sharedRideDiscount = amodConfig.get("amod.dynamic_pricing.shared_ride_discount_factor", 1.0);
+		dynPriceFactors.push_back(sharedRideDiscount);
+		double sharedWaitTimeIncrease = amodConfig.get("amod.dynamic_pricing.shared_ride_wait_time_increase", 1.0);
+		dynPriceFactors.push_back(sharedWaitTimeIncrease);
+		double sharedRideArrTimeIncr = amodConfig.get("amod.dynamic_pricing.shared_ride_arrival_time_increase", 1.0);;
+		dynPriceFactors.push_back(sharedRideArrTimeIncr);
+
+		matchManager->loadDynamicPriceAndAssortmentParams(dynPriceFactors);
 
 		/// are we doing greedy or assignment matching?
 		std::string matchManagerStr = amodConfig.get("amod.matching_algorithm", defaultString);

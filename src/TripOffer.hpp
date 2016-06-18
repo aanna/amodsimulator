@@ -19,24 +19,34 @@ public:
 	 */
 
 	TripOffer(
+			int offer_id_ = 0,
 			std::string mode_ = "amod",
+			int booking_id_ = 0,
 			double price_ = 0,
 			int waitTime_ = 0,
 			int arrivalTime_ = 0,
-			int id_ = 0):
+			int veh_id_ = 0):
+				offer_id(offer_id_),
 				mode(mode_),
+				booking_id(booking_id_),
 				price(price_),
 				waitTime(waitTime_),
 				arrivalTime(arrivalTime_),
-				vehId(id_){}
+				vehId(veh_id_){}
 
 	/**
 	 * Destructor
 	 */
 	virtual ~TripOffer() {}
 
+	// offer id
+	int offer_id;
+
 	/// which mode is offered (amod or shared amod s-amod)
 	std::string mode;
+
+	// booking id
+	int booking_id;
 
 	/// how much does the offer cost (estimated)
 	// price = dist in meters * price 0.22 cents per 400m

@@ -111,7 +111,7 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	virtual amod::ReturnCode loadMaxWaitTime(int maxWaitTime);
 
 
-    	virtual amod::ReturnCode loadDynamicPriceAndAssortmentParam (double dynamicSurchage);
+    	virtual amod::ReturnCode loadDynamicPriceAndAssortmentParams (std::vector<double> dynamicFactors);
     	/**
     	 * updateRebalancingCounts
     	 * gets rebalancing counts that occured during the time period and place it into the rebalancing_ structure
@@ -178,6 +178,10 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
     	int max_waiting_time;
     	// high demand surcharge for pricing the offers
     	double availability_percent_;
+    	double shared_ride_discount_;
+    	double shared_ride_wait_time_increase_;
+    	double shared_ride_arrival_time_increase_;
+    	double peak_hour_surcharge_;
         
         std::ifstream bfin_;
         bool use_bookings_file_;
@@ -245,8 +249,13 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         // provide an alternative offer to share ride (no assignment is done at this stage,
         // it is only done to get a feedback from the customer if she/he is willing to share the ride.
         // if yes, then later we perform a matching for shared and private rides, separately.
-        virtual amod::ReturnCode offerSharedRide(amod::World *world_state, const amod::Booking &bk,
-        		const amod::TripOffer to_);
+        virtual amod::ReturnCode alternativeOfferForSharedRide(amod::World *world_state, const amod::Booking &bk,
+        		const amod::TripOffer &privateTO, amod::TripOffer &sharedTO);
+
+        // a discrete choice model. based on the offers from the amod service, customers may pick up one of them
+        // or reject all
+        virtual amod::ReturnCode offerSelection(int customer_id, std::vector <amod::TripOffer> offers,
+        		amod::TripOffer &selectedOffer);
 
         // if a passenger is waiting for longer than 5 minutes, discard the trip
         virtual amod::ReturnCode discardTripsWithLongWaiting(amod::World *world_state);

@@ -523,8 +523,8 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 	glp_prob *lp;
 	lp = glp_create_prob();
 	glp_set_prob_name(lp, "matching");
-	glp_set_obj_dir(lp, GLP_MAX);
-	glp_add_cols(lp, nvars);
+	glp_set_obj_dir(lp, GLP_MIN); // or GLP_MIN
+	glp_add_cols(lp, 2 * nvars); // nvars for looping through vehicles and through customers
 
 	// add the structural variables (decision variables)
 	std::unordered_map<int, std::pair<int,int>> index_to_ids;
@@ -554,7 +554,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 				total_invert_cost = -1.0;
 			} else {
 				double time_cost = waiting_time_cost_factor_*(std::max(0.0, world_state->getCurrentTime() - bitr->second.booking_time));
-				total_invert_cost = 1.0/(1.0 + dist_cost + time_cost);
+				total_invert_cost = 1.0/(1.0 + dist_cost + time_cost); // 1.0/(1.0 + dist_cost + time_cost)
 			}
 
 			// add this variable to the solver
@@ -565,7 +565,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 			glp_set_col_name(lp, k, cstr);
 			//glp_set_col_kind(lp, k, GLP_BV); // use this if you want to run this as a MIP
 			glp_set_col_bnds(lp, k, GLP_DB, 0.0, 1.0);
-			glp_set_obj_coef(lp, k, total_invert_cost);
+			glp_set_obj_coef(lp, k, dist_cost - 15000); // or for maximization total_invert_cost
 
 			// increment index
 			++k;
@@ -691,7 +691,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 	delete [] ja;
 	delete [] ar;
 
-	return amod::SUCCESS;
+	return rc;
 }
 
 amod::ReturnCode ManagerMatchRebalance::solveMatchingMinimizing(amod::World *world_state) {
@@ -920,7 +920,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 		Location *closest_loc = nullptr;
 		Customer *cust = world_state->getCustomerPtr(bitr->second.cust_id);
 
-		double offset = ONE_KM * 1;
+		double offset = ONE_KM * 10;
 		int iterCount = 0;
 
 		/*t_1_ = clock();
@@ -1015,7 +1015,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatchingGreedy(amod::World *world_s
 				if (rc!= amod::SUCCESS) {
 					if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
 				} else {
-					if (verbose_) std::cout << "Assigned " << vehId << " to booking " << bid << std::endl;
+					if (verbose_) std::cout << "Assigned " << vehId << " to booking " << bid << " with min_dist = " << min_dist_cost << std::endl;
 					// mark the car as no longer available
 					available_vehs_.erase(vehId);
 					usedVehicles.insert(vehId);
@@ -1092,9 +1092,11 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 	bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree(vehsToBeAdded.begin(), vehsToBeAdded.end());
 
 	std::set<int> usedVehicles;
-	// for each booking, find closest vehicle
-	std::vector<int> to_erase;
+	std::vector<int> to_erase; // trips to be erased from the booking_queue_
+	std::vector<int> privateRidesQ;
+	std::vector<int> sharedRidesQ;
 
+	// for each booking, find closest vehicle
 	for (auto bitr = bookings_queue_.begin(); bitr != bookings_queue_.end(); ++bitr) {
 
 		std::vector<amod::TripOffer> options;
@@ -1110,7 +1112,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		double surcharge = 1.0;
 		if (bookings_queue_.size() > availability_percent_ * available_vehs_.size()) {
 			// if we are here, we are at peak period and we are imposing a surcharge
-
+			surcharge += 0.3;
 			// surcharge function (dynamic pricing problem)
 		}
 
@@ -1140,38 +1142,73 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		selectedOffer.offer_id = -1;
 		rc = offerSelection(bk.cust_id, offers, selectedOffer);
 
-		std::vector<int> bookingsPrivateAmod;
-		std::vector<int> bookingsSharedAmod;
-		std::vector<int> bookingsToErase; // customers did not select any offer
-
 		if (selectedOffer.offer_id != -1) {
 			// customer selected an offer
-
 			// add bookings to matching queues
 
-
+			if (selectedOffer.offer_id == 0) {
+				// private ride
+				privateRidesQ.push_back(bk.id);
+			} else {
+				// shared ride is selected
+				sharedRidesQ.push_back(bk.id);
+			}
 
 		} else {
 			// otherwise, set an event that customer rejected all offers and erase booking from booking queue
 
-			// add booking id to to_be_deleted
+			// issue an offer declined event
+			Event ev(amod::EVENT_CUSTOMER_DECLINED_OFFER, --event_id_, "CustomerDeclinedOffer", world_state->getCurrentTime(), {bk.id});
+			world_state->addEvent(ev);
+
+			// mark booking to be erased
+			to_erase.emplace_back(bk.id);
+
 		}
+	} // end of looping through bookings
 
-		// 4) match selected trips
-
-
-		// 5) dispatch vehicles to customers
+	// erase all to_be_erased booking
+	for (auto itr = to_erase.begin(); itr != to_erase.end(); ++itr) {
+		bookings_queue_.erase(*itr);
 	}
 
-	//		bk.veh_id = vehId;
-	//		rc = sim_->serviceBooking(world_state, bookings_queue_[bid]);
-	//	}
-	//
-	//
-	//
-	//
-	//
-	//
+	// 4) match selected trips
+	// iterate through private trips (customers)
+		if (match_method == GREEDY) {
+			for (auto itr = privateRidesQ.begin(); itr != privateRidesQ.end(); ++itr) {
+
+				int vehId = -1;
+				Booking bk;
+				amod::ReturnCode rc = findNearestTaxi(world_state, bk, vehTree, vehId);
+
+				// check vehicle tree for used vehicles
+
+				// service trip
+
+				// add vehicle to used vehicles
+
+				// delete booking
+
+			}
+
+		} else if (match_method == ASSIGNMENT) {
+			// no assignment yet
+
+		} else {
+			throw std::runtime_error("No such matching method");
+		}
+
+	// iterate through shared trips
+		for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
+
+			// how to match the pairs
+
+
+		}
+
+
+	// 5) dispatch vehicles to customers
+
 
 	return rc;
 }
@@ -1860,7 +1897,7 @@ amod::ReturnCode ManagerMatchRebalance::alternativeOfferForSharedRide(amod::Worl
 }
 
 amod::ReturnCode ManagerMatchRebalance::offerSelection(int customer_id, std::vector <amod::TripOffer> offers,
-       		amod::TripOffer &selectedOffer) {
+		amod::TripOffer &selectedOffer) {
 
 
 	// compare the offers and based on the cust preferences select one

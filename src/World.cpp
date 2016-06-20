@@ -2,7 +2,7 @@
  * World.cpp
  *
  *  Created on: Mar 27, 2015
- *      Author: haroldsoh
+ *      Author: haroldsoh, kasia
  */
 
 #include "World.hpp"
@@ -94,7 +94,6 @@ void World::getVehicles(std::unordered_map<int, Vehicle>::const_iterator* bitr,
 int World::getNumVehicles() const {
 	return (int) vehicles_.size();
 }
-
 
 void World::addCustomer(const Customer &cust) {
 	customers_[cust.getId()] = cust;

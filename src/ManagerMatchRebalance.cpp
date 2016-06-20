@@ -1174,37 +1174,46 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 
 	// 4) match selected trips
 	// iterate through private trips (customers)
-		if (match_method == GREEDY) {
-			for (auto itr = privateRidesQ.begin(); itr != privateRidesQ.end(); ++itr) {
+	if (match_method == GREEDY) {
+		for (auto itr = privateRidesQ.begin(); itr != privateRidesQ.end(); ++itr) {
 
-				int vehId = -1;
-				Booking bk;
-				amod::ReturnCode rc = findNearestTaxi(world_state, bk, vehTree, vehId);
+			int vehId = -1;
 
-				// check vehicle tree for used vehicles
-
-				// service trip
-
-				// add vehicle to used vehicles
-
-				// delete booking
-
+			// how to find Booking given an itr to booking id (this method has to be checked)
+			Booking bk;
+			auto it = bookings_queue_.find(*itr);
+			if (it != bookings_queue_.end()) {
+				bk = it->second;
 			}
 
-		} else if (match_method == ASSIGNMENT) {
-			// no assignment yet
+			std::set<int> usedVehicles;
 
-		} else {
-			throw std::runtime_error("No such matching method");
+			rc = findNearestTaxi(world_state, bk, vehTree, vehId, used_veh);
+
+			// check vehicle tree for used vehicles
+
+			// service trip
+
+			// add vehicle to used vehicles
+
+			// delete booking
+
 		}
+
+	} else if (match_method == ASSIGNMENT) {
+		// no assignment yet
+
+	} else {
+		throw std::runtime_error("No such matching method");
+	}
 
 	// iterate through shared trips
-		for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
+	for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
 
-			// how to match the pairs
+		// how to match the pairs
 
 
-		}
+	}
 
 
 	// 5) dispatch vehicles to customers
@@ -1771,7 +1780,7 @@ amod::ReturnCode ManagerMatchRebalance::interStationDispatch(int st_source, int 
 }
 
 amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state, const amod::Booking &bk,
-		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId) {
+		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId, std::set<int> usedVehicles) {
 
 	if (!world_state) {
 		throw std::runtime_error("findTheNearestTaxi: world_state is nullptr!");
@@ -1834,9 +1843,10 @@ amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state
 					closest_loc->getVehicleIds(&vbitr, &veitr);
 					if (vbitr != veitr) {
 						closest_veh = world_state->getVehiclePtr(*vbitr);
+
 					} else {
 						// there is no vehicles in this location, check other location
-
+						continue;
 					}
 				}
 			}
@@ -1846,6 +1856,12 @@ amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state
 
 				// get minimum cost vehicle
 				Vehicle *veh = world_state->getVehiclePtr(*vitr);
+
+				if(usedVehicles.find(veh->getId()) != usedVehicles.end())
+				{ // find another vehicle
+					continue;
+				}
+
 				double distCost = -1;
 				if (veh->getLocationId() && cust->getLocationId()) {
 					distCost = sim_->getDrivingDistance(veh->getLocationId(), cust->getLocationId());
@@ -1871,6 +1887,7 @@ amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state
 		if (closest_veh != nullptr) {
 			// assign vehicle to booking
 			vehId = closest_veh->getId();
+
 			break;
 		}
 

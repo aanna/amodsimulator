@@ -262,7 +262,7 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
 
         // find the nearest taxi to provide a private ride option for a customer
         virtual amod::ReturnCode findNearestTaxi(amod::World *world_state, const amod::Booking &bk,
-        		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId, std::set<int> usedVehicles);
+        		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId, std::set<int> &usedVehicles);
 
         // solveRebalancing
         // solves the rebalancing problem as an LP and dispatches vehicles to other stations.

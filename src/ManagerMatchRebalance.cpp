@@ -1103,7 +1103,12 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		Booking bk = bitr->second;
 		int vehId = 0;
 		// 1) find the nearest taxi and set it as a first offer
-		rc = findNearestTaxi(world_state, bk, vehTree, vehId);
+		std::set<int> usedVehicles;
+
+		// the vehicle is searched only within the box
+		rc = findNearestTaxi(world_state, bk, vehTree, vehId, usedVehicles);
+
+		usedVehicles.emplace(vehId);
 
 		Vehicle *veh = world_state->getVehiclePtr(vehId);
 		TripOffer to_;
@@ -1112,7 +1117,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		double surcharge = 1.0;
 		if (bookings_queue_.size() > availability_percent_ * available_vehs_.size()) {
 			// if we are here, we are at peak period and we are imposing a surcharge
-			surcharge += 0.3;
+			surcharge = 1.3;
 			// surcharge function (dynamic pricing problem)
 		}
 
@@ -1173,51 +1178,112 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 	}
 
 	// 4) match selected trips
-	// iterate through private trips (customers)
 	if (match_method == GREEDY) {
-		for (auto itr = privateRidesQ.begin(); itr != privateRidesQ.end(); ++itr) {
 
-			int vehId = -1;
+		/******************************************
+		 * iterate through private trips
+		 *****************************************/
+		std::vector<int> private_to_erase;
+		std::set<int> usedVehicles;
+		for (auto itr = privateRidesQ.begin(); itr != privateRidesQ.end(); ++itr) {
 
 			// how to find Booking given an itr to booking id (this method has to be checked)
 			Booking bk;
+			bk.id = -1;
 			auto it = bookings_queue_.find(*itr);
 			if (it != bookings_queue_.end()) {
 				bk = it->second;
 			}
+			if (bk.id == -1) {
+				if (verbose_) std::cout << "privateRidesQ: Booking Id does not exists." << std::endl;
+				continue;
+			}
 
-			std::set<int> usedVehicles;
+			int vehId = -1;
+			rc = findNearestTaxi(world_state, bk, vehTree, vehId, usedVehicles);
 
-			rc = findNearestTaxi(world_state, bk, vehTree, vehId, used_veh);
+			// assign vehicle to booking
+			bookings_queue_[bk.id].veh_id = vehId;
+			rc = sim_->serviceBooking(world_state, bookings_queue_[bk.id]);
 
-			// check vehicle tree for used vehicles
+			if (rc!= amod::SUCCESS) {
+				if (verbose_) std::cout << amod::kErrorStrings[rc] << std::endl;
+			} else {
+				if (verbose_) std::cout << "Assigned " << vehId << " to booking " << bk.id << std::endl;
+				// mark the car as no longer available
+				// available_vehs_.erase(vehId);
+				usedVehicles.insert(vehId);
+
+				// change station ownership of vehicle
+				if (stations_.size() > 0) {
+					int stId = veh_id_to_station_id_[vehId]; //old station
+					stations_[stId].removeVehicleId(vehId);
+					int netStId = getClosestStationId( bookings_queue_[bk.id].destination ); //the station at the destination
+					stations_[netStId].addVehicleId(vehId);
+					veh_id_to_station_id_[vehId] = netStId;
+
+					// remove this customer from the station queue
+					stations_[stId].removeCustomerId(bookings_queue_[bk.id].cust_id);
+				}
+			}
 
 			// service trip
+			// issue a booking serviced event
+			Event ev(amod::EVENT_BOOKING_SERVICED, --event_id_, "BookingServiced", world_state->getCurrentTime(), {bk.id});
+			world_state->addEvent(ev);
 
-			// add vehicle to used vehicles
+
+			// mark booking to be erased
+			to_erase.emplace_back(bk.id);
+			private_to_erase.emplace_back(bk.id);
 
 			// delete booking
 
 		}
 
+		// erase all to_be_erased booking
+		for (auto itr = to_erase.begin(); itr != to_erase.end(); ++itr) {
+			bookings_queue_.erase(*itr);
+			privateRidesQ.erase(itr);
+		}
+
+		// what to do if not all of them who selected an offer are serviced (?)
+		// currently I will ask them again in the next iteration
+		// basically I should keep this ppl in privateRidesQ instead of in the booking_queue
+		// this function should only be called for the number of ppl which does not exceed the n of available vehicles
+
+		/******************************************
+		 * iterate through shared trips
+		 *****************************************/
+		for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
+
+			// retrieve booking
+			Booking bk;
+			bk.id = -1;
+			auto it = bookings_queue_.find(*itr);
+			if (it != bookings_queue_.end()) {
+				bk = it->second;
+			}
+
+			if (bk.id == -1) {
+				if (verbose_) std::cout << "sharedRidesQ: Booking Id does not exists." << std::endl;
+				continue;
+			}
+
+			// add origin to the nearest station
+			int origStId = getClosestStationId(bk.source );
+
+			// add destination to the nearest station
+			int destStId = getClosestStationId(bk.destination );
+
+		}
+
 	} else if (match_method == ASSIGNMENT) {
-		// no assignment yet
+		// to be implemented
 
 	} else {
 		throw std::runtime_error("No such matching method");
 	}
-
-	// iterate through shared trips
-	for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
-
-		// how to match the pairs
-
-
-	}
-
-
-	// 5) dispatch vehicles to customers
-
 
 	return rc;
 }
@@ -1780,7 +1846,7 @@ amod::ReturnCode ManagerMatchRebalance::interStationDispatch(int st_source, int 
 }
 
 amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state, const amod::Booking &bk,
-		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId, std::set<int> usedVehicles) {
+		bgi::rtree<std::pair<box, int>, bgi::linear<16> > vehTree, int &vehId, std::set<int> &usedVehicles) {
 
 	if (!world_state) {
 		throw std::runtime_error("findTheNearestTaxi: world_state is nullptr!");

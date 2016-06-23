@@ -199,6 +199,7 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         MatchMethod match_method;
         std::set<int> available_vehs_;
         std::map<int, Booking> bookings_queue_;
+        std::map<int, Booking> shared_queue_;
         double matching_interval_;
         double next_matching_time_;
         double distance_cost_factor_;
@@ -208,6 +209,7 @@ typedef bgi::rtree<value, bgi::linear<16> > RTree;
         // rebalancing variables
         amod::DemandEstimator *dem_est_;
         std::map<int, amod::Location> stations_; //needs to be a map to ensure ordered lookup
+        std::vector<std::pair<int, int>> station_pairs_; // to look up for shared rides
         std::unordered_map<int, int> veh_id_to_station_id_;
         kdt::KDTree<amod::Location> stations_tree_; //for fast NN lookup
         bool use_current_queue_;

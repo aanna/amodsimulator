@@ -439,6 +439,16 @@ void ManagerMatchRebalance::loadStations(std::vector<amod::Location> &stations, 
 		stations_[st_id].addVehicleId(itr->second.getId()); // vehicle belongs to this station.
 		veh_id_to_station_id_[itr->second.getId()] = st_id;
 	}
+
+	// create station_pairs_ to look up for shared rides
+	for (auto l : stations) {
+
+		for (auto ll : stations) {
+			station_pairs_.push_back(std::make_pair(l.getId(), ll.getId()));
+		}
+	}
+
+
 	return;
 }
 
@@ -523,7 +533,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 	glp_prob *lp;
 	lp = glp_create_prob();
 	glp_set_prob_name(lp, "matching");
-	glp_set_obj_dir(lp, GLP_MIN); // or GLP_MIN
+	glp_set_obj_dir(lp, GLP_MAX); // or GLP_MIN
 	glp_add_cols(lp, 2 * nvars); // nvars for looping through vehicles and through customers
 
 	// add the structural variables (decision variables)
@@ -549,6 +559,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 			}
 
 			double dist_cost = distance_cost_factor_*(dist);
+			std::cout << "dist_cost[" << veh->getId() << "][" << cust->getId() <<  "] = " << dist_cost << std::endl;
 			if (dist_cost < 0) {
 				// this vehicle cannot service this booking
 				total_invert_cost = -1.0;
@@ -565,7 +576,7 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 			glp_set_col_name(lp, k, cstr);
 			//glp_set_col_kind(lp, k, GLP_BV); // use this if you want to run this as a MIP
 			glp_set_col_bnds(lp, k, GLP_DB, 0.0, 1.0);
-			glp_set_obj_coef(lp, k, dist_cost - 15000); // or for maximization total_invert_cost
+			glp_set_obj_coef(lp, k, total_invert_cost); // or for maximization total_invert_cost, for min:  dist_cost - 15000
 
 			// increment index
 			++k;
@@ -634,8 +645,8 @@ amod::ReturnCode ManagerMatchRebalance::solveMatching(amod::World *world_state) 
 	glp_simplex(lp, nullptr);
 
 	// print out the objective value
-	//double z = glp_mip_obj_val(lp);
-	//if (verbose_) std::cout << z << std::endl;
+	// double z = glp_mip_obj_val(lp);
+	// if (verbose_) std::cout << "Objective value:  " << z << std::endl;
 
 	// dispatch the vehicles
 	for (int k=1; k<=nvars; ++k) {
@@ -1255,6 +1266,9 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		/******************************************
 		 * iterate through shared trips
 		 *****************************************/
+		// shared_bookings is a map where the key is a pair <origin_station_id, dest_st_id> and the values are bookings ids
+		// going from origin_st_id to dest_st_id
+		std::unordered_map<std::pair<int, int> , std::vector<int>> shared_bookings;
 		for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
 
 			// retrieve booking
@@ -1270,13 +1284,34 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 				continue;
 			}
 
-			// add origin to the nearest station
-			int origStId = getClosestStationId(bk.source );
+			// nearest station to origin
+			int origStId = getClosestStationId(bk.source);
+			bk.origin_st_id = origStId;
 
-			// add destination to the nearest station
-			int destStId = getClosestStationId(bk.destination );
+			// nearest station to destination
+			int destStId = getClosestStationId(bk.destination);
+			bk.dest_st_id = destStId;
+
+			// shared_bookings.emplace(station_pairs_, bk.id);
+
+			std::vector<std::pair<int, int>>::iterator iter;
+
+			iter = find (station_pairs_.begin(), station_pairs_.end(), std::make_pair(origStId, destStId));
+			  if (iter != station_pairs_.end()) {
+			    // std::cout << "Station pair found: " << *iter << '\n';
+			  } else {
+			    std::cout << "Station pair not found, orig_st = " << origStId << ", dest_st = " << destStId << std::endl;
+			  }
+
+
 
 		}
+
+
+
+		// find pairs of trip
+		//std::unordered_map::iterator iter = shared_bookings.begin();
+
 
 	} else if (match_method == ASSIGNMENT) {
 		// to be implemented

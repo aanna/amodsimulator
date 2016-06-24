@@ -1269,6 +1269,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		// shared_bookings is a map where the key is a pair <origin_station_id, dest_st_id> and the values are bookings ids
 		// going from origin_st_id to dest_st_id
 		std::unordered_map<std::pair<int, int> , std::vector<int>> shared_bookings;
+		//// (1) fill in the shared_bookings container
 		for (auto itr = sharedRidesQ.begin(); itr != sharedRidesQ.end(); ++itr) {
 
 			// retrieve booking
@@ -1286,31 +1287,41 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 
 			// nearest station to origin
 			int origStId = getClosestStationId(bk.source);
-			bk.origin_st_id = origStId;
-
+			// bk.origin_st_id = origStId;
 			// nearest station to destination
 			int destStId = getClosestStationId(bk.destination);
-			bk.dest_st_id = destStId;
-
-			// shared_bookings.emplace(station_pairs_, bk.id);
+			// bk.dest_st_id = destStId;
 
 			std::vector<std::pair<int, int>>::iterator iter;
 
 			iter = find (station_pairs_.begin(), station_pairs_.end(), std::make_pair(origStId, destStId));
 			  if (iter != station_pairs_.end()) {
 			    // std::cout << "Station pair found: " << *iter << '\n';
+
+				  // push_back booking id to the current vector
+				  if (shared_bookings[std::make_pair(origStId, destStId)].end()) {
+					  // the pair does not exist yet
+					  std::vector<int> currentIds;
+					  currentIds.push_back(bk.id);
+					  shared_bookings[std::make_pair(origStId, destStId)] = currentIds;
+
+				  } else {
+					  // update the pair
+					  std::vector<int> currentIds = shared_bookings[std::make_pair(origStId, destStId)];
+					  currentIds.push_back(bk.id);
+					  shared_bookings[std::make_pair(origStId, destStId)] = currentIds;
+				  }
 			  } else {
 			    std::cout << "Station pair not found, orig_st = " << origStId << ", dest_st = " << destStId << std::endl;
 			  }
-
-
-
 		}
 
-
-
-		// find pairs of trip
-		//std::unordered_map::iterator iter = shared_bookings.begin();
+		//// (2) find pairs of trip
+		std::unordered_map<std::pair<int, int> , std::vector<int>>::iterator iter = shared_bookings.begin();
+		if (iter != shared_bookings.end()) {
+			// find the size of the vector and merge trips
+			iter->second.size();
+		}
 
 
 	} else if (match_method == ASSIGNMENT) {

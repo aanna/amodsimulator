@@ -15,7 +15,7 @@ namespace amod {
     
     struct Booking {
     public:
-    	enum Mode {TELEPORT, AMODTRAVEL};
+    	enum Mode {TELEPORT, AMODTRAVEL, AMODSHAREDTRAVEL};
 
         Booking(int booking_id = 0, int vehicle_id = 0, int customer_id = 0,
                 Position source_position = Position(),
@@ -46,7 +46,7 @@ namespace amod {
         // int dest_st_id;			// destination station id (only needed for shared rides)
         double booking_time;    // booking time (in seconds)
         
-        Mode travel_mode;	// travel mode for this booking
+        Mode travel_mode;	// travel mode for this booking, amod or shared amod
 
         // the following are mainly for logging purposes (optional)
         double pickup_time;     // pickup time (in seconds)

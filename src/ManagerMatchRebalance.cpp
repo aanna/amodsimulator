@@ -1198,7 +1198,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		std::set<int> usedVehicles;
 		for (auto itr = privateRidesQ.begin(); itr != privateRidesQ.end(); ++itr) {
 
-			// how to find Booking given an itr to booking id (this method has to be checked)
+			// find booking
 			Booking bk;
 			bk.id = -1;
 			auto it = bookings_queue_.find(*itr);
@@ -1291,36 +1291,140 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 			// nearest station to destination
 			int destStId = getClosestStationId(bk.destination);
 			// bk.dest_st_id = destStId;
+			std::pair<int, int> odPair = std::make_pair(origStId, destStId);
 
 			std::vector<std::pair<int, int>>::iterator iter;
+			iter = find (station_pairs_.begin(), station_pairs_.end(), odPair);
+			if (iter != station_pairs_.end()) {
+				// std::cout << "Station pair found: " << *iter << '\n';
 
-			iter = find (station_pairs_.begin(), station_pairs_.end(), std::make_pair(origStId, destStId));
-			  if (iter != station_pairs_.end()) {
-			    // std::cout << "Station pair found: " << *iter << '\n';
-
-				  // push_back booking id to the current vector
-				  if (shared_bookings[std::make_pair(origStId, destStId)].end()) {
-					  // the pair does not exist yet
-					  std::vector<int> currentIds;
-					  currentIds.push_back(bk.id);
-					  shared_bookings[std::make_pair(origStId, destStId)] = currentIds;
-
-				  } else {
-					  // update the pair
-					  std::vector<int> currentIds = shared_bookings[std::make_pair(origStId, destStId)];
-					  currentIds.push_back(bk.id);
-					  shared_bookings[std::make_pair(origStId, destStId)] = currentIds;
-				  }
-			  } else {
-			    std::cout << "Station pair not found, orig_st = " << origStId << ", dest_st = " << destStId << std::endl;
-			  }
+				// push_back current booking id to the vector
+				// check if the key already exists in shared_bookings map
+				std::unordered_map<std::pair<int, int> , std::vector<int>>::const_iterator got =
+						shared_bookings.find (odPair);
+				if ( got != shared_bookings.end() ) {
+					// the pair does not exist yet
+					std::cout << "not found";
+					std::vector<int> currentIds;
+					currentIds.push_back(bk.id);
+					shared_bookings[odPair] = currentIds;
+				}
+				else {
+					// update the pair
+					std::vector<int> currentIds = shared_bookings[odPair];
+					currentIds.push_back(bk.id);
+					shared_bookings[odPair] = currentIds;
+				}
+			} else {
+				std::cout << "Station pair not found, orig_st = " << origStId << ", dest_st = " << destStId << std::endl;
+			}
 		}
 
-		//// (2) find pairs of trip
+		//// (2) pair the trips
 		std::unordered_map<std::pair<int, int> , std::vector<int>>::iterator iter = shared_bookings.begin();
-		if (iter != shared_bookings.end()) {
-			// find the size of the vector and merge trips
-			iter->second.size();
+		while (iter != shared_bookings.end()) {
+
+			// origin-destination pair
+			std::pair<int, int> odPair = iter->first;
+			// bookings between odPair
+			std::vector<int> bookingIDs = iter->second;
+
+			// int originId = odPair.first;
+			// int destId = odPair.second;
+
+			// if we have minimum of 2 bookings in the queue
+			// & remainder (bookingIDs.size(), 2) == 0
+
+			if (bookingIDs.size() > 0 ) {
+				// get booking ids
+				// iterate through the vector of booking ids
+				int i = 0;
+				while (i < bookingIDs.size()) {
+
+					// find two bookings and dispatch these customers to destination as one trip
+					int firstBkId = bookingIDs(i);
+					++i;
+					int secondBkId = bookingIDs(i);
+					++i;
+
+					// retrieve this two bookings
+					Booking bkFirst;
+					bkFirst.id = -1;
+					auto it = bookings_queue_.find(firstBkId);
+					if (it != bookings_queue_.end()) {
+						bkFirst = it->second;
+					}
+					if (bkFirst.id == -1) {
+						if (verbose_) std::cout << "sharedRidesQ: First Booking Id does not exists." << std::endl;
+						continue;
+					}
+
+					// find bookings
+					Booking bkSecond;
+					bkSecond.id = -1;
+					auto itSec = bookings_queue_.find(secondBkId);
+					if (itSec != bookings_queue_.end()) {
+						bkSecond = it->second;
+					}
+					if (bkSecond.id == -1) {
+						if (verbose_) std::cout << "sharedRidesQ: Second Booking Id does not exists." << std::endl;
+						continue;
+					}
+
+					// find vehicle for bookings
+					int vehId1 = -1;
+					int vehId2 = -1;
+					rc = findNearestTaxi(world_state, bkFirst, vehTree, vehId1, usedVehicles);
+					// we do not exclude previous taxi from the search for the current customer
+					rc = findNearestTaxi(world_state, bkSecond, vehTree, vehId2, usedVehicles);
+
+					if (vehId1 == vehId2) {
+						// find which customer is nearer to the vehicle
+
+						Customer *cust1 = world_state->getCustomerPtr(bkFirst.cust_id);
+						Customer *cust2 = world_state->getCustomerPtr(bkSecond.cust_id);
+						Vehicle *veh = world_state->getVehiclePtr(vehId1);
+
+						double dist1 = sim_->getDrivingDistance(veh->getPosition(), cust1->getPosition());
+						double dist2 = sim_->getDrivingDistance(veh->getPosition(), cust2->getPosition());
+						// dispatch vehicle to the nearest customer
+
+						double distC1toC2 = sim_->getDrivingDistance(cust1->getPosition(), cust2->getPosition());
+						double distC2toC1 = sim_->getDrivingDistance(cust2->getPosition(), cust1->getPosition());
+
+						if (dist1 + distC1toC2 <= dist2 + distC2toC1) {
+							// send veh to cust1 and later to cust2
+							rc = sim_->serviceSharedBooking(world_state, bookings_queue_[bkFirst.id], bookings_queue_[bkSecond.id]);
+						} else {
+							// send veh to cust1 and later to cust2
+						}
+
+
+						// exclude dispatched vehicle from further search
+						usedVehicles.emplace(vehId1);
+					} else {
+						// find which vehicle is better to send
+
+
+					}
+
+
+					// assign vehicle to booking
+					bookings_queue_[bk.id].veh_id = vehId;
+					rc = sim_->serviceBooking(world_state, bookings_queue_[bk.id]);
+
+
+				}
+			} else {
+				// dispatch this booking as single trip at shared price
+			}
+
+
+			// set iterator to the beginning
+			iter = shared_bookings.begin();
+
+			// delete booking from booking_queue
+
 		}
 
 
@@ -2008,6 +2112,7 @@ amod::ReturnCode ManagerMatchRebalance::findNearestTaxi(amod::World *world_state
 
 	return amod::SUCCESS;
 }
+
 
 amod::ReturnCode ManagerMatchRebalance::alternativeOfferForSharedRide(amod::World *world_state, const amod::Booking &bk,
 		const amod::TripOffer &privateTO, amod::TripOffer &sharedTO) {

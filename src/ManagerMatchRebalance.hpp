@@ -26,6 +26,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <unordered_map>
+#include <math.h>
 
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point.hpp>

@@ -121,6 +121,9 @@ public:
     // one of the amod::ReturnCode error codes.
     virtual amod::ReturnCode serviceBooking(amod::World *world_state, const amod::Booking &booking);
 
+    virtual amod::ReturnCode serviceSharedBooking(amod::World *world_state, const amod::Booking &booking1st,
+    		const amod::Booking &booking2nd, int vehId1, int vehId2);
+
     // distance functions
     // returns the driving distance from Position from to Position to. This may not be the Euclidean
     // distance on a road network.

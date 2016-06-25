@@ -1342,9 +1342,9 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 				while (i < bookingIDs.size()) {
 
 					// find two bookings and dispatch these customers to destination as one trip
-					int firstBkId = bookingIDs(i);
+					int firstBkId = bookingIDs[i];
 					++i;
-					int secondBkId = bookingIDs(i);
+					int secondBkId = bookingIDs[i];
 					++i;
 
 					// retrieve this two bookings
@@ -1394,7 +1394,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 
 						if (dist1 + distC1toC2 <= dist2 + distC2toC1) {
 							// send veh to cust1 and later to cust2
-							rc = sim_->serviceSharedBooking(world_state, bookings_queue_[bkFirst.id], bookings_queue_[bkSecond.id]);
+							// rc = sim_->serviceSharedBooking(world_state, bookings_queue_[bkFirst.id], bookings_queue_[bkSecond.id], vehId1, vehId2);
 						} else {
 							// send veh to cust1 and later to cust2
 						}
@@ -1410,8 +1410,8 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 
 
 					// assign vehicle to booking
-					bookings_queue_[bk.id].veh_id = vehId;
-					rc = sim_->serviceBooking(world_state, bookings_queue_[bk.id]);
+//					bookings_queue_[bk.id].veh_id = vehId;
+//					rc = sim_->serviceBooking(world_state, bookings_queue_[bk.id]);
 
 
 				}

@@ -10,8 +10,8 @@
 namespace amod {
 
 SimulatorBasic::SimulatorBasic(double resolution):
-        						resolution_(resolution), event_id_(0),
-        						using_locations_(false)
+        												resolution_(resolution), event_id_(0),
+        												using_locations_(false)
 {
 	// just return
 }
@@ -452,6 +452,76 @@ amod::ReturnCode SimulatorBasic::serviceBooking(amod::World *world_state, const 
 		amod::Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, ++event_id_, "BookingDropped", world_state->getCurrentTime(), entities);
 		world_state->addEvent(ev);
 	}
+	return rc;
+}
+
+
+amod::ReturnCode SimulatorBasic::serviceSharedBooking(amod::World *world_state, const amod::Booking &booking1st,
+		const amod::Booking &booking2nd, int vehId1, int vehId2) {
+
+	amod::ReturnCode rc;
+
+	// make sure the customer is valid
+	amod::Customer *cust1 = world_state->getCustomerPtr(booking1st.cust_id);
+	amod::Customer *cust2 = world_state->getCustomerPtr(booking2nd.cust_id);
+	Vehicle *veh1 = world_state->getVehiclePtr(vehId1);
+	Vehicle *veh2 = world_state->getVehiclePtr(vehId2);
+
+	if (vehId1 == vehId2) {
+		// find which customer is nearer to the vehicle (veh1 and veh2 are the same)
+
+		double distV1toC1 = getDrivingDistance(veh1->getPosition(), cust1->getPosition());
+		double distV1toC2 = getDrivingDistance(veh1->getPosition(), cust2->getPosition());
+		// dispatch vehicle to the nearest customer
+
+		double distC1toC2 = getDrivingDistance(cust1->getPosition(), cust2->getPosition());
+		double distC2toC1 = getDrivingDistance(cust2->getPosition(), cust1->getPosition());
+
+		if (distV1toC1 + distC1toC2 <= distV1toC2 + distC2toC1) {
+			// send veh to cust1 and later to cust2
+
+		} else {
+			// send veh to cust1 and later to cust2
+		}
+
+
+		// exclude dispatched vehicle from further search
+		// usedVehicles.emplace(vehId1);
+	} else {
+		// find which vehicle is better to send
+
+
+	}
+
+
+
+//	if (!(cust1.getStatus() == amod::CustomerStatus::FREE || cust1.getStatus() == amod::CustomerStatus::WAITING_FOR_ASSIGNMENT)) {
+//		rc = amod::ReturnCode::CUSTOMER_IS_NOT_FREE;
+//	} else {
+//
+//		// dispatch the vehicle to the customer's position
+//		amod::Position cust_pos = cust1.getPosition();
+//
+//		double dist_to_dropoff = getDrivingDistance(cust_pos, booking.destination);
+//		if (dist_to_dropoff < 0) {
+//			rc = amod::NO_PATH_TO_DESTINATION;
+//		} else {
+//
+//			// dispatch the vehicle
+//			rc = dispatchVehicle(world_state, booking.veh_id, cust_pos,
+//					amod::VehicleStatus::MOVING_TO_PICKUP, amod::VehicleStatus::HIRED, booking.id);
+//		}
+//	}
+//
+//	// if the return code was not successful, then we raise an event that the booking could not be serviced
+//	if (rc!= amod::SUCCESS) {
+//		// raise an event that this booking was dropped
+//		std::vector<int> entities = {booking.id, booking.cust_id};
+//		amod::Event ev(amod::EVENT_BOOKING_CANNOT_BE_SERVICED, ++event_id_, "BookingDropped", world_state->getCurrentTime(), entities);
+//		world_state->addEvent(ev);
+//	}
+
+
 	return rc;
 }
 

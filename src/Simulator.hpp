@@ -119,7 +119,7 @@ public:
     virtual amod::ReturnCode serviceBooking(amod::World *world_state, const amod::Booking &booking) = 0;
     
     virtual amod::ReturnCode serviceSharedBookings(amod::World *world_state, const amod::Booking &booking1,
-    		const amod::Booking &booking2, int vehId1, int vehId2) = 0;
+    		const amod::Booking &booking2, int &vehId1, int &vehId2) = 0;
 
     // distance functions
     // returns the driving distance from Position from to Position to. This may not be the Euclidean

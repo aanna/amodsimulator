@@ -33,7 +33,8 @@ namespace amod {
         			// dest_st_id (dest_st_id_),
         			booking_time(booking_time_s),
         			travel_mode(trav_mode),
-        			pickup_time(0), dispatch_time(0), dropoff_time(0) {};
+        			pickup_time(0), dispatch_time(0), dropoff_time(0),
+        			fare_paid (0)  {};
         virtual ~Booking() {};
         
         int id;         // id of booking (valid bookings have > 0)
@@ -52,6 +53,7 @@ namespace amod {
         double pickup_time;     // pickup time (in seconds)
         double dispatch_time;   // dispatch time (in seconds)
         double dropoff_time;    // dropoff time (in seconds)
+        double fare_paid;
 
         
         bool operator<(const Booking &rhs) const {

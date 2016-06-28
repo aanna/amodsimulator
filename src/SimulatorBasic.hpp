@@ -146,10 +146,11 @@ public:
 	// Upon arrival at the destination, an arrival event is triggered
 	// and the vehicle begins to drop off the customer, with status SECOND_DROPOFF.
 	// and the vehicle status is set to FREE.
+	// not dispatche vehicle is set to zero
 	// if the call is successful, it returns amod::SUCESSS. Otherwise, it returns
 	// one of the amod::ReturnCode error codes.
 	virtual amod::ReturnCode serviceSharedBookings(amod::World *world_state, const amod::Booking &booking1st,
-			const amod::Booking &booking2nd, int vehId1, int vehId2);
+			const amod::Booking &booking2nd, int &vehId1, int &vehId2);
 
 	// distance functions
 	// returns the driving distance from Position from to Position to. This may not be the Euclidean

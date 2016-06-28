@@ -1325,7 +1325,7 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 		while (iter != shared_bookings.end()) {
 
 			// origin-destination pair
-			std::pair<int, int> odPair = iter->first;
+			// std::pair<int, int> odPair = iter->first;
 			// bookings between odPair
 			std::vector<int> bookingIDs = iter->second;
 
@@ -1334,11 +1334,18 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 
 			// if we have minimum of 2 bookings in the queue
 			// & remainder (bookingIDs.size(), 2) == 0
+			if (bookingIDs.size() == 0 ) {
+				continue;
+			}
+			if (bookingIDs.size() == 1 ) {
+				// assign one vehicle to one customer with the price tag and ticket of the shared trip
+
+						}
 
 			if (bookingIDs.size() > 0 ) {
 				// get booking ids
 				// iterate through the vector of booking ids
-				int i = 0;
+				unsigned int i = 0;
 				while (i < bookingIDs.size()) {
 
 					// find two bookings and dispatch these customers to destination as one trip
@@ -1359,7 +1366,6 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 						continue;
 					}
 
-					// find bookings
 					Booking bkSecond;
 					bkSecond.id = -1;
 					auto itSec = bookings_queue_.find(secondBkId);
@@ -1378,40 +1384,24 @@ amod::ReturnCode ManagerMatchRebalance::solveAssortment(amod::World *world_state
 					// we do not exclude previous taxi from the search for the current customer
 					rc = findNearestTaxi(world_state, bkSecond, vehTree, vehId2, usedVehicles);
 
-					if (vehId1 == vehId2) {
-						// find which customer is nearer to the vehicle
+					rc = sim_->serviceSharedBookings(world_state, bkFirst,
+							bkSecond, vehId1, vehId2);
 
-						Customer *cust1 = world_state->getCustomerPtr(bkFirst.cust_id);
-						Customer *cust2 = world_state->getCustomerPtr(bkSecond.cust_id);
-						Vehicle *veh = world_state->getVehiclePtr(vehId1);
-
-						double dist1 = sim_->getDrivingDistance(veh->getPosition(), cust1->getPosition());
-						double dist2 = sim_->getDrivingDistance(veh->getPosition(), cust2->getPosition());
-						// dispatch vehicle to the nearest customer
-
-						double distC1toC2 = sim_->getDrivingDistance(cust1->getPosition(), cust2->getPosition());
-						double distC2toC1 = sim_->getDrivingDistance(cust2->getPosition(), cust1->getPosition());
-
-						if (dist1 + distC1toC2 <= dist2 + distC2toC1) {
-							// send veh to cust1 and later to cust2
-							// rc = sim_->serviceSharedBooking(world_state, bookings_queue_[bkFirst.id], bookings_queue_[bkSecond.id], vehId1, vehId2);
-						} else {
-							// send veh to cust1 and later to cust2
-						}
-
-
+					// not assigned vehicle id is replaced by -1
+					if (vehId1 == -1) {
 						// exclude dispatched vehicle from further search
 						usedVehicles.emplace(vehId1);
+					} else if (vehId2 == -1) {
+						// exclude dispatched vehicle from further search
+						usedVehicles.emplace(vehId2);
 					} else {
-						// find which vehicle is better to send
-
-
+						// something went wrong and non of the vehicles is chosen
+						if (verbose_) std::cout << "sharedRidesQ: non of the vehicles is assigned to this trip." << std::endl;
+						rc = amod::CANNOT_GET_VEHICLE;
 					}
-
 
 					// assign vehicle to booking
 //					bookings_queue_[bk.id].veh_id = vehId;
-//					rc = sim_->serviceBooking(world_state, bookings_queue_[bk.id]);
 
 
 				}

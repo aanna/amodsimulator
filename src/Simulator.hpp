@@ -2,7 +2,7 @@
  * Simulator.h
  *
  *  Created on: Mar 23, 2015
- *      Author: haroldsoh
+ *      Author: haroldsoh, Kasia
  */
 
 #ifndef Simulator_H_
@@ -50,6 +50,13 @@ public:
                                              amod::VehicleStatus start_status = VehicleStatus::BUSY,
                                              amod::VehicleStatus end_status = VehicleStatus::FREE) = 0;
     
+    virtual amod::ReturnCode dispatchSharedVehicle(amod::World *world_state,
+    										int vehId, int booking1stID, int booking2ndID,
+    										const amod::Position &firstPickup, const amod::Position &secondPickup,
+    										const amod::Position &firstDropoff, const amod::Position &secondDropoff,
+    					amod::VehicleStatus veh_start_status = VehicleStatus::BUSY,
+    					amod::VehicleStatus veh_end_status = VehicleStatus::FREE) = 0;
+
     // pickupCustomer
     // picks up customer with id cust_id using vehicle with id veh_id. If the call is successful,
     // the vehicle status is status is set to start_status. After the customer is picked up,
@@ -111,8 +118,8 @@ public:
     // one of the amod::ReturnCode error codes.
     virtual amod::ReturnCode serviceBooking(amod::World *world_state, const amod::Booking &booking) = 0;
     
-    virtual amod::ReturnCode serviceSharedBooking(amod::World *world_state, const amod::Booking &booking1,
-    		const amod::Booking &booking2, int vehId) = 0;
+    virtual amod::ReturnCode serviceSharedBookings(amod::World *world_state, const amod::Booking &booking1,
+    		const amod::Booking &booking2, int vehId1, int vehId2) = 0;
 
     // distance functions
     // returns the driving distance from Position from to Position to. This may not be the Euclidean

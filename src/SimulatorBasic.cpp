@@ -241,6 +241,36 @@ amod::ReturnCode SimulatorBasic::dispatchVehicle(amod::World *world_state,
 	return amod::SUCCESS;
 }
 
+amod::ReturnCode SimulatorBasic::dispatchSharedVehicle(amod::World *world_state,
+										int vehId, int booking1_id, int booking2_id,
+										const amod::Position &firstPickup, const amod::Position &secondPickup,
+										const amod::Position &firstDropoff, const amod::Position &secondDropoff,
+										amod::VehicleStatus start_status,
+										amod::VehicleStatus end_status) {
+
+
+	// check if vehicle already exists in the dispatch map
+	auto it = dispatches_.find(vehId);
+	if (it != dispatches_.end()) {
+		if (getVerbose()) std::cout << "Vehicle ID found (it is currently being dispatched!): " << vehId << std::endl;
+		return amod::VEHICLE_CANNOT_BE_DISPATCHED;
+	}
+
+	// create a new dispatch
+	Vehicle veh = state_.getVehicle(vehId);
+	if (!veh.getId()) {
+		if (getVerbose()) std::cout << "Can't get vehicle from world_state" << std::endl;
+		return amod::CANNOT_GET_VEHICLE;
+	}
+
+	Dispatch dp;
+	dp.booking_id = booking1_id;
+	dp.veh_id = vehId;
+	dp.from = veh.getPosition();
+
+	return amod::SUCCESS;
+}
+
 amod::ReturnCode SimulatorBasic::pickupCustomer(amod::World *world_state,
 		int veh_id, int cust_id,
 		amod::VehicleStatus start_status,
@@ -456,7 +486,7 @@ amod::ReturnCode SimulatorBasic::serviceBooking(amod::World *world_state, const 
 }
 
 
-amod::ReturnCode SimulatorBasic::serviceSharedBooking(amod::World *world_state, const amod::Booking &booking1st,
+amod::ReturnCode SimulatorBasic::serviceSharedBookings(amod::World *world_state, const amod::Booking &booking1st,
 		const amod::Booking &booking2nd, int vehId1, int vehId2) {
 
 	amod::ReturnCode rc;
@@ -467,21 +497,60 @@ amod::ReturnCode SimulatorBasic::serviceSharedBooking(amod::World *world_state, 
 	Vehicle *veh1 = world_state->getVehiclePtr(vehId1);
 	Vehicle *veh2 = world_state->getVehiclePtr(vehId2);
 
+	// schedule the trip order
 	if (vehId1 == vehId2) {
-		// find which customer is nearer to the vehicle (veh1 and veh2 are the same)
 
-		double distV1toC1 = getDrivingDistance(veh1->getPosition(), cust1->getPosition());
-		double distV1toC2 = getDrivingDistance(veh1->getPosition(), cust2->getPosition());
-		// dispatch vehicle to the nearest customer
+		double P1P2D1D2 = getDrivingDistance(veh1->getPosition(), cust1->getPosition()) +
+				getDrivingDistance(cust1->getPosition(), cust2->getPosition()) +
+				getDrivingDistance(cust2->getPosition(), booking1st.destination) +
+				getDrivingDistance(booking1st.destination, booking2nd.destination);
 
-		double distC1toC2 = getDrivingDistance(cust1->getPosition(), cust2->getPosition());
-		double distC2toC1 = getDrivingDistance(cust2->getPosition(), cust1->getPosition());
+		double P1P2D2D1 = getDrivingDistance(veh1->getPosition(), cust1->getPosition()) +
+				getDrivingDistance(cust1->getPosition(), cust2->getPosition()) +
+				getDrivingDistance(cust2->getPosition(), booking2nd.destination) +
+				getDrivingDistance(booking2nd.destination, booking1st.destination);
 
-		if (distV1toC1 + distC1toC2 <= distV1toC2 + distC2toC1) {
-			// send veh to cust1 and later to cust2
+		double P2P1D1D2 = getDrivingDistance(veh1->getPosition(), cust2->getPosition()) +
+				getDrivingDistance(cust2->getPosition(), cust1->getPosition()) +
+				getDrivingDistance(cust1->getPosition(), booking1st.destination) +
+				getDrivingDistance(booking1st.destination, booking2nd.destination);
 
-		} else {
-			// send veh to cust1 and later to cust2
+		double P2P1D2D1 = getDrivingDistance(veh1->getPosition(), cust2->getPosition()) +
+				getDrivingDistance(cust2->getPosition(), cust1->getPosition()) +
+				getDrivingDistance(cust1->getPosition(), booking2nd.destination) +
+				getDrivingDistance(booking2nd.destination, booking1st.destination);
+
+		double shortestTrip = std::min(std::min(P1P2D1D2, P1P2D2D1), std::min(P2P1D1D2, P2P1D2D1));
+
+		amod::Position cust1_pos = cust1->getPosition();
+		amod::Position cust2_pos = cust2->getPosition();
+		amod::Position cust1_dropOff = booking1st.destination;
+		amod::Position cust2_dropOff = booking2nd.destination;
+
+		if (shortestTrip == P1P2D1D2) {
+			// pick up cust1, later to cust2, drop off 1, drop off 2
+			rc = dispatchSharedVehicle(world_state, vehId1, booking1st.id, booking2nd.id,
+					cust1_pos, cust2_pos, cust1_dropOff, cust2_dropOff,
+					amod::VehicleStatus::MOVING_TO_FIRST_PICKUP, amod::VehicleStatus::HIRED);
+
+		} else if (shortestTrip == P1P2D2D1) {
+			// pick up cust1, later to cust2, drop off 2, drop off 1
+			rc = dispatchSharedVehicle(world_state, vehId1, booking1st.id, booking2nd.id,
+					cust1_pos, cust2_pos, cust2_dropOff, cust1_dropOff,
+					amod::VehicleStatus::MOVING_TO_FIRST_PICKUP, amod::VehicleStatus::HIRED);
+
+		} else if (shortestTrip == P2P1D1D2) {
+			// pick up cust2, later to cust1, drop off 1, drop off 2
+			rc = dispatchSharedVehicle(world_state, vehId1, booking1st.id, booking2nd.id,
+					cust2_pos, cust1_pos, cust1_dropOff, cust2_dropOff,
+					amod::VehicleStatus::MOVING_TO_FIRST_PICKUP, amod::VehicleStatus::HIRED);
+
+		} else if (shortestTrip == P2P1D2D1) {
+			// pick up cust2, later to cust1, drop off 2, drop off 1
+			rc = dispatchSharedVehicle(world_state, vehId1, booking1st.id, booking2nd.id,
+					cust2_pos, cust1_pos, cust2_dropOff, cust1_dropOff,
+					amod::VehicleStatus::MOVING_TO_FIRST_PICKUP, amod::VehicleStatus::HIRED);
+
 		}
 
 

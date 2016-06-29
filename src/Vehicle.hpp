@@ -2,7 +2,7 @@
  * Vehicle.h
  *
  *  Created on: Mar 23, 2015
- *      Author: haroldsoh
+ *      Author: haroldsoh, kasia
  */
 
 #ifndef Vehicle_H_
@@ -33,6 +33,10 @@ public:
 	    MOVING_TO_SECOND_PICKUP,
 	    MOVING_TO_FIRST_DROPOFF,
 	    MOVING_TO_SECOND_DROPOFF,
+	    PICKING_UP_FIRST,
+	    PICKING_UP_SECOND,
+	    DROPPING_OFF_FIRST,
+	    DROPPING_OFF_SECOND,
 	    UNKNOWN
 	};
 
@@ -51,6 +55,10 @@ public:
     virtual int getCustomerId() const;
 	virtual void clearCustomerId();
 
+	virtual void setSecondCustomerId(int cust_id);
+    virtual int getSecondCustomerId() const;
+	virtual void clearSecondCustomerId();
+
 	virtual void setCapacity(int capacity);
 	virtual int getCapacity() const;
 
@@ -67,6 +75,7 @@ private:
 	double speed_;
 
 	int customer_id_;
+	int customer2_id_;
 	std::list<Position> waypoints_;
 
     int location_id_;

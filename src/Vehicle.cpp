@@ -11,13 +11,13 @@ namespace amod {
     
 typedef Vehicle::Status VehicleStatus;
 
-    Vehicle::Vehicle(int id) : status_(UNKNOWN), capacity_(1), speed_(0), customer_id_(0), location_id_(0) {
+    Vehicle::Vehicle(int id) : status_(UNKNOWN), capacity_(1), speed_(0), customer_id_(0), customer2_id_(0), location_id_(0) {
         // TODO Auto-generated constructor stub
         Entity::setId(id);
     }
     
     Vehicle::Vehicle(int id, std::string name, Position pos, int capacity, VehicleStatus status) :
-    Entity(id, name, pos), capacity_(capacity), status_(status), speed_(0), customer_id_(0)
+    Entity(id, name, pos), capacity_(capacity), status_(status), speed_(0), customer_id_(0), customer2_id_(0)
     {
         return;
     }
@@ -54,6 +54,18 @@ typedef Vehicle::Status VehicleStatus;
         customer_id_ = 0;
     }
     
+	void Vehicle::setSecondCustomerId(int cust2_id) {
+		customer2_id_ = cust2_id;
+	}
+
+    int Vehicle::getSecondCustomerId() const {
+    	return customer2_id_;
+    }
+
+	void Vehicle::clearSecondCustomerId() {
+		customer2_id_ = 0;
+	}
+
     
     void Vehicle::setCapacity(int capacity) {
         capacity_ = capacity;

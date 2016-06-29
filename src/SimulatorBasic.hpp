@@ -209,6 +209,16 @@ private:
 		Position grad; //normalized gradient
 		Position curr;
 		amod::VehicleStatus veh_end_status;
+		int booking2_id;
+		int first_pickup_id;
+		int second_pickup_id;
+		int first_dropoff_id;
+		int second_dropoff_id;
+		Position first_pickup;
+		Position second_pickup;
+		Position first_dropoff;
+		Position second_dropoff;
+
 	};
 
 	struct Pickup {
@@ -297,6 +307,9 @@ private:
 
 	// checks if the vehicle specified in the Dispatch d has arrived
 	virtual bool hasArrived(const Dispatch &d);
+
+	// checks if the shared vehicle specified in the Dispatch d has arrived
+	virtual bool hasSharedArrived(const Dispatch &d);
 
 	// returns the euclidean distance between a and b
 	double eucDist(const Position &a, const Position &b);

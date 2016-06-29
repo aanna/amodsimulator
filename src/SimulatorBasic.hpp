@@ -308,8 +308,8 @@ private:
 	// checks if the vehicle specified in the Dispatch d has arrived
 	virtual bool hasArrived(const Dispatch &d);
 
-	// checks if the shared vehicle specified in the Dispatch d has arrived
-	virtual bool hasSharedArrived(const Dispatch &d);
+	// checks if the shared vehicle specified in the Dispatch d has arrived from to.
+	virtual bool hasSharedArrived(const Dispatch &d, const Position &from, const Position &to);
 
 	// returns the euclidean distance between a and b
 	double eucDist(const Position &a, const Position &b);

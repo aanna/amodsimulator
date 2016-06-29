@@ -10,8 +10,8 @@
 namespace amod {
 
 SimulatorBasic::SimulatorBasic(double resolution):
-        																										resolution_(resolution), event_id_(0),
-        																										using_locations_(false)
+        																																resolution_(resolution), event_id_(0),
+        																																using_locations_(false)
 {
 	// just return
 }
@@ -170,7 +170,7 @@ amod::ReturnCode SimulatorBasic::dispatchVehicle(amod::World *world_state,
 	//        }
 	//
 
-	// add it to the dispatch qmap
+	// add it to the dispatch map
 	dispatches_[veh_id] = dp;
 
 	// update the vehicle status
@@ -269,58 +269,104 @@ amod::ReturnCode SimulatorBasic::dispatchSharedVehicle(amod::World *world_state,
 	dp.veh_id = vehId;
 	dp.from = veh.getPosition();
 
-	//	if (using_locations_) {
-	//		Location pickup1 = loc_tree_.findNN({firstPickup.x, firstPickup.y});
-	//		dp.first_pickup = pickup1.getPosition(); // find the closest location to be the destination position
-	//		dp.to_loc_id = pickup1.getId();
-	//	} else {
-	//		dp.first_pickup = firstPickup;
-	//	}
-	//	if (using_locations_) {
-	//		Location veh_pos = loc_tree_.findNN({dp.from.x, dp.from.y});
-	//		dp.from = veh_pos.getPosition(); // find the closest location to be the destination position
-	//		dp.from_loc_id = veh_pos.getId();
-	//	}
-	//
-	//	dp.curr = dp.from;
-	//	double dx = dp.to.x - dp.from.x;
-	//	double dy = dp.to.y - dp.from.y;
-	//	double rd = sqrt( dx*dx + dy*dy);
-	//	if (rd == 0) {
-	//		dp.grad = Position(1.0, 1.0); // just travel someplace (same location, will arrive at next timestep)
-	//	} else {
-	//		dp.grad = Position( dx/rd , dy/rd); // travel in the direction of the destination
-	//	}
-	//	dp.veh_end_status = end_status;
+	// first pick up
+	if (using_locations_) {
+		Location pickup1 = loc_tree_.findNN({firstPickup.x, firstPickup.y});
+		dp.first_pickup = pickup1.getPosition(); // find the closest location to be the destination position
+		dp.first_pickup_id = pickup1.getId();
+	} else {
+		dp.first_pickup = firstPickup;
+	}
+	// second pick up
+	if (using_locations_) {
+		Location pickup2 = loc_tree_.findNN({secondPickup.x, secondPickup.y});
+		dp.second_pickup = pickup2.getPosition(); // find the closest location to be the destination position
+		dp.first_pickup_id = pickup2.getId();
+	} else {
+		dp.second_pickup = secondPickup;
+	}
+	// first drop off
+	if (using_locations_) {
+		Location dropoff1 = loc_tree_.findNN({firstDropoff.x, firstDropoff.y});
+		dp.first_dropoff = dropoff1.getPosition(); // find the closest location to be the destination position
+		dp.first_dropoff_id = dropoff1.getId();
+	} else {
+		dp.first_dropoff = firstDropoff;
+	}
+	// second drop off
+	if (using_locations_) {
+		Location dropoff2 = loc_tree_.findNN({secondDropoff.x, secondDropoff.y});
+		dp.second_dropoff = dropoff2.getPosition(); // find the closest location to be the destination position
+		dp.second_dropoff_id = dropoff2.getId();
+	} else {
+		dp.second_dropoff = secondDropoff;
+	}
+	// vehicle position
+	if (using_locations_) {
+		Location veh_pos = loc_tree_.findNN({dp.from.x, dp.from.y});
+		dp.from = veh_pos.getPosition(); // find the closest location to be the destination position
+		dp.from_loc_id = veh_pos.getId();
+	}
+
+	// current position is equal to the vehicle's position
+	dp.curr = dp.from;
+	double dx = dp.to.x - dp.from.x;
+	double dy = dp.to.y - dp.from.y;
+	double rd = sqrt( dx*dx + dy*dy);
+	if (rd == 0) {
+		dp.grad = Position(1.0, 1.0); // just travel someplace (same location, will arrive at next timestep)
+	} else {
+		dp.grad = Position( dx/rd , dy/rd); // travel in the direction of the destination
+	}
+
+	dp.veh_end_status = end_status;
 	//
 	//	//        if (dp.from == dp.to) {
 	//	//            return amod::SOURCE_EQUALS_DESTINATION;
 	//	//        }
 	//	//
 	//
-	//	// add it to the dispatch map
-	//	dispatches_[vehId] = dp;
-	//
-	//	// update the vehicle status
-	//	veh.setStatus(start_status);
-	//	world_state->setVehicle(veh);
-	//	state_.setVehicle(veh);
-	//	if (booking1_id) {
-	//		//get the booking customer
-	//		Customer cust1 = world_state->getCustomer(bookings_[booking1_id].cust_id);
-	//
-	//		if (!cust1.isInVehicle()) {
-	//			//if (getVerbose()) std::cout << "Set customer waiting for pickup" << std::endl;
-	//			cust1.setStatus(CustomerStatus::WAITING_FOR_PICKUP);
-	//			world_state->setCustomer(cust1);
-	//			state_.setCustomer(cust1);
-	//		} else {
-	//			//if (getVerbose()) std::cout << "Set customer in vehicle" << std::endl;
-	//			cust1.setStatus(CustomerStatus::IN_VEHICLE);
-	//			world_state->setCustomer(cust1);
-	//			state_.setCustomer(cust1);
-	//		}
-	//	}
+	// add it to the dispatch map
+	dispatches_[vehId] = dp;
+
+	// update the vehicle status
+	veh.setStatus(start_status);
+	world_state->setVehicle(veh);
+	state_.setVehicle(veh);
+
+	if (booking1_id) {
+		//get the booking customer
+		Customer cust1 = world_state->getCustomer(bookings_[booking1_id].cust_id);
+
+		if (!cust1.isInVehicle()) {
+			//if (getVerbose()) std::cout << "Set customer waiting for pickup" << std::endl;
+			cust1.setStatus(CustomerStatus::WAITING_FOR_PICKUP);
+			world_state->setCustomer(cust1);
+			state_.setCustomer(cust1);
+		} else {
+			//if (getVerbose()) std::cout << "Set customer in vehicle" << std::endl;
+			cust1.setStatus(CustomerStatus::IN_VEHICLE);
+			world_state->setCustomer(cust1);
+			state_.setCustomer(cust1);
+		}
+	}
+
+	if (booking2_id) {
+		//get the booking customer
+		Customer cust2 = world_state->getCustomer(bookings_[booking2_id].cust_id);
+
+		if (!cust2.isInVehicle()) {
+			//if (getVerbose()) std::cout << "Set customer waiting for pickup" << std::endl;
+			cust2.setStatus(CustomerStatus::WAITING_FOR_PICKUP);
+			world_state->setCustomer(cust2);
+			state_.setCustomer(cust2);
+		} else {
+			//if (getVerbose()) std::cout << "Set customer in vehicle" << std::endl;
+			cust2.setStatus(CustomerStatus::IN_VEHICLE);
+			world_state->setCustomer(cust2);
+			state_.setCustomer(cust2);
+		}
+	}
 	//
 	//	// location specific changes
 	//	if (using_locations_) {
@@ -426,7 +472,7 @@ amod::ReturnCode SimulatorBasic::dropoffCustomer(amod::World *world_state,
 		return amod::CANNOT_GET_VEHICLE;
 	}
 
-	if (veh.getCustomerId() != cust_id) {
+	if ( !(veh.getCustomerId() == cust_id || veh.getSecondCustomerId() == cust_id) ) {
 		return amod::VEHICLE_DOES_NOT_HAVE_CUSTOMER;
 	}
 
@@ -813,6 +859,7 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 		veh.setPosition(it->second.curr);
 
 		// private or shared trip
+		// second customer may not be on board yet...
 		if (veh.getSecondCustomerId()) {
 			// shared ride
 			int cust1_id = veh.getCustomerId(); // first customer
@@ -833,6 +880,21 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 			// first pickup, second pickup, first dropoff, second dropoff
 			if (hasSharedArrived(it->second)) {
 				//
+
+				//				if (dp.first_pickup_id == dp.second_pickup_id) {
+				//					// one pick up for two customers
+				//
+				//				} else if (dp.first_dropoff == dp.second_dropoff) {
+				//
+				//				} else if (dp.second_pickup == dp.first_dropoff) {
+				//
+				//				} else {
+				//					// all are different
+				//
+				//				}
+
+
+
 
 			} else {
 				// move event
@@ -1015,7 +1077,7 @@ bool SimulatorBasic::hasArrived(const Dispatch &d) {
 	return (dist_to_curr >= dist_to_dest); // distance travelled larger or equal to distance to destination
 }
 
-bool SimulatorBasic::hasSharedArrived(const Dispatch &d) {
+bool SimulatorBasic::hasSharedArrived(const Dispatch &d, const Position &from, const Position &to) {
 	//Position diff(d.to.x - d.curr.x, d.to.y - d.curr.y);
 	//return !((sign(diff.x) == sign(d.grad.x)) && (sign(diff.x) == sign(d.grad.x)));
 	double dist_to_dest = getDistance(d.first_dropoff, d.second_dropoff);
@@ -1101,7 +1163,7 @@ void SimulatorBasic::simulateDropoffs(amod::World *world_state) {
 			cust->setStatus(amod::CustomerStatus::FREE);
 			cust->setLocationId(it->second.loc_id);
 
-			// if is part of a booking, clear it since the vehicle has fropped off the custmer
+			// if is part of a booking, clear it since the vehicle has dropped off the custmer
 
 			if (bid) {
 				bookings_.erase(bid);

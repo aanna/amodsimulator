@@ -131,7 +131,7 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 	if (fout_.is_open()) fout_.precision(10);
 	// respond to events
 	for (auto e:events) {
-		if (e.type == EVENT_ARRIVAL ||  e.type == EVENT_DROPOFF) {
+		if (e.type == EVENT_ARRIVAL ||  e.type == EVENT_DROPOFF ||  e.type == EVENT_SECOND_DROPOFF) {
 			amod::Vehicle veh = world_state->getVehicle(e.entity_ids[0]);
 
 			// make this vehicle available again
@@ -139,7 +139,6 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 				if (verbose_) std::cout << "Making vehicle " << veh.getId() << " available for redispatch." << std::endl;
 				available_vehs_.insert(e.entity_ids[0]);
 			}
-
 		}
 	}
 
@@ -214,10 +213,10 @@ amod::ReturnCode ManagerMatchRebalance::update(World *world_state) {
 			}
 
 			// erase the booking
-			bookings_.erase(bookings_itr_);
+			bookings_itr_ = bookings_.erase(bookings_itr_);
 
 			// set to the earliest booking
-			bookings_itr_ = bookings_.begin();
+			//bookings_itr_ = bookings_.begin();
 		} else {
 			break;
 		}

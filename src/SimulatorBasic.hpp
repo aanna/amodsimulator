@@ -69,7 +69,8 @@ public:
 	virtual amod::ReturnCode continueDispatchSharedVeh(amod::World *world_state,
 			int vehId, int booking1stID, int booking2ndID,
 			const amod::Position &from, const amod::Position &to,
-			std::vector<int> schedule_order);
+			amod::VehicleStatus end_status,
+			int which_bk);
 
 	// pickupCustomer
 	// picks up customer with id cust_id using vehicle with id veh_id. If the call is successful,
@@ -315,7 +316,7 @@ private:
 	virtual bool hasArrived(const Dispatch &d);
 
 	// checks if the shared vehicle specified in the Dispatch d has arrived from to.
-	virtual bool hasSharedArrived(const Dispatch &d, const Position &from, const Position &to);
+	virtual bool hasSharedArrived(const Dispatch &d);
 
 	// returns the euclidean distance between a and b
 	double eucDist(const Position &a, const Position &b);

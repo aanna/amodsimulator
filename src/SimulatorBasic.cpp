@@ -312,8 +312,8 @@ amod::ReturnCode SimulatorBasic::dispatchNewSharedVehicle(amod::World *world_sta
 
 	// current position is equal to the vehicle's position
 	dp.curr = dp.from;
-	double dx = dp.to.x - dp.from.x;
-	double dy = dp.to.y - dp.from.y;
+	double dx = dp.first_pickup.x - dp.from.x;
+	double dy = dp.first_pickup.y - dp.from.y;
 	double rd = sqrt( dx*dx + dy*dy);
 	if (rd == 0) {
 		dp.grad = Position(1.0, 1.0); // just travel someplace (same location, will arrive at next timestep)
@@ -440,8 +440,7 @@ amod::ReturnCode SimulatorBasic::dispatchNewSharedVehicle(amod::World *world_sta
 
 amod::ReturnCode SimulatorBasic::continueDispatchSharedVeh(amod::World *world_state,
 		int vehId, int booking1stID, int booking2ndID,
-		const amod::Position &from, const amod::Position &to,
-		std::vector<int> schedule_order) {
+		amod::VehicleStatus status) {
 
 
 
@@ -932,8 +931,8 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 		veh.setPosition(it->second.curr);
 
 		// private or shared trip
-		// second customer may not be on board yet...
-		if (veh.getSecondCustomerId()) {
+		// this is a shared ride only if second_id exists
+		if (it->second.booking2_id) {
 			// shared ride
 			int cust1_id = veh.getCustomerId(); // first customer
 			Customer cust1 = Customer();
@@ -952,10 +951,10 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 			// if vehicle (specified by the dispatch) has arrived at either:
 			// first pickup, second pickup, first dropoff, second dropoff
 			if (hasSharedArrived(it->second)) {
-				//
 
-				//				if (dp.first_pickup_id == dp.second_pickup_id) {
+				//				if (dp.first_pickup_loc_id == dp.second_pickup_loc_id) {
 				//					// one pick up for two customers
+				//					// time does not play a role because both customers are already in the queue
 				//
 				//				} else if (dp.first_dropoff == dp.second_dropoff) {
 				//
@@ -966,6 +965,85 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 				//
 				//				}
 
+				amod::VehicleStatus currStatus = it->second.veh_end_status;
+				amod::Position new_orig;
+				amod::Position new_dest;
+
+				if (currStatus == amod::VehicleStatus::FREE) {
+					// should never happen
+					if(verbose_) std::cout << "Vehicle is not dispatched " << it->second.veh_id << std::endl;
+
+				} else if (currStatus == amod::VehicleStatus::PICKING_UP_FIRST) {
+					new_orig = it->second.first_pickup;
+					new_dest = it->second.second_pickup;
+					int whichBooking = it->second.schedule_order[1];
+
+					// if they are equal
+					// pickup customer1 and
+					// pickup customer2
+					// dispatch to first dropoff
+					// else
+					// pick up cust 1 and
+					// dispatch to second pickup
+					amod:ReturnCode rc;
+					if (new_orig == new_dest) {
+						// pick up customer two and continue dispatch
+						rc = pickupCustomer(world_state, veh.getId(), cust1_id,
+								amod::VehicleStatus::MOVING_TO_SECOND_PICKUP, amod::VehicleStatus::PICKING_UP_SECOND,
+								it->second.booking_id);
+
+						rc = pickupCustomer(world_state, veh.getId(), cust2_id,
+								amod::VehicleStatus::MOVING_TO_SECOND_PICKUP, amod::VehicleStatus::PICKING_UP_SECOND,
+								it->second.booking2_id);
+
+						new_dest = it->second.first_dropoff;
+						rc = continueDispatchSharedVeh(world_state, veh.getId(), it->second.booking_id, it->second.booking2_id,
+								new_orig, new_dest, amod::VehicleStatus::DROPPING_OFF_FIRST, whichBooking);
+
+					} else {
+						rc = continueDispatchSharedVeh(world_state, veh.getId(), it->second.booking_id, it->second.booking2_id,
+								it->second.first_pickup, it->second.second_pickup,
+								amod::VehicleStatus::DROPPING_OFF_FIRST, whichBooking);
+					}
+
+
+				} else if (currStatus == amod::VehicleStatus::PICKING_UP_SECOND) {
+					new_orig = it->second.second_pickup;
+					new_dest = it->second.first_dropoff;
+
+					// they should never be equal but we can set a condition just in case
+
+					// if they are equal
+					// dispatch to second dropoff
+					// else
+					// dispatch to first dropoff
+
+					if (new_orig == new_dest) {
+
+
+					} else {
+
+					}
+
+				} else if (currStatus == amod::VehicleStatus::DROPPING_OFF_FIRST) {
+					new_orig = it->second.first_dropoff;
+					new_dest = it->second.second_dropoff;
+
+					// dispatch to second dropoff
+
+					if (new_orig == new_dest) {
+
+
+					} else {
+
+					}
+
+
+				} else if (currStatus == amod::VehicleStatus::DROPPING_OFF_SECOND) {
+
+					// arrive event
+
+				}
 
 
 
@@ -995,8 +1073,6 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 				world_state->setCustomer(cust2);
 				state_.setCustomer(cust2);
 			}
-
-
 
 
 		} else {
@@ -1150,11 +1226,33 @@ bool SimulatorBasic::hasArrived(const Dispatch &d) {
 	return (dist_to_curr >= dist_to_dest); // distance travelled larger or equal to distance to destination
 }
 
-bool SimulatorBasic::hasSharedArrived(const Dispatch &d, const Position &from, const Position &to) {
-	//Position diff(d.to.x - d.curr.x, d.to.y - d.curr.y);
-	//return !((sign(diff.x) == sign(d.grad.x)) && (sign(diff.x) == sign(d.grad.x)));
-	double dist_to_dest = getDistance(d.first_dropoff, d.second_dropoff);
-	double dist_to_curr = getDistance(d.from, d.curr);
+bool SimulatorBasic::hasSharedArrived(const Dispatch &d) {
+
+	// check what is the end vehicle status
+	amod::VehicleStatus currStatus = d.veh_end_status;
+	amod::Position from;
+	amod::Position to;
+	if (currStatus == amod::VehicleStatus::FREE) {
+		// should never happen
+		if(verbose_) std::cout << "Vehicle is not dispatched " << d.veh_id << std::endl;
+
+	} else if (currStatus == amod::VehicleStatus::PICKING_UP_FIRST) {
+		from = d.from;
+		to = d.first_pickup;
+	} else if (currStatus == amod::VehicleStatus::PICKING_UP_SECOND) {
+		from = d.first_pickup;
+		to = d.second_pickup;
+	} else if (currStatus == amod::VehicleStatus::DROPPING_OFF_FIRST) {
+		from = d.second_pickup;
+		to = d.first_dropoff;
+	} else if (currStatus == amod::VehicleStatus::DROPPING_OFF_SECOND) {
+		from = d.first_dropoff;
+		to = d.second_dropoff;
+	}
+
+	// and based on this check what are origin and destination of the current sub-dispatch
+	double dist_to_dest = getDistance(from, to);
+	double dist_to_curr = getDistance(from, d.curr);
 	return (dist_to_curr >= dist_to_dest); // distance travelled larger or equal to distance to destination
 }
 

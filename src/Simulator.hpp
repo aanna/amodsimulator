@@ -51,14 +51,14 @@ public:
 			amod::VehicleStatus end_status = VehicleStatus::FREE) = 0;
 
 	virtual amod::ReturnCode dispatchNewSharedVehicle(amod::World *world_state,
-			int vehId, int booking1stID, int booking2ndID,
+			int vehId, int booking1_id, int booking2_id,
 			const amod::Position &firstPickup, const amod::Position &secondPickup,
-			const amod::Position &firstDropoff, const amod::Position &secondDropoff) = 0;
+			const amod::Position &firstDropoff, const amod::Position &secondDropoff,
+			std::vector<int> scheduleOrder) = 0;
 
 	virtual amod::ReturnCode continueDispatchSharedVeh(amod::World *world_state,
-			int vehId, int booking1stID, int booking2ndID,
-			const amod::Position &from, const amod::Position &to,
-			amod::VehicleStatus end_status, int which_bk) = 0;
+				int vehId, int booking1stID, int booking2ndID,
+				amod::VehicleStatus status) = 0;
 
 	// pickupCustomer
 	// picks up customer with id cust_id using vehicle with id veh_id. If the call is successful,

@@ -997,13 +997,13 @@ void SimulatorBasic::simulateVehicles(amod::World *world_state) {
 								it->second.booking2_id);
 
 						new_dest = it->second.first_dropoff;
-						rc = continueDispatchSharedVeh(world_state, veh.getId(), it->second.booking_id, it->second.booking2_id,
-								new_orig, new_dest, amod::VehicleStatus::DROPPING_OFF_FIRST, whichBooking);
+						//rc = continueDispatchSharedVeh(world_state, veh.getId(), it->second.booking_id, it->second.booking2_id,
+							//	new_orig, new_dest, amod::VehicleStatus::DROPPING_OFF_FIRST, whichBooking);
 
 					} else {
-						rc = continueDispatchSharedVeh(world_state, veh.getId(), it->second.booking_id, it->second.booking2_id,
-								it->second.first_pickup, it->second.second_pickup,
-								amod::VehicleStatus::DROPPING_OFF_FIRST, whichBooking);
+						//rc = continueDispatchSharedVeh(world_state, veh.getId(), it->second.booking_id, it->second.booking2_id,
+							//	it->second.first_pickup, it->second.second_pickup,
+								//amod::VehicleStatus::DROPPING_OFF_FIRST, whichBooking);
 					}
 
 
